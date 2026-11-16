@@ -1,0 +1,24 @@
+[package]
+name = "ryocs"
+version = "0.3.0"
+edition = "2021"
+
+[dependencies]
+wry = "0.53"
+tao = "0.34"
+tiny_http = "0.12"
+# native-tls (Windows schannel) instead of ring/rustls, which need a C compiler
+ureq = { version = "2", default-features = false, features = ["native-tls", "json"] }
+native-tls = "0.2"
+serde_json = "1"
+url = "2"
+tauri-winrt-notification = "0.7"
+# OAuth PKCE: random verifier and SHA-256 challenge 
+getrandom = "0.2"
+sha2 = "0.10"
+base64 = "0.22"
+# tray icon, global shortcut, app ID (the version that already comes with wry/tao)
+windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_UI_Shell", "Win32_UI_WindowsAndMessaging", "Win32_UI_Input_KeyboardAndMouse", "Win32_System_LibraryLoader", "Win32_Graphics_Gdi", "Win32_Graphics_Dwm", "Win32_System_Threading", "Win32_System_SystemInformation", "Win32_Storage_FileSystem", "Win32_System_Power", "Win32_System_DataExchange", "Win32_System_Memory", "Win32_Globalization"] }
+
+[build-dependencies]
+embed-resource = "3"

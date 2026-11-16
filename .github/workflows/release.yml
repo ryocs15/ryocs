@@ -1,0 +1,41 @@
+# Pushing a tag like v0.3.0 builds the app and the installer on Windows and publishes a GitHub release with it.
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Test
+        run: cargo test --release --locked
+
+      - name: Build
+        run: cargo build --release --locked
+
+      - name: Install Inno Setup
+        run: choco install innosetup -y --no-progress
+
+      - name: Build installer
+        shell: pwsh
+        run: |
+          $v = "${{ github.ref_name }}".TrimStart("v")
+          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" /Q "/DSurum=$v" kurulum\ryocs.iss
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+
+      - name: Publish release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $f = Get-ChildItem target\kurulum\RYOCS-Setup-*.exe
+          gh release view "${{ github.ref_name }}" 2>$null
+          if ($LASTEXITCODE) { gh release create "${{ github.ref_name }}" $f.FullName --title "RYOCS ${{ github.ref_name }}" --generate-notes }
+          else { gh release upload "${{ github.ref_name }}" $f.FullName --clobber }

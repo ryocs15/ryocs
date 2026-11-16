@@ -1,0 +1,10 @@
+/target/
+# vendored crates and the offline build config stay local; CI downloads crates from crates.io
+/vendor/
+/.cargo/
+# local previews and working notes
+/*.png
+/HABER_PLAN.md
+/KART_BOYUT_TASARIM.md
+/_k.html
+/_test_*.html
