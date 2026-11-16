@@ -962,7 +962,8 @@ addEventListener('mousedown',e=>{const y=!e.button&&kenarYon(e);if(y){e.preventD
 const $=s=>document.querySelector(s), K=document.documentElement, C=['#8fb996','#e9a25b','#e8b4b8','#e6c35c'], iki=n=>String(n).padStart(2,'0');
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>'&#'+c.charCodeAt(0)+';');
 async function api(p,b){
-  try{return await (await fetch(p,b===undefined?{}:{method:'POST',body:JSON.stringify(b),keepalive:true})).json()}
+  // keepalive (finishes while the page closes) only for small bodies: Chromium rejects keepalive bodies over 64 KB
+  try{const s=b===undefined?null:JSON.stringify(b);return await (await fetch(p,s===null?{}:{method:'POST',body:s,keepalive:s.length<30000})).json()}
   catch(e){return{durum:L('Sunucuya ulaşılamadı','Could not reach the server')}}
 }
 // Do not disturb: while a focus work round runs, notifications are held and arrive as one notification when the round ends or stops (localStorage: if the app closes, they arrive at the next start)
@@ -1329,7 +1330,7 @@ async function hava(){
 
 // Persistent state (data.json)
 let S=null,kt,yeniGorev=null;
-const kaydetSimdi=()=>{clearTimeout(kt);return S?api('/api/state',S):Promise.resolve()}; // Rust also calls this when the window closes
+const kaydetSimdi=()=>{clearTimeout(kt);return S?api('/api/state',S).then(r=>{if(r.durum!=='ok')tost(L('Kaydedilemedi: ','Could not save: ')+String(r.durum).slice(0,120));return r}):Promise.resolve()}; // Rust also calls this when the window closes
 const kaydet=()=>{clearTimeout(kt);kt=setTimeout(kaydetSimdi,300)};
 const A=k=>S?.ayar?.[k];
 const ara=()=>$('#ara').value.trim().toLocaleLowerCase(LOC);
@@ -1777,7 +1778,7 @@ async function uygEkle(){
   const ekle=async l=>{
     const r=await api('/api/simgeler',{yollar:l.map(u=>u.yol)}),sm=r.durum==='ok'?r.veri:{};
     for(const u of l)S.uygulamalar.push({ad:u.ad.slice(0,60),yol:u.yol,simge:sm[u.yol]||''});
-    uygCiz();kaydet();tost(l.length>1?l.length+L(' uygulama eklendi',' apps added'):l[0].ad+' eklendi');
+    uygCiz();kaydet();tost(l.length>1?l.length+L(' uygulama eklendi',' apps added'):l[0].ad+L(' eklendi',' added'));
   };
   d.querySelector('#uygGozat').onclick=async()=>{
     const r=await api('/api/dosya-sec',{});
@@ -2452,7 +2453,7 @@ async function onemliEkle(gun){
   const baslik=t==='dogum'?L('Doğum günü: ','Birthday: ')+ad:t==='yildonumu'?L('Yıldönümü: ','Anniversary: ')+ad:ad;
   const r=await api('/api/calendar/add',{summary:baslik.slice(0,200),start:{date:tarih},end:{date:gunStr(s)},yillik:tek==='yil',tur:t,yil:d.getFullYear()});
   if(r.durum!=='ok')return tost(L('Eklenemedi: ','Could not add: ')+String(r.durum).slice(0,120));
-  tost(TUR[t]+' '+ad+' eklendi'+(tek==='yil'?L(' (her yıl)',' (every year)'):''));takvimYenile();
+  tost(TUR[t]+' '+ad+L(' eklendi',' added')+(tek==='yil'?L(' (her yıl)',' (every year)'):''));takvimYenile();
 }
 $('#olay').addEventListener('click',async e=>{
   const row=e.target.closest('[data-e]');if(row)return detay(+row.dataset.e);
@@ -2706,7 +2707,7 @@ function mailCiz(){
     return el.innerHTML=L('<p class="m">Gmail API, Google Cloud projende kapalı. console.cloud.google.com → APIs &amp; Services → Library → "Gmail API" → Enable, sonra yenile.</p>','<p class="m">The Gmail API is turned off in your Google Cloud project. console.cloud.google.com → APIs &amp; Services → Library → "Gmail API" → Enable, then refresh.</p>');
   if(mailHata&&!mailV)return baglan(el,{durum:mailHata},'Google','google');
   if(!mailV)return ekYaz('#mail',L('<p class="m yuk">Mailler yükleniyor…</p>','<p class="m yuk">Loading mail…</p>'));
-  ekYaz('#mail',mailV.liste.map((m,i)=>`<button class="hb" data-m="${i}" title="${esc(m.konu||'(konusuz)')} — ${esc(m.kimden)}"><span><b>${esc(m.konu||'(konusuz)')}</b><small>${esc(mailAd(m.kimden))}${m.t?' · '+oncesi(m.t):''}</small></span></button>`).join('')
+  ekYaz('#mail',mailV.liste.map((m,i)=>`<button class="hb" data-m="${i}" title="${esc(m.konu||L('(konusuz)','(no subject)'))} — ${esc(m.kimden)}"><span><b>${esc(m.konu||L('(konusuz)','(no subject)'))}</b><small>${esc(mailAd(m.kimden))}${m.t?' · '+oncesi(m.t):''}</small></span></button>`).join('')
     ||L('<p class="m">Okunmamış mail yok.</p>','<p class="m">No unread mail.</p>'));
   $('#mailAlt').textContent='Gmail · '+L(oncesi(mailT)+' güncellendi','updated '+oncesi(mailT))+(mailHata?L(' · yenilenemedi',' · could not refresh'):'');
 }

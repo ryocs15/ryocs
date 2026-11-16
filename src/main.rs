@@ -138,13 +138,15 @@ fn hata_kaydet(metin: &str) {
     }
 }
 
-fn write_json(name: &str, v: &Value) {
-    // temporary file first: a half-finished write must not corrupt the data
+fn write_json(name: &str, v: &Value) -> Result<(), String> {
+    write_text(name, &v.to_string())
+}
+
+/// Temporary file first, then rename: a half-finished write must not corrupt the file.
+fn write_text(name: &str, s: &str) -> Result<(), String> {
     let p = dir().join(name);
     let tmp = p.with_extension("tmp");
-    if fs::write(&tmp, v.to_string()).is_ok() {
-        fs::rename(tmp, p).ok();
-    }
+    fs::write(&tmp, s).and_then(|_| fs::rename(&tmp, &p)).map_err(|e| e.to_string())
 }
 
 fn now() -> u64 {
@@ -156,6 +158,15 @@ fn body(r: Result<ureq::Response, ureq::Error>) -> Result<Value, String> {
         Ok(r) => Ok(r.into_json().unwrap_or(Value::Null)), // 204 / empty body -> null
         Err(ureq::Error::Status(c, r)) => Err(format!("{c}: {}", r.into_string().unwrap_or_default())),
         // connection/timeout: the raw address and TLS details are not shown to the user
+        Err(ureq::Error::Transport(_)) => Err(AG_YOK.into()),
+    }
+}
+
+/// Raw text (RSS / XML, parsed in the UI); errors as in body().
+fn metin(u: &str) -> Result<String, String> {
+    match AGENT.get(u).call() {
+        Ok(r) => r.into_string().map_err(|e| e.to_string()),
+        Err(ureq::Error::Status(c, _)) => Err(format!("{c}")),
         Err(ureq::Error::Transport(_)) => Err(AG_YOK.into()),
     }
 }
@@ -221,11 +232,7 @@ fn haber(b: &str) -> Result<Value, String> {
         _ => None,
     };
     if let Some(u) = rss {
-        return match AGENT.get(u).call() {
-            Ok(r) => r.into_string().map(Value::String).map_err(|e| e.to_string()),
-            Err(ureq::Error::Status(c, _)) => Err(format!("{c}")),
-            Err(ureq::Error::Transport(_)) => Err(AG_YOK.into()),
-        };
+        return metin(u).map(Value::String);
     }
     body(
         AGENT.get("https://www.bundle.app/api/main/get-feed")
@@ -235,11 +242,7 @@ fn haber(b: &str) -> Result<Value, String> {
 
 /// English currency card: ECB daily reference rates (raw XML, parsed in the UI) + gold-api.com gold ounce (USD).
 fn kur_ecb() -> Result<Value, String> {
-    let ecb = match AGENT.get("https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml").call() {
-        Ok(r) => r.into_string().map_err(|e| e.to_string())?,
-        Err(ureq::Error::Status(c, _)) => return Err(format!("{c}")),
-        Err(ureq::Error::Transport(_)) => return Err(AG_YOK.into()),
-    };
+    let ecb = metin("https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml")?;
     let ons = body(AGENT.get("https://api.gold-api.com/price/XAU").call()).ok().and_then(|v| v["price"].as_f64());
     Ok(json!({ "ecb": ecb, "ons": ons }))
 }
@@ -248,11 +251,7 @@ fn kur_ecb() -> Result<Value, String> {
 /// If gold cannot be fetched the rates still return; the UI computes gram gold as ounce × dollar ÷ 31.1035.
 /// shortcut: gold-api.com is a documented but unguaranteed free service; if it closes the gold row shows "—".
 fn kur() -> Result<Value, String> {
-    let tcmb = match AGENT.get("https://www.tcmb.gov.tr/kurlar/today.xml").call() {
-        Ok(r) => r.into_string().map_err(|e| e.to_string())?,
-        Err(ureq::Error::Status(c, _)) => return Err(format!("{c}")),
-        Err(ureq::Error::Transport(_)) => return Err(AG_YOK.into()),
-    };
+    let tcmb = metin("https://www.tcmb.gov.tr/kurlar/today.xml")?;
     let ons = body(AGENT.get("https://api.gold-api.com/price/XAU").call()).ok().and_then(|v| v["price"].as_f64());
     Ok(json!({ "tcmb": tcmb, "ons": ons }))
 }
@@ -392,7 +391,7 @@ fn esitle_durum() -> (&'static str, Option<PathBuf>) {
 fn esitle_oz_yaz(o: &str) {
     let mut e = read_json("esitle.json");
     e["oz"] = json!(o);
-    write_json("esitle.json", &e);
+    write_json("esitle.json", &e).ok();
 }
 /// Writes local to OneDrive (temp file + rename). On conflict or error it quietly gives up: it does not stop the save flow.
 fn esitle_gonder() {
@@ -430,7 +429,7 @@ fn esitle(b: &str) -> Result<Value, String> {
             if !k.is_empty() && !PathBuf::from(k).is_dir() { return Err(l("Klasör bulunamadı", "Folder not found").into()); }
             e["klasor"] = json!(k);
         }
-        write_json("esitle.json", &e);
+        write_json("esitle.json", &e)?;
     }
     let (mut d, k) = esitle_durum();
     if let (Some(sec), Some(k)) = (r["sec"].as_str(), k.as_ref()) {
@@ -486,7 +485,7 @@ fn kimlik_gecerli(p: &str, id: &str, gizli: &str) -> Result<(), String> {
         "google" if !(id.ends_with(".apps.googleusercontent.com") && duz(id)) =>
             Err(l("Google istemci kimliği \".apps.googleusercontent.com\" ile biter", "A Google client ID ends with \".apps.googleusercontent.com\"").into()),
         "spotify" if !(id.len() == 32 && id.bytes().all(|c| c.is_ascii_hexdigit())) =>
-            Err("Spotify Client ID 32 karakterlik bir koddur (0-9, a-f)".into()),
+            Err(l("Spotify Client ID 32 karakterlik bir koddur (0-9, a-f)", "A Spotify Client ID is a 32-character code (0-9, a-f)").into()),
         _ if !duz(gizli) => Err(l("Gizli anahtar boşluk ya da özel karakter içeremez", "The client secret cannot contain spaces or special characters").into()),
         _ => Ok(()),
     }
@@ -501,7 +500,7 @@ fn config_oku() -> Result<Value, String> {
 }
 
 fn config_yaz(c: &Value) -> Result<(), String> {
-    fs::write(dir().join("config.json"), serde_json::to_string_pretty(c).unwrap_or_default()).map_err(|e| e.to_string())
+    write_text("config.json", &serde_json::to_string_pretty(c).unwrap_or_default())
 }
 
 /// Setup dialog: saves the credentials and opens the consent page in the browser.
@@ -571,7 +570,7 @@ fn disconnect(p: &Provider) -> Result<Value, String> {
     if let Some(o) = all.as_object_mut() {
         o.remove(p.name);
     }
-    write_json("tokens.json", &all);
+    write_json("tokens.json", &all)?;
     Ok(Value::Null)
 }
 
@@ -593,7 +592,9 @@ fn save_token(p: &str, mut t: Value) {
     }
     t["expires_at"] = json!(now() + t["expires_in"].as_u64().unwrap_or(3600));
     all[p] = t;
-    write_json("tokens.json", &all);
+    if let Err(e) = write_json("tokens.json", &all) {
+        hata_kaydet(&format!("tokens.json write failed: {e}"));
+    }
 }
 
 /// Valid access token; refreshes if needed. Error: "kimlik_yok" | "bagli_degil" | message.
@@ -781,7 +782,9 @@ fn backup() {
     if !f.exists() && fs::copy(dir().join("data.json"), &f).is_err() {
         return;
     }
-    let mut all: Vec<_> = fs::read_dir(&b).into_iter().flatten().flatten().map(|e| e.path()).collect();
+    // only dated files (data-YYYY-MM-DD.json) count toward the 14; the undo / OneDrive copies stay
+    let mut all: Vec<_> = fs::read_dir(&b).into_iter().flatten().flatten().map(|e| e.path())
+        .filter(|p| p.file_name().and_then(|n| n.to_str()).is_some_and(|n| yedek_adi(n) && n.len() == 20)).collect();
     all.sort();
     for p in all.iter().rev().skip(14) {
         fs::remove_file(p).ok();
@@ -1014,7 +1017,7 @@ fn geri_yukle(v: Value) -> Result<Value, String> {
     let b = dir().join("yedekler");
     fs::create_dir_all(&b).ok();
     fs::copy(dir().join("data.json"), b.join("data-geri-alma.json")).ok();
-    write_json("data.json", &v);
+    write_json("data.json", &v)?;
     Ok(Value::Null)
 }
 
@@ -1090,7 +1093,8 @@ fn handle(mut req: Request) {
     let out: Result<Value, String> = if !post && path == "/api/state" {
         veri_oku()
     } else if post && path == "/api/state" {
-        serde_json::from_str::<Value>(&b).map(|v| { backup(); write_json("data.json", &v); esitle_gonder(); Value::Null }).map_err(|e| e.to_string())
+        serde_json::from_str::<Value>(&b).map_err(|e| e.to_string())
+            .and_then(|v| { backup(); write_json("data.json", &v)?; esitle_gonder(); Ok(Value::Null) })
     } else if post && path == "/api/calendar/add" {
         calendar_add(&b)
     } else if post && path == "/api/notify" {
@@ -1450,7 +1454,7 @@ mod tests {
         unsafe { std::env::set_var("APPDATA", &kok) }; // dir() reads from here; the other tests do not touch the file
         let uzak = od.join("RYOCS").join("data.json");
         let d = |b: &str| esitle(b).unwrap()["durum"].as_str().unwrap().to_string();
-        write_json("data.json", &json!({"a": 1}));
+        write_json("data.json", &json!({"a": 1})).unwrap();
         assert_eq!(d("{}"), "kapali");
         assert!(esitle(&json!({"acik": true, "klasor": kok.join("yok")}).to_string()).is_err());
         assert_eq!(d(&json!({"acik": true, "klasor": od}).to_string()), "ok"); // first start: no remote, send
@@ -1463,7 +1467,7 @@ mod tests {
         assert_eq!(d(r#"{"baslangic":true}"#), "guncellendi");
         assert_eq!(veri_oku().unwrap()["a"], 22);
         assert!(dir().join("yedekler").join("data-geri-alma.json").exists()); // eski yerel yedekte
-        write_json("data.json", &json!({"a": 3}));
+        write_json("data.json", &json!({"a": 3})).unwrap();
         fs::write(&uzak, r#"{"a":4}"#).unwrap(); // both sides changed
         assert_eq!(d(r#"{"baslangic":true}"#), "catisma");
         esitle_gonder(); // does not overwrite on conflict
