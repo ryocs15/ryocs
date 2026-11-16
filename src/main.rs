@@ -144,6 +144,8 @@ fn write_json(name: &str, v: &Value) -> Result<(), String> {
 
 /// Temporary file first, then rename: a half-finished write must not corrupt the file.
 fn write_text(name: &str, s: &str) -> Result<(), String> {
+    static YAZ: Mutex<()> = Mutex::new(());
+    let _y = kilit(&YAZ); // two saves at once must not write the same temporary file together
     let p = dir().join(name);
     let tmp = p.with_extension("tmp");
     fs::write(&tmp, s).and_then(|_| fs::rename(&tmp, &p)).map_err(|e| e.to_string())
@@ -178,6 +180,7 @@ const AG_YOK: &str = "No internet connection";
 static KONUM: Mutex<Option<(String, Value)>> = Mutex::new(None);
 
 fn konum(city: &str) -> Result<Value, String> {
+    let (dil, city) = (l("tr", "en"), &format!("{}:{city}", l("tr", "en")));
     if let Some((c, v)) = kilit(&KONUM).as_ref() {
         if c == city {
             return Ok(v.clone());
@@ -185,10 +188,10 @@ fn konum(city: &str) -> Result<Value, String> {
     }
     let g = body(
         AGENT.get("https://geocoding-api.open-meteo.com/v1/search")
-            .query("name", city).query("count", "1").query("language", "tr").call(),
+            .query("name", &city[3..]).query("count", "1").query("language", dil).call(),
     )?;
-    let v = g["results"].get(0).cloned().ok_or(format!("{} {city}", l("Şehir bulunamadı:", "City not found:")))?;
-    *kilit(&KONUM) = Some((city.into(), v.clone()));
+    let v = g["results"].get(0).cloned().ok_or(format!("{} {}", l("Şehir bulunamadı:", "City not found:"), &city[3..]))?;
+    *kilit(&KONUM) = Some((city.clone(), v.clone()));
     Ok(v)
 }
 

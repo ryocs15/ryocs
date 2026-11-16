@@ -970,7 +970,7 @@ async function api(p,b){
 let bekleyen=[];try{bekleyen=JSON.parse(localStorage.bekleyen||'[]');if(!Array.isArray(bekleyen))bekleyen=[]}catch{bekleyen=[]}
 const bekSakla=()=>{try{bekleyen.length?localStorage.bekleyen=JSON.stringify(bekleyen.slice(-50)):localStorage.removeItem('bekleyen')}catch{}};
 const bildir=(baslik,metin,metin2)=>odakSessiz()?(bekleyen.push(baslik+': '+metin),bekSakla(),Promise.resolve({durum:'ok'})):api('/api/notify',{baslik,metin,metin2});
-const bekleyenYazi=()=>{const b=bekleyen;bekleyen=[];bekSakla();return b.length>2?b.slice(0,2).join(' · ')+` ve ${b.length-2}${L(' bildirim daha',' more notifications')}`:b.join(' · ')};
+const bekleyenYazi=()=>{const b=bekleyen;bekleyen=[];bekSakla();return b.length>2?b.slice(0,2).join(' · ')+`${L(' ve ',' and ')}${b.length-2}${L(' bildirim daha',' more notifications')}`:b.join(' · ')};
 // UI errors are written to %APPDATA%\RYOCS\hata.log (at most 20 per session)
 let hataSay=0;
 const hataGonder=m=>{if(hataSay++<20)api('/api/log',{mesaj:String(m).slice(0,2000)})};
@@ -1162,7 +1162,7 @@ function ekSig(k){
 function ekTazele(sec){const k=$(sec)?.closest('[data-kart]');if(k)ekSig(k)}
 function ekYaz(sec,h){const e=$(sec);if(e&&e._h!==h){e._h=h;e.innerHTML=h;ekTazele(sec)}}
 const haftaNo=d=>{const t=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())),g=t.getUTCDay()||7;t.setUTCDate(t.getUTCDate()+4-g);return Math.ceil(((t-Date.UTC(t.getUTCFullYear(),0,1))/864e5+1)/7)};
-const sureYaz=ms=>{const m=Math.round(ms/6e4);return m<60?m+L(' dk',' min'):Math.floor(m/60)+' sa'+(m%60?' '+m%60+L(' dk',' min'):'')};
+const sureYaz=ms=>{const m=Math.round(ms/6e4);return m<60?m+L(' dk',' min'):Math.floor(m/60)+L(' sa',' h')+(m%60?' '+m%60+L(' dk',' min'):'')};
 // Bar chart of the last 7 days; o: {day: count}
 function bar7(o,ad){
   const g=[...Array(7)].map((_,k)=>{const d=new Date();d.setDate(d.getDate()-6+k);return[d,o[gunStr(d)]||0]}),en=Math.max(1,...g.map(x=>x[1]));
@@ -1210,7 +1210,7 @@ async function ileriAl(zorla){
 }
 const SAAT2={'':L('Kapalı','Off'),'Europe/Warsaw':L('Varşova','Warsaw'),'Europe/Istanbul':L('Türkiye','Turkey'),'Europe/Berlin':'Berlin','Europe/London':L('Londra','London'),'America/New_York':'New York','Asia/Tokyo':'Tokyo'};
 const dilimSaat=(tz,d)=>d.toLocaleTimeString(LOC,{timeZone:tz,hour:'2-digit',minute:'2-digit'});
-const kalanYazi=dk=>dk<60?dk+L(' dk sonra',' min from now'):dk<180?Math.floor(dk/60)+' sa '+(dk%60?dk%60+L(' dk ',' h '):'')+'sonra':null;
+const kalanYazi=dk=>dk<60?dk+L(' dk sonra',' min from now'):dk<180?Math.floor(dk/60)+L(' sa ',' h ')+(dk%60?dk%60+L(' dk ',' min '):'')+L('sonra','from now'):null;
 function ustCiz(){
   const n=new Date(),bugun=gunStr(n),yarin=gunStr(new Date(n.getFullYear(),n.getMonth(),n.getDate()+1)),gizli=gizliT();
   const ev=ileri.filter(e=>e.start&&!gizli.includes(e._t)).sort((a,b)=>zaman(a)-zaman(b));
@@ -1251,7 +1251,7 @@ async function etkinlikAc(e){
 }
 
 // Weather (Open-Meteo WMO codes)
-const WMO={0:L('Açık','Clear'),1:'Az bulutlu',2:L('Parçalı bulutlu','Partly cloudy'),3:L('Kapalı','Overcast'),45:L('Sisli','Fog'),48:L('Kırağılı sis','Rime fog'),51:L('Hafif çisenti','Light drizzle'),53:L('Çisenti','Drizzle'),55:L('Yoğun çisenti','Dense drizzle'),56:L('Dondurucu çisenti','Freezing drizzle'),57:L('Dondurucu çisenti','Freezing drizzle'),61:L('Hafif yağmur','Light rain'),63:L('Yağmurlu','Rain'),65:L('Kuvvetli yağmur','Heavy rain'),66:L('Dondurucu yağmur','Freezing rain'),67:L('Dondurucu yağmur','Freezing rain'),71:L('Hafif kar','Light snow'),73:L('Karlı','Snow'),75:L('Yoğun kar','Heavy snow'),77:L('Kar taneleri','Snow grains'),80:L('Sağanak','Showers'),81:L('Sağanak','Showers'),82:L('Kuvvetli sağanak','Heavy showers'),85:L('Kar sağanağı','Snow showers'),86:L('Kar sağanağı','Snow showers'),95:L('Gök gürültülü fırtına','Thunderstorm'),96:L('Dolu','Hail'),99:'Dolu'};
+const WMO={0:L('Açık','Clear'),1:L('Az bulutlu','Mostly clear'),2:L('Parçalı bulutlu','Partly cloudy'),3:L('Kapalı','Overcast'),45:L('Sisli','Fog'),48:L('Kırağılı sis','Rime fog'),51:L('Hafif çisenti','Light drizzle'),53:L('Çisenti','Drizzle'),55:L('Yoğun çisenti','Dense drizzle'),56:L('Dondurucu çisenti','Freezing drizzle'),57:L('Dondurucu çisenti','Freezing drizzle'),61:L('Hafif yağmur','Light rain'),63:L('Yağmurlu','Rain'),65:L('Kuvvetli yağmur','Heavy rain'),66:L('Dondurucu yağmur','Freezing rain'),67:L('Dondurucu yağmur','Freezing rain'),71:L('Hafif kar','Light snow'),73:L('Karlı','Snow'),75:L('Yoğun kar','Heavy snow'),77:L('Kar taneleri','Snow grains'),80:L('Sağanak','Showers'),81:L('Sağanak','Showers'),82:L('Kuvvetli sağanak','Heavy showers'),85:L('Kar sağanağı','Snow showers'),86:L('Kar sağanağı','Snow showers'),95:L('Gök gürültülü fırtına','Thunderstorm'),96:L('Dolu','Hail'),99:L('Dolu','Hail')};
 // Weather icons (line): WMO code → kind
 const HS={gunes:'<circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/>',
   parcali:'<path d="M8 3.5v1.5M3.5 8H5M4.8 4.8l1 1M11.2 4.8l-1 1"/><path d="M5.6 10.6A3 3 0 1 1 10.9 7.6"/><path d="M8 19.5h9.5a3.5 3.5 0 0 0 .3-7 5 5 0 0 0-9.6 1A3 3 0 0 0 8 19.5z"/>',
@@ -1296,9 +1296,9 @@ function havaCiz(){
 function havaEk(w){
   const c=w.current,d=w.daily,s=w.hourly,T=x=>Math.round(x)+'°';let h='';
   if(c.relative_humidity_2m!=null){
-    const yon=['K','KD','D','GD','G','GB','B','KB'][Math.round(c.wind_direction_10m/45)%8],uv=d.uv_index_max?.[0];
+    const yon=(DIL==='tr'?['K','KD','D','GD','G','GB','B','KB']:['N','NE','E','SE','S','SW','W','NW'])[Math.round(c.wind_direction_10m/45)%8],uv=d.uv_index_max?.[0];
     h+=`<div class="hvDet"><span><small>${L('Nem','Humidity')}</small><b>${yz(Math.round(c.relative_humidity_2m))}</b></span>${c.pressure_msl!=null?`${L('<span title="Deniz seviyesine göre"><small>Basınç</small><b>','<span title="Relative to sea level"><small>Pressure</small><b>')}${Math.round(c.pressure_msl)} hPa</b></span>`:''}`
-      +(uv!=null?`${L('<span title="Bugünkü en yüksek UV: ','<span title="Today\'s maximum UV: ')}${uv<3?L('düşük','low'):uv<6?'orta':uv<8?L('yüksek','high'):L('çok yüksek','very high')}"><small>UV</small><b>${Math.round(uv*10)/10}</b></span>`:'')
+      +(uv!=null?`${L('<span title="Bugünkü en yüksek UV: ','<span title="Today\'s maximum UV: ')}${uv<3?L('düşük','low'):uv<6?L('orta','moderate'):uv<8?L('yüksek','high'):L('çok yüksek','very high')}"><small>UV</small><b>${Math.round(uv*10)/10}</b></span>`:'')
       +`${L('<span title="Rüzgâr ','<span title="Wind from the ')}${yon}${L(' yönünden esiyor"><small>Rüzgâr</small><b><svg viewBox="0 0 24 24" aria-hidden="true" style="transform:rotate(','"><small>Wind</small><b><svg viewBox="0 0 24 24" aria-hidden="true" style="transform:rotate(')}${c.wind_direction_10m+180}deg)"><path d="M12 20V4M6 10l6-6 6 6"/></svg>${yon} ${Math.round(c.wind_speed_10m)}${L('</b></span><span><small>Yağış</small><b>','</b></span><span><small>Rain</small><b>')}${c.precipitation} mm</b></span></div>`;
   }
   const n=new Date(),su=gunStr(n)+'T'+iki(n.getHours()),i=s?s.time.findIndex(t=>t.slice(0,13)>=su):-1;
