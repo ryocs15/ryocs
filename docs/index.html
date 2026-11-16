@@ -53,80 +53,101 @@ h2{font-weight:300;font-size:32px;margin:0 0 8px;text-align:center}
 .steps h3{margin:0 0 4px;font-size:16px}.steps p{margin:0;color:var(--mu);font-size:14.5px}
 code{font-family:"Cascadia Code",Consolas,monospace;font-size:.88em;background:var(--card);box-shadow:var(--in);padding:2px 7px;border-radius:7px}
 footer{padding:60px 0 40px;text-align:center;color:var(--mu);font-size:14px}
+.dil{display:flex;gap:4px;padding:4px;border-radius:999px;box-shadow:var(--in);margin-left:18px}
+.dil button{border:0;background:none;color:var(--mu);font:600 12px/1 inherit;padding:7px 11px;border-radius:999px;cursor:pointer}
+.dil button[aria-pressed=true]{background:var(--bg);color:var(--tx);box-shadow:var(--up)}
 dialog{border:0;padding:0;background:transparent;max-width:min(1400px,96vw)}
 dialog::backdrop{background:rgba(20,22,26,.75)}
 dialog img{display:block;max-width:100%;max-height:92vh;border-radius:12px}
-@media (max-width:720px){.gal{grid-template-columns:1fr}nav{display:none}.hero{padding-top:20px}}
+@media (max-width:720px){.gal{grid-template-columns:1fr}nav{display:none}.dil{margin-left:auto}.hero{padding-top:20px}}
 @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}.btn{transition:none}}
 </style>
 </head>
 <body>
 <header><div class="w">
   <a class="logo" href="#"><img src="img/icon.png" alt="">RYOCS</a>
-  <nav><a href="#features">Features</a><a href="#screens">Screenshots</a><a href="#start">Get started</a><a href="https://github.com/ryocs15/ryocs">GitHub</a></nav>
+  <nav><a href="#features" data-tr="Özellikler">Features</a><a href="#screens" data-tr="Görseller">Screenshots</a><a href="#start" data-tr="Başla">Get started</a><a href="https://github.com/ryocs15/ryocs">GitHub</a></nav>
+  <div class="dil" role="group" aria-label="Language / Dil"><button data-dil="en" lang="en">EN</button><button data-dil="tr" lang="tr">TR</button></div>
 </div></header>
 
 <main>
 <div class="hero w">
-  <h1>Your day, on one calm screen</h1>
-  <p>RYOCS is a personal dashboard for Windows. Calendar, tasks, notes, weather, news, music and a focus timer, side by side, always one click away in the tray.</p>
+  <h1 data-tr="Günün, tek ve sakin bir ekranda">Your day, on one calm screen</h1>
+  <p data-tr="RYOCS, Windows için kişisel bir panel. Takvim, görevler, notlar, hava durumu, haberler, müzik ve odak sayacı yan yana; tepside her an bir tık uzağında.">RYOCS is a personal dashboard for Windows. Calendar, tasks, notes, weather, news, music and a focus timer, side by side, always one click away in the tray.</p>
   <div class="btns">
-    <a class="btn ana" href="https://github.com/ryocs15/ryocs/releases/latest"><svg viewBox="0 0 24 24"><path d="M12 3v11.2l4.6-4.6 1.4 1.4-7 7-7-7 1.4-1.4 4.6 4.6V3zM4 19h16v2H4z"/></svg>Download for Windows</a>
-    <a class="btn" href="https://github.com/ryocs15/ryocs"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 0 0-3.2 19.5c.5.1.7-.2.7-.5v-1.7c-2.8.6-3.4-1.3-3.4-1.3-.5-1.2-1.1-1.5-1.1-1.5-.9-.6.1-.6.1-.6 1 .1 1.5 1 1.5 1 .9 1.5 2.3 1.1 2.9.8.1-.6.4-1.1.6-1.3-2.2-.3-4.6-1.1-4.6-5a3.9 3.9 0 0 1 1-2.7 3.6 3.6 0 0 1 .1-2.7s.8-.3 2.8 1a9.6 9.6 0 0 1 5 0c1.9-1.3 2.8-1 2.8-1 .5 1.4.2 2.4.1 2.7a3.9 3.9 0 0 1 1 2.7c0 3.9-2.4 4.7-4.6 5 .4.3.7.9.7 1.9V21c0 .3.2.6.7.5A10 10 0 0 0 12 2z"/></svg>Source code</a>
+    <a class="btn ana" href="https://github.com/ryocs15/ryocs/releases/latest"><svg viewBox="0 0 24 24"><path d="M12 3v11.2l4.6-4.6 1.4 1.4-7 7-7-7 1.4-1.4 4.6 4.6V3zM4 19h16v2H4z"/></svg><span data-tr="Windows için indir">Download for Windows</span></a>
+    <a class="btn" href="https://github.com/ryocs15/ryocs"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 0 0-3.2 19.5c.5.1.7-.2.7-.5v-1.7c-2.8.6-3.4-1.3-3.4-1.3-.5-1.2-1.1-1.5-1.1-1.5-.9-.6.1-.6.1-.6 1 .1 1.5 1 1.5 1 .9 1.5 2.3 1.1 2.9.8.1-.6.4-1.1.6-1.3-2.2-.3-4.6-1.1-4.6-5a3.9 3.9 0 0 1 1-2.7 3.6 3.6 0 0 1 .1-2.7s.8-.3 2.8 1a9.6 9.6 0 0 1 5 0c1.9-1.3 2.8-1 2.8-1 .5 1.4.2 2.4.1 2.7a3.9 3.9 0 0 1 1 2.7c0 3.9-2.4 4.7-4.6 5 .4.3.7.9.7 1.9V21c0 .3.2.6.7.5A10 10 0 0 0 12 2z"/></svg><span data-tr="Kaynak kod">Source code</span></a>
   </div>
-  <p class="small">Free and open source (MIT) · Windows 10 and 11 · English and Turkish</p>
-  <div class="shot"><img src="img/dashboard.png" alt="The RYOCS dashboard with clock, calendar, apps, tasks, notes, news, weather, Spotify and focus cards" width="1600" height="900"></div>
+  <p class="small" data-tr="Ücretsiz ve açık kaynak (MIT) · Windows 10 ve 11 · Türkçe ve İngilizce">Free and open source (MIT) · Windows 10 and 11 · English and Turkish</p>
+  <div class="shot"><img src="img/dashboard.png" data-tr-src="img/dashboard-tr.png" alt="The RYOCS dashboard with clock, calendar, apps, tasks, notes, news, weather, Spotify and focus cards" data-tr-alt="Saat, takvim, uygulamalar, görevler, notlar, haberler, hava, Spotify ve odak kartlarıyla RYOCS paneli" width="1600" height="900"></div>
 </div>
 
 <section id="features"><div class="w">
-  <h2>Everything you check during the day</h2>
-  <p class="lead">Each card can be moved, resized, hidden or tuned to taste. Turn on only what you need.</p>
+  <h2 data-tr="Gün içinde baktığın her şey">Everything you check during the day</h2>
+  <p class="lead" data-tr="Her kart taşınabilir, boyutlandırılabilir, gizlenebilir ve zevkine göre ayarlanabilir. Yalnız ihtiyacın olanları aç.">Each card can be moved, resized, hidden or tuned to taste. Turn on only what you need.</p>
   <div class="grid">
-    <div class="f"><i>📅</i><h3>Google Calendar</h3><p>Month and week views, upcoming events, birthdays, important dates and your regional holidays.</p></div>
-    <div class="f"><i>✅</i><h3>Tasks and habits</h3><p>Reminders, repeats on any days you like, priorities, overdue tracking and habit streaks.</p></div>
-    <div class="f"><i>📝</i><h3>Notes</h3><p>Quick notes with checklists, several notes in tabs, word count and full search.</p></div>
-    <div class="f"><i>⛅</i><h3>Weather</h3><p>Hourly and 7-day forecasts from Open-Meteo, plus a morning alert when rain or frost is on the way.</p></div>
-    <div class="f"><i>📰</i><h3>News</h3><p>BBC News by category in English, Turkish sources in Turkish. Filter out keywords and sources.</p></div>
-    <div class="f"><i>🎵</i><h3>Spotify</h3><p>See what is playing, skip, pause, change the volume and peek at what is up next.</p></div>
-    <div class="f"><i>⏱️</i><h3>Focus timer</h3><p>Pomodoro rounds with a daily goal and streak. Do not disturb holds notifications until the round ends.</p></div>
-    <div class="f"><i>✉️</i><h3>Gmail</h3><p>Your unread mail at a glance, read-only. Click a message to open it in the browser.</p></div>
-    <div class="f"><i>💱</i><h3>Rates, system, clipboard</h3><p>Currency and gold prices, CPU, memory, disk and battery, and a private clipboard history.</p></div>
-    <div class="f"><i>🔎</i><h3>Search everything</h3><p>Press Ctrl+F to find apps, tasks, notes, events and commands in one place.</p></div>
-    <div class="f"><i>🎨</i><h3>Make it yours</h3><p>12 themes, glass look, animated backgrounds, accent colours, drag-to-resize layout and saved layouts.</p></div>
-    <div class="f"><i>🔒</i><h3>Private by design</h3><p>Your data stays in your user folder. Optional PIN lock, daily backups and OneDrive sync.</p></div>
+    <div class="f"><i>📅</i><h3 data-tr="Google Takvim">Google Calendar</h3><p data-tr="Ay ve hafta görünümü, yaklaşan etkinlikler, doğum günleri, önemli tarihler ve resmî tatiller.">Month and week views, upcoming events, birthdays, important dates and your regional holidays.</p></div>
+    <div class="f"><i>✅</i><h3 data-tr="Görevler ve alışkanlıklar">Tasks and habits</h3><p data-tr="Hatırlatıcılar, istediğin günlerde tekrar, öncelikler, geciken görevler ve alışkanlık serileri.">Reminders, repeats on any days you like, priorities, overdue tracking and habit streaks.</p></div>
+    <div class="f"><i>📝</i><h3 data-tr="Notlar">Notes</h3><p data-tr="Yapılacak kutulu hızlı notlar, sekmelerde birden çok not, kelime sayısı ve arama.">Quick notes with checklists, several notes in tabs, word count and full search.</p></div>
+    <div class="f"><i>⛅</i><h3 data-tr="Hava durumu">Weather</h3><p data-tr="Open-Meteo'dan saatlik ve 7 günlük tahmin; yağmur ya da don beklenince sabah uyarısı.">Hourly and 7-day forecasts from Open-Meteo, plus a morning alert when rain or frost is on the way.</p></div>
+    <div class="f"><i>📰</i><h3 data-tr="Haberler">News</h3><p data-tr="Türkçede Bundle ve TRT Haber, İngilizcede BBC News. İstemediğin kelimeleri ve kaynakları gizle.">BBC News by category in English, Turkish sources in Turkish. Filter out keywords and sources.</p></div>
+    <div class="f"><i>🎵</i><h3 data-tr="Spotify">Spotify</h3><p data-tr="Çalan şarkıyı gör, geç, duraklat, sesi ayarla ve sıradakilere göz at.">See what is playing, skip, pause, change the volume and peek at what is up next.</p></div>
+    <div class="f"><i>⏱️</i><h3 data-tr="Odak sayacı">Focus timer</h3><p data-tr="Günlük hedef ve seriyle pomodoro turları. Rahatsız etme, bildirimleri tur bitene kadar bekletir.">Pomodoro rounds with a daily goal and streak. Do not disturb holds notifications until the round ends.</p></div>
+    <div class="f"><i>✉️</i><h3 data-tr="Gmail">Gmail</h3><p data-tr="Okunmamış maillerin bir bakışta, yalnız okuma. Maile tıklayınca tarayıcıda açılır.">Your unread mail at a glance, read-only. Click a message to open it in the browser.</p></div>
+    <div class="f"><i>💱</i><h3 data-tr="Kur, sistem, pano">Rates, system, clipboard</h3><p data-tr="Döviz ve altın, işlemci, bellek, disk ve pil, ayrıca gizliliğe saygılı pano geçmişi.">Currency and gold prices, CPU, memory, disk and battery, and a private clipboard history.</p></div>
+    <div class="f"><i>🔎</i><h3 data-tr="Her şeyi ara">Search everything</h3><p data-tr="Ctrl+F ile uygulamaları, görevleri, notları, etkinlikleri ve komutları tek yerden bul.">Press Ctrl+F to find apps, tasks, notes, events and commands in one place.</p></div>
+    <div class="f"><i>🎨</i><h3 data-tr="Kendine göre ayarla">Make it yours</h3><p data-tr="12 tema, cam görünüm, hareketli arka planlar, vurgu renkleri, sürükleyerek boyutlandırma ve kayıtlı yerleşimler.">12 themes, glass look, animated backgrounds, accent colours, drag-to-resize layout and saved layouts.</p></div>
+    <div class="f"><i>🔒</i><h3 data-tr="Gizlilik öncelikli">Private by design</h3><p data-tr="Verilerin kendi kullanıcı klasöründe kalır. İsteğe bağlı PIN kilidi, günlük yedek ve OneDrive eşitleme.">Your data stays in your user folder. Optional PIN lock, daily backups and OneDrive sync.</p></div>
   </div>
 </div></section>
 
 <section id="screens"><div class="w">
-  <h2>A closer look</h2>
-  <p class="lead">Light, dark and glass, in English or Turkish. Click a picture to enlarge it.</p>
+  <h2 data-tr="Yakından bakış">A closer look</h2>
+  <p class="lead" data-tr="Açık, koyu ve cam görünüm; Türkçe ya da İngilizce. Büyütmek için görsele tıkla.">Light, dark and glass, in English or Turkish. Click a picture to enlarge it.</p>
   <div class="gal">
-    <figure><img src="img/dark.png" alt="Dark theme with Gmail, calendar, news, currency, system and clipboard cards" loading="lazy" width="1600" height="900"><figcaption>Dark theme with Gmail, rates, system info and clipboard history</figcaption></figure>
-    <figure><img src="img/search.png" alt="Search results grouped into commands, tasks, habits, notes and events" loading="lazy" width="1600" height="900"><figcaption>One search box for apps, tasks, notes, events and commands</figcaption></figure>
-    <figure><img src="img/settings.png" alt="Appearance settings with light and dark themes" loading="lazy" width="1600" height="900"><figcaption>Twelve themes and an automatic day/night switch</figcaption></figure>
-    <figure><img src="img/glass.png" alt="The dashboard in the glass look" loading="lazy" width="1600" height="900"><figcaption>The glass look on a light theme</figcaption></figure>
+    <figure><img src="img/dark.png" data-tr-src="img/dark-tr.png" alt="Dark theme with Gmail, calendar, news, currency, system and clipboard cards" data-tr-alt="Gmail, takvim, haber, kur, sistem ve pano kartlarıyla koyu tema" loading="lazy" width="1600" height="900"><figcaption data-tr="Gmail, kur, sistem bilgisi ve pano geçmişiyle koyu tema">Dark theme with Gmail, rates, system info and clipboard history</figcaption></figure>
+    <figure><img src="img/search.png" data-tr-src="img/search-tr.png" alt="Search results grouped into commands, tasks, habits, notes and events" data-tr-alt="Komut, görev, alışkanlık, not ve etkinlik olarak gruplanmış arama sonuçları" loading="lazy" width="1600" height="900"><figcaption data-tr="Uygulamalar, görevler, notlar, etkinlikler ve komutlar için tek arama kutusu">One search box for apps, tasks, notes, events and commands</figcaption></figure>
+    <figure><img src="img/settings.png" data-tr-src="img/settings-tr.png" alt="Appearance settings with light and dark themes" data-tr-alt="Açık ve koyu temalarla görünüm ayarları" loading="lazy" width="1600" height="900"><figcaption data-tr="On iki tema ve otomatik gündüz/gece geçişi">Twelve themes and an automatic day/night switch</figcaption></figure>
+    <figure><img src="img/glass.png" data-tr-src="img/glass-tr.png" alt="The dashboard in the glass look" data-tr-alt="Cam görünümde panel" loading="lazy" width="1600" height="900"><figcaption data-tr="Açık temada cam görünüm">The glass look on a light theme</figcaption></figure>
   </div>
 </div></section>
 
 <section id="start"><div class="w">
-  <h2>Get started</h2>
-  <p class="lead">Installs for your user only, no admin rights needed.</p>
+  <h2 data-tr="Başla">Get started</h2>
+  <p class="lead" data-tr="Yalnız senin kullanıcına kurulur, yönetici izni gerekmez.">Installs for your user only, no admin rights needed.</p>
   <div class="steps">
-    <div><h3>Download</h3><p>Get <code>RYOCS-Setup.exe</code> from the <a href="https://github.com/ryocs15/ryocs/releases/latest">latest release</a> and run it. If SmartScreen warns, choose <em>More info → Run anyway</em>.</p></div>
-    <div><h3>Pick your cards</h3><p>Weather, news and rates work right away. Open <em>Settings → Cards</em> to switch cards on or off.</p></div>
-    <div><h3>Connect accounts</h3><p>For Google Calendar, Gmail or Spotify, follow the guided setup in <em>Settings → Accounts</em> or the <a href="https://github.com/ryocs15/ryocs#connecting-accounts">step-by-step guide</a>. It is free and your keys stay on your PC.</p></div>
+    <div><h3 data-tr="İndir">Download</h3><p data-tr="&lt;a href=&quot;https://github.com/ryocs15/ryocs/releases/latest&quot;&gt;Son sürümden&lt;/a&gt; &lt;code&gt;RYOCS-Setup.exe&lt;/code&gt; dosyasını indirip çalıştır. SmartScreen uyarırsa &lt;em&gt;Ek bilgi → Yine de çalıştır&lt;/em&gt;ı seç.">Get <code>RYOCS-Setup.exe</code> from the <a href="https://github.com/ryocs15/ryocs/releases/latest">latest release</a> and run it. If SmartScreen warns, choose <em>More info → Run anyway</em>.</p></div>
+    <div><h3 data-tr="Kartlarını seç">Pick your cards</h3><p data-tr="Hava, haberler ve kurlar hemen çalışır. Kartları açıp kapatmak için &lt;em&gt;Ayarlar → Kartlar&lt;/em&gt;.">Weather, news and rates work right away. Open <em>Settings → Cards</em> to switch cards on or off.</p></div>
+    <div><h3 data-tr="Hesaplarını bağla">Connect accounts</h3><p data-tr="Google Takvim, Gmail ya da Spotify için &lt;em&gt;Ayarlar → Hesaplar&lt;/em&gt;daki adım adım kurulumu ya da &lt;a href=&quot;https://github.com/ryocs15/ryocs#connecting-accounts&quot;&gt;rehberi&lt;/a&gt; izle. Ücretsizdir; anahtarların bilgisayarında kalır.">For Google Calendar, Gmail or Spotify, follow the guided setup in <em>Settings → Accounts</em> or the <a href="https://github.com/ryocs15/ryocs#connecting-accounts">step-by-step guide</a>. It is free and your keys stay on your PC.</p></div>
   </div>
 </div></section>
 </main>
 
-<footer><div class="w">
+<footer><div class="w" data-tr="RYOCS, MIT lisansıyla ücretsiz ve açık kaynaktır. · &lt;a href=&quot;https://github.com/ryocs15/ryocs&quot;&gt;GitHub&lt;/a&gt; · &lt;a href=&quot;https://github.com/ryocs15/ryocs/issues&quot;&gt;Sorun bildir&lt;/a&gt;">
   RYOCS is free and open source under the MIT license. · <a href="https://github.com/ryocs15/ryocs">GitHub</a> · <a href="https://github.com/ryocs15/ryocs/issues">Report an issue</a>
 </div></footer>
 
 <dialog id="big"><img alt=""></dialog>
 <script>
-const d=document.getElementById('big'),im=d.querySelector('img');
-document.querySelectorAll('.gal img,.shot img').forEach(i=>i.addEventListener('click',()=>{im.src=i.src;im.alt=i.alt;d.showModal()}));
+// Language: saved choice, otherwise the browser language (Turkish if tr, English otherwise)
+const TR={title:'RYOCS – Windows için kişisel panel',desc:'RYOCS, Windows için sakin ve hepsi bir arada bir kişisel panel: takvim, görevler, notlar, hava, haberler, Spotify, odak sayacı ve daha fazlası. Ücretsiz ve açık kaynak.'};
+const EN={title:document.title,desc:document.querySelector('meta[name=description]').content};
+const el=[...document.querySelectorAll('[data-tr]')].map(e=>[e,e.innerHTML,e.dataset.tr]);
+const im=[...document.querySelectorAll('[data-tr-src]')].map(e=>[e,e.getAttribute('src'),e.dataset.trSrc,e.alt,e.dataset.trAlt]);
+function dil(d){
+  const tr=d==='tr';document.documentElement.lang=d;
+  for(const [e,en,t] of el)e.innerHTML=tr?t:en;
+  for(const [e,s,ts,a,ta] of im){e.src=tr?ts:s;e.alt=tr?ta:a}
+  document.title=(tr?TR:EN).title;document.querySelector('meta[name=description]').content=(tr?TR:EN).desc;
+  document.querySelectorAll('[data-dil]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.dil===d));
+  try{localStorage.dil=d}catch{}
+}
+let ilk='en';try{ilk=localStorage.dil||(/^tr\b/i.test(navigator.language)?'tr':'en')}catch{ilk=/^tr\b/i.test(navigator.language)?'tr':'en'}
+const q=new URLSearchParams(location.search).get('lang');if(q==='tr'||q==='en')ilk=q; // shareable link: ?lang=tr
+dil(ilk);
+document.querySelectorAll('[data-dil]').forEach(b=>b.onclick=()=>dil(b.dataset.dil));
+const d=document.getElementById('big'),bi=d.querySelector('img');
+document.querySelectorAll('.gal img,.shot img').forEach(i=>i.addEventListener('click',()=>{bi.src=i.src;bi.alt=i.alt;d.showModal()}));
 d.addEventListener('click',()=>d.close());
 </script>
 </body>
