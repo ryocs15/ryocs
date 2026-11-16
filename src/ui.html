@@ -6,7 +6,7 @@
 <script>
 // Language: Settings → General → Language (kept in localStorage so it is known before the data loads); otherwise the Windows language: Turkish if tr, English otherwise.
 const DIL=(()=>{try{const d=localStorage.dil;if(d==='tr'||d==='en')return d}catch{}return /^tr\b/i.test(navigator.language)?'tr':'en'})();
-const L=(tr,en)=>DIL==='tr'?tr:en,LOC=DIL==='tr'?'tr-TR':(/^en-/i.test(navigator.language)?navigator.language:'en-US');
+const L=(tr,en)=>DIL==='tr'?tr:en,yz=x=>DIL==='tr'?'%'+x:x+'%',LOC=DIL==='tr'?'tr-TR':(/^en-/i.test(navigator.language)?navigator.language:'en-US');
 document.documentElement.lang=DIL;
 // Themes in one place: r = [background, light shadow, dark shadow, text, muted text, line, accent]; k: dark; cz: glass background; ek: extra variables.
 // '' (Light) and dark (Dark) are the base themes and come from the :root rules in CSS; the rules of the others are generated here.
@@ -1128,7 +1128,7 @@ function sayimPencere(){
     if(b.dataset.ss!==undefined){const [x]=S.sayimlar.splice(+b.dataset.ss,1);kaydet();ustSon='';ustCiz();sayimPencere();
       return tost(L('Geri sayım silindi','Countdown deleted'),L('Geri al','Undo'),()=>{S.sayimlar.push(x);kaydet();ustSon='';ustCiz()})}
     const x=b.dataset.sd!==undefined?S.sayimlar[+b.dataset.sd]:null;
-    const v=await sor(x?L('Geri sayımı düzenle','Edit countdown'):L('Geri sayım ekle','Add countdown'),[{ad:'Ad',v:x?.ad||'',zorunlu:1},{ad:L('Tarih','Date'),tip:'date',v:x?.t||'',zorunlu:1}]);
+    const v=await sor(x?L('Geri sayımı düzenle','Edit countdown'):L('Geri sayım ekle','Add countdown'),[{ad:L('Ad','Name'),v:x?.ad||'',zorunlu:1},{ad:L('Tarih','Date'),tip:'date',v:x?.t||'',zorunlu:1}]);
     if(v&&v[0]&&sayimGecerli({ad:v[0],t:v[1]})){const y={ad:v[0].slice(0,60),t:v[1]};if(!Array.isArray(S.sayimlar))S.sayimlar=[];x?Object.assign(x,y):S.sayimlar.push(y);kaydet();ustSon='';ustCiz()}
     sayimPencere();
   };
@@ -1273,12 +1273,12 @@ function havaCiz(){
     const i=s?s.time.findIndex(t=>t.slice(0,13)>=bas):-1;
     if(i>=0)serit='<div class="saatlik">'+[0,2,4,6,8,10].filter(k=>s.time[i+k]).map(k=>{
       const y=s.precipitation_probability[i+k]??0;
-      return `<div title="${esc(WMO[s.weather_code[i+k]]||'')}${y?L(' · yağış %',' · rain %')+y:''}"><small>${k?s.time[i+k].slice(11,13):L('Şimdi','Now')}</small>${havaIkon(s.weather_code[i+k])}<b>${T(s.temperature_2m[i+k])}</b><small class="${y>=50?'yag':''}">${y>=20?'%'+y:' '}</small></div>`;
+      return `<div title="${esc(WMO[s.weather_code[i+k]]||'')}${y?L(' · yağış ',' · rain ')+yz(y):''}"><small>${k?s.time[i+k].slice(11,13):L('Şimdi','Now')}</small>${havaIkon(s.weather_code[i+k])}<b>${T(s.temperature_2m[i+k])}</b><small class="${y>=50?'yag':''}">${y>=20?yz(y):' '}</small></div>`;
     }).join('')+'</div>';
   }
   // the title and the Hourly/3 days buttons stay in place (the sliding indicator flickered when redrawn); only the body changes
   const bas=`<h2>${esc(w.sehir)}${L('<div class="seg k" role="group" aria-label="Tahmin"><button data-hg="">Saatlik</button><button data-hg="1">3 gün</button></div></h2><div class="havaGovde"></div><div class="ek" id="havaEk"></div>','<div class="seg k" role="group" aria-label="Forecast"><button data-hg="">Hourly</button><button data-hg="1">3 days</button></div></h2><div class="havaGovde"></div><div class="ek" id="havaEk"></div>')}`;
-  const govde=`<div class="now"><b>${T(c.temperature_2m)}</b><span class="m">${esc(WMO[c.weather_code]||'')}${L(' · hissedilen ',' · feels like ')}${T(c.apparent_temperature)}${L('<br>rüzgâr ','<br>wind ')}${Math.round(c.wind_speed_10m)}${L(' km/sa',' km/h')}${yagis>=30?L(' · yağış %',' · rain %')+yagis:''}</span></div>`;
+  const govde=`<div class="now"><b>${T(c.temperature_2m)}</b><span class="m">${esc(WMO[c.weather_code]||'')}${L(' · hissedilen ',' · feels like ')}${T(c.apparent_temperature)}${L('<br>rüzgâr ','<br>wind ')}${Math.round(c.wind_speed_10m)}${L(' km/sa',' km/h')}${yagis>=30?L(' · yağış ',' · rain ')+yz(yagis):''}</span></div>`;
   const el=$('#hava');
   if(havaSon!==bas||!el.querySelector('.havaGovde')){el.innerHTML=havaSon=bas;havaSerit=''}
   for(const b of el.querySelectorAll('[data-hg]'))b.setAttribute('aria-pressed',!!b.dataset.hg===!!gun);
@@ -1296,7 +1296,7 @@ function havaEk(w){
   const c=w.current,d=w.daily,s=w.hourly,T=x=>Math.round(x)+'°';let h='';
   if(c.relative_humidity_2m!=null){
     const yon=['K','KD','D','GD','G','GB','B','KB'][Math.round(c.wind_direction_10m/45)%8],uv=d.uv_index_max?.[0];
-    h+=`<div class="hvDet"><span><small>${L('Nem','Humidity')}</small><b>%${Math.round(c.relative_humidity_2m)}</b></span>${c.pressure_msl!=null?`${L('<span title="Deniz seviyesine göre"><small>Basınç</small><b>','<span title="Relative to sea level"><small>Pressure</small><b>')}${Math.round(c.pressure_msl)} hPa</b></span>`:''}`
+    h+=`<div class="hvDet"><span><small>${L('Nem','Humidity')}</small><b>${yz(Math.round(c.relative_humidity_2m))}</b></span>${c.pressure_msl!=null?`${L('<span title="Deniz seviyesine göre"><small>Basınç</small><b>','<span title="Relative to sea level"><small>Pressure</small><b>')}${Math.round(c.pressure_msl)} hPa</b></span>`:''}`
       +(uv!=null?`${L('<span title="Bugünkü en yüksek UV: ','<span title="Today\'s maximum UV: ')}${uv<3?L('düşük','low'):uv<6?'orta':uv<8?L('yüksek','high'):L('çok yüksek','very high')}"><small>UV</small><b>${Math.round(uv*10)/10}</b></span>`:'')
       +`${L('<span title="Rüzgâr ','<span title="Wind from the ')}${yon}${L(' yönünden esiyor"><small>Rüzgâr</small><b><svg viewBox="0 0 24 24" aria-hidden="true" style="transform:rotate(','"><small>Wind</small><b><svg viewBox="0 0 24 24" aria-hidden="true" style="transform:rotate(')}${c.wind_direction_10m+180}deg)"><path d="M12 20V4M6 10l6-6 6 6"/></svg>${yon} ${Math.round(c.wind_speed_10m)}${L('</b></span><span><small>Yağış</small><b>','</b></span><span><small>Rain</small><b>')}${c.precipitation} mm</b></span></div>`;
   }
@@ -1304,14 +1304,14 @@ function havaEk(w){
   if(i>=0&&s.time.length>=i+24){
     const t=s.temperature_2m.slice(i,i+24),p=s.precipitation_probability.slice(i,i+24),mx=Math.max(...t),mn=Math.min(...t),x=k=>k*240/23,y=v=>6+(mx-v)/((mx-mn)||1)*36;
     h+=`<div class="hvEgri"><h3>${L('24 saat','24 hours')} · ${T(mn)} – ${T(mx)}</h3><svg viewBox="0 0 240 60" preserveAspectRatio="none" aria-hidden="true">`
-      +p.map((v,k)=>v?`<rect x="${(x(k)-2.5).toFixed(1)}" y="${60-v*.16}" width="5" height="${v*.16}" rx="1.5" fill="var(--ma)" opacity=".55"><title>%${v}</title></rect>`:'').join('')
+      +p.map((v,k)=>v?`<rect x="${(x(k)-2.5).toFixed(1)}" y="${60-v*.16}" width="5" height="${v*.16}" rx="1.5" fill="var(--ma)" opacity=".55"><title>${yz(v)}</title></rect>`:'').join('')
       +`<polyline points="${t.map((v,k)=>x(k).toFixed(1)+','+y(v).toFixed(1)).join(' ')}" fill="none" stroke="var(--tu)" stroke-width="2" stroke-linejoin="round" vector-effect="non-scaling-stroke"/></svg>`
       +`${L('<div class="ekSat"><span>şimdi</span><span>+6 sa</span><span>+12 sa</span><span>+18 sa</span><span>+24 sa</span></div></div>','<div class="ekSat"><span>now</span><span>+6 h</span><span>+12 h</span><span>+18 h</span><span>+24 h</span></div></div>')}`;
   }
   if(d.time.length>=7){
     const mn=Math.min(...d.temperature_2m_min.slice(0,7)),mx=Math.max(...d.temperature_2m_max.slice(0,7)),r=(mx-mn)||1;
     const hRenk=f=>`color-mix(in oklab,var(--tu) ${Math.round(f*100)}%,var(--ma))`; // colour from the week's coldest (blue) to its warmest (orange)
-    h+=L('<div class="hv7"><h3>7 gün</h3>','<div class="hv7"><h3>7 days</h3>')+d.time.slice(0,7).map((g,k)=>`<div title="${esc(WMO[d.weather_code[k]]||'')}${d.precipitation_probability_max?.[k]?L(' · yağış %',' · rain %')+d.precipitation_probability_max[k]:''}"><span>${k?new Date(g+'T00:00').toLocaleDateString(LOC,{weekday:'short',day:'numeric'}):L('Bugün','Today')}</span>${havaIkon(d.weather_code[k])}<em>${T(d.temperature_2m_min[k])}</em><span class="cizgi"><i style="left:${(d.temperature_2m_min[k]-mn)/r*100}%;right:${(mx-d.temperature_2m_max[k])/r*100}%;background:linear-gradient(90deg,${hRenk((d.temperature_2m_min[k]-mn)/r)},${hRenk((d.temperature_2m_max[k]-mn)/r)})"></i></span><em>${T(d.temperature_2m_max[k])}</em></div>`).join('')+'</div>';
+    h+=L('<div class="hv7"><h3>7 gün</h3>','<div class="hv7"><h3>7 days</h3>')+d.time.slice(0,7).map((g,k)=>`<div title="${esc(WMO[d.weather_code[k]]||'')}${d.precipitation_probability_max?.[k]?L(' · yağış ',' · rain ')+yz(d.precipitation_probability_max[k]):''}"><span>${k?new Date(g+'T00:00').toLocaleDateString(LOC,{weekday:'short',day:'numeric'}):L('Bugün','Today')}</span>${havaIkon(d.weather_code[k])}<em>${T(d.temperature_2m_min[k])}</em><span class="cizgi"><i style="left:${(d.temperature_2m_min[k]-mn)/r*100}%;right:${(mx-d.temperature_2m_max[k])/r*100}%;background:linear-gradient(90deg,${hRenk((d.temperature_2m_min[k]-mn)/r)},${hRenk((d.temperature_2m_max[k]-mn)/r)})"></i></span><em>${T(d.temperature_2m_max[k])}</em></div>`).join('')+'</div>';
   }
   return h;
 }
@@ -1480,7 +1480,7 @@ function aliskanlikCiz(){
 }
 const aliskanlikMenu=(x,y,i)=>{
   const h=S.aliskanlik[i];
-  menu(x,y,[[L('Yeniden adlandır…','Rename…'),async()=>{const v=await sor(L('Alışkanlık','Habit'),[{ad:'Ad',v:h.ad,zorunlu:1}]);if(v?.[0]){h.ad=v[0].slice(0,100);ciz();kaydet()}}],null,
+  menu(x,y,[[L('Yeniden adlandır…','Rename…'),async()=>{const v=await sor(L('Alışkanlık','Habit'),[{ad:L('Ad','Name'),v:h.ad,zorunlu:1}]);if(v?.[0]){h.ad=v[0].slice(0,100);ciz();kaydet()}}],null,
     [L('Sil','Delete'),()=>{S.aliskanlik.splice(i,1);ciz();kaydet();tost(`"${h.ad}" ${L('silindi','deleted')}`,L('Geri al','Undo'),()=>{S.aliskanlik.splice(i,0,h);ciz();kaydet()})},'teh']]);
 };
 $('#todos').onclick=e=>{
@@ -1551,7 +1551,7 @@ const notListe=()=>$('#nliste').innerHTML=S.notlar.map((n,i)=>`<button data-n="$
 // Notes extra: words, characters, last edit
 function notBilgi(){
   const n=S.notlar[S.aktifNot],m=n.metin.trim();
-  ekYaz('#notEk',m?`<p>${m.split(/\s+/).length} kelime · ${n.metin.length} karakter${n.t?' · '+oncesi(n.t)+L(' düzenlendi',' edited'):''}</p>`:'');
+  ekYaz('#notEk',m?`<p>${m.split(/\s+/).length}${L(' kelime · ',' words · ')}${n.metin.length}${L(' karakter',' characters')}${n.t?' · '+oncesi(n.t)+L(' düzenlendi',' edited'):''}</p>`:'');
 }
 function notSay(){
   const q=ara(),m=S.notlar[S.aktifNot].metin;let t='';
@@ -1560,7 +1560,7 @@ function notSay(){
   $('#nsay').textContent=t;notBilgi();
 }
 const notSec=i=>{S.aktifNot=i;araPos=0;notCiz();kaydet()};
-async function notAdi(i){const n=S.notlar[i],v=await sor(L('Notun adı','Note name'),[{ad:'Ad',v:n.ad,zorunlu:1}]);if(v?.[0]){n.ad=v[0].slice(0,40);notCiz();kaydet()}}
+async function notAdi(i){const n=S.notlar[i],v=await sor(L('Notun adı','Note name'),[{ad:L('Ad','Name'),v:n.ad,zorunlu:1}]);if(v?.[0]){n.ad=v[0].slice(0,40);notCiz();kaydet()}}
 const notMenu=(x,y,i)=>menu(x,y,[[L('Yeniden adlandır…','Rename…'),()=>notAdi(i)],
   S.notlar.length>1?null:0,S.notlar.length>1?[L('Sil','Delete'),()=>{
     const n=S.notlar.splice(i,1)[0];S.aktifNot=Math.min(S.aktifNot,S.notlar.length-1);notCiz();kaydet();
@@ -1612,7 +1612,7 @@ function havaUyar(){
   const n=new Date(),g=gunStr(n),d=havaV?.daily;
   if(!S||A('havaUyari')===false||S.havaUyari===g||n.getHours()<5||n.getHours()>=12||d?.time?.[0]!==g)return; // wait if the data is not for today (old cache)
   const y=d.precipitation_probability_max?.[0],mn=d.temperature_2m_min?.[0],u=[];
-  if(y>=60)u.push(L('yağış olasılığı %','rain chance %')+y);if(typeof mn==='number'&&mn<=0)u.push(`${L('don bekleniyor (en düşük ','frost expected (low ')}${Math.round(mn)}°)`);
+  if(y>=60)u.push(L('yağış olasılığı ','rain chance ')+yz(y));if(typeof mn==='number'&&mn<=0)u.push(`${L('don bekleniyor (en düşük ','frost expected (low ')}${Math.round(mn)}°)`);
   S.havaUyari=g;kaydet();if(u.length)bildir(L('Hava uyarısı','Weather alert'),L('Bugün ','Today ')+u.join(', ')+'.');
 }
 // Morning summary: once on the first open of the day (after 05:00)
@@ -1630,7 +1630,7 @@ function ozet(){
     p.push(olagan.length?`${olagan.length} etkinlik${ilk?L(', sıradaki ',', next ')+saat(new Date(ilk.start.dateTime)):''}`:L('etkinlik yok','no events'));
     if(yarinEv.length)p.push(L('Yarın: ','Tomorrow: ')+yarinEv.map(etkAd).join(', '));
   }
-  if(havaV){const d=havaV.daily,y=d.precipitation_probability_max?.[0]??0;p.push(`${Math.round(d.temperature_2m_max[0])}° / ${Math.round(d.temperature_2m_min[0])}°${y>=40?L(', yağış %',', rain %')+y:''}`)}
+  if(havaV){const d=havaV.daily,y=d.precipitation_probability_max?.[0]??0;p.push(`${Math.round(d.temperature_2m_max[0])}° / ${Math.round(d.temperature_2m_min[0])}°${y>=40?L(', yağış ',', rain ')+yz(y):''}`)}
   // one sentence: first event, weather, waiting tasks; missing parts are skipped
   if(havaV?.current)c.push(`hava ${trK(WMO[havaV.current.weather_code]||'')} ${Math.round(havaV.current.temperature_2m)}°`.replace('  ',' '));
   const acik=S.todos.filter(t=>!t.d).length;if(acik)c.push(acik+L(' görev bekliyor',' tasks waiting'));
@@ -1766,7 +1766,7 @@ async function uygAc(i){
 }
 $('#uyglar').onclick=$('#uygSon').onclick=e=>{const b=e.target.closest('[data-u]');if(!b||!S)return;if(b.dataset.u==='+')uygEkle();else uygAc(+b.dataset.u)};
 $('#uygEkle').onclick=()=>S&&uygEkle();
-const uygMenu=(x,y,i)=>{const l=S.uygulamalar,u=l[i];menu(x,y,[[L('Aç','Open'),()=>uygAc(i)],[L('Yeniden adlandır…','Rename…'),async()=>{const v=await sor(L('Yeniden adlandır','Rename'),[{ad:'Ad',v:u.ad,zorunlu:1}]);if(v?.[0]){u.ad=v[0].slice(0,60);uygCiz();kaydet()}}],
+const uygMenu=(x,y,i)=>{const l=S.uygulamalar,u=l[i];menu(x,y,[[L('Aç','Open'),()=>uygAc(i)],[L('Yeniden adlandır…','Rename…'),async()=>{const v=await sor(L('Yeniden adlandır','Rename'),[{ad:L('Ad','Name'),v:u.ad,zorunlu:1}]);if(v?.[0]){u.ad=v[0].slice(0,60);uygCiz();kaydet()}}],
   i>0?[L('Sola taşı','Move left'),()=>{l.splice(i-1,0,l.splice(i,1)[0]);uygCiz();kaydet()}]:0,i<l.length-1?[L('Sağa taşı','Move right'),()=>{l.splice(i+1,0,l.splice(i,1)[0]);uygCiz();kaydet()}]:0,
   null,[L('Kaldır','Remove'),()=>{l.splice(i,1);uygCiz();kaydet();tost(`"${u.ad}${L('" kaldırıldı','" removed')}`,L('Geri al','Undo'),()=>{l.splice(i,0,u);uygCiz();kaydet()})},'teh']])};
 // Add dialog: pick a desktop shortcut or find a file with Browse
@@ -1805,7 +1805,7 @@ function linkCiz(){
 const linkTasma=()=>{const l=$('#linkler');l.classList.toggle('tasar',l.scrollWidth>l.clientWidth+1&&l.scrollLeft+l.clientWidth<l.scrollWidth-2)};
 addEventListener('resize',linkTasma);$('#linkler').addEventListener('scroll',linkTasma);
 async function linkDuzenle(i){
-  const l=S.links[i]||{},v=await sor(l.a?L('Bağlantıyı düzenle','Edit link'):L('Bağlantı ekle','Add link'),[{ad:'Ad',v:l.a,zorunlu:1,ipucu:L('Posta','Mail')},{ad:L('Adres','Address'),v:l.u,zorunlu:1,ipucu:'mail.google.com'}],l.a?L('Kaydet','Save'):L('Ekle','Add'));
+  const l=S.links[i]||{},v=await sor(l.a?L('Bağlantıyı düzenle','Edit link'):L('Bağlantı ekle','Add link'),[{ad:L('Ad','Name'),v:l.a,zorunlu:1,ipucu:L('Posta','Mail')},{ad:L('Adres','Address'),v:l.u,zorunlu:1,ipucu:'mail.google.com'}],l.a?L('Kaydet','Save'):L('Ekle','Add'));
   if(!v||!v[0]||!v[1])return;
   const yeni={a:v[0],u:/^https?:\/\//i.test(v[1])?v[1]:'https://'+v[1]};
   if(l.a)S.links[i]=yeni;else S.links.push(yeni);
@@ -2268,7 +2268,7 @@ $('#geriSay').onclick=()=>S&&sayimPencere();$('#geriSay').onkeydown=e=>{if(e.key
 $('#serbest').onclick=async e=>{
   const b=e.target.closest('[data-sy]');if(!b)return;
   if(b.dataset.sy==='x'){SY=null;sySakla();return serbestCiz()}
-  const v=await sor(L('Sayaç başlat','Start timer'),[{ad:'Ad',v:localStorage.sayacAd||L('Çay','Tea'),zorunlu:1},{ad:L('Süre (dakika)','Duration (minutes)'),tip:'number',v:localStorage.sayacDk||10,zorunlu:1}],L('Başlat','Start'));
+  const v=await sor(L('Sayaç başlat','Start timer'),[{ad:L('Ad','Name'),v:localStorage.sayacAd||L('Çay','Tea'),zorunlu:1},{ad:L('Süre (dakika)','Duration (minutes)'),tip:'number',v:localStorage.sayacDk||10,zorunlu:1}],L('Başlat','Start'));
   if(!v)return;const dk=Math.min(600,Math.max(1,Math.round(+v[1])||0));if(!v[0])return;
   SY={ad:v[0].slice(0,40),bitis:Date.now()+dk*6e4};sySakla();try{localStorage.sayacAd=SY.ad;localStorage.sayacDk=dk}catch{}serbestCiz();
 };
@@ -2389,7 +2389,7 @@ function izgara(){
       const g=gunleri(bant),bb=g[0]===t,bs=g.at(-1)===t;
       sinif+='bant '+(bb?'bb ':'')+(bs?'bs ':'')+(sut===0?'sb ':'')+(sut===6?'ss':'');
       stil=` style="--bc:${renk(bant)}"`;
-      if(!tekler.length&&(bb||bs)&&g.length>1){sinif+=' et';etiket=bb?L('<b data-k="baş">başlar</b>','<b data-k="baş">starts</b>'):'<b data-k="son">biter</b>'} // ends of the period
+      if(!tekler.length&&(bb||bs)&&g.length>1){sinif+=' et';etiket=bb?L('<b data-k="baş">başlar</b>','<b data-k="start">starts</b>'):L('<b data-k="son">biter</b>','<b data-k="end">ends</b>')} // ends of the period
     }
     // on a wide card: week number at the start of a row, the first event's name in the cell (shown via CSS)
     const hf=sut===0||k===1?` data-hf="${haftaNo(new Date(y,m,k))}"`:'',ad=tekler[0]&&!etiket?`<em>${esc(etkAd(tekler[0][0]))}${tekler.length>1?' +'+(tekler.length-1):''}</em>`:'';
@@ -2581,7 +2581,7 @@ function spCiz(r,hata){
   if((it?.id??null)!==spSiraId){spSiraId=it?.id??null;spSira()}
   const ses=v?.device?.volume_percent,s=$('#ses');
   s.hidden=ses==null;
-  if(ses!=null&&document.activeElement!==s&&Date.now()>sesBekle){s.value=ses;s.title=L('Ses düzeyi: %','Volume: %')+ses}
+  if(ses!=null&&document.activeElement!==s&&Date.now()>sesBekle){s.value=ses;s.title=L('Ses düzeyi: ','Volume: ')+yz(ses)}
   spIlerle();
 }
 // News (Bundle feed through Rust /api/haber): per category in memory and the last fetched in localStorage; refreshed every 15 min.
@@ -2665,10 +2665,10 @@ async function sistem(){
   const r=await api('/api/sistem'),v=r.durum==='ok'&&r.veri;
   if(!v)return ekYaz('#sistem',L('<p class="m">Sistem bilgisi alınamadı.</p>','<p class="m">Could not read system info.</p>'));
   const gb=b=>(b/2**30).toLocaleString(LOC,{maximumFractionDigits:b<1e10?1:0}),cubuk=(ad,yz,yazi)=>`<div class="sisS"><span>${ad}</span><small>${yazi}</small></div><div class="cizgi"><i style="width:${Math.min(100,Math.max(0,yz))}%"></i></div>`;
-  ekYaz('#sistem',(typeof v.cpu==='number'?cubuk(L('İşlemci','CPU'),v.cpu,'%'+Math.round(v.cpu)):cubuk(L('İşlemci','CPU'),0,L('ölçülüyor…','measuring…')))
+  ekYaz('#sistem',(typeof v.cpu==='number'?cubuk(L('İşlemci','CPU'),v.cpu,yz(Math.round(v.cpu))):cubuk(L('İşlemci','CPU'),0,L('ölçülüyor…','measuring…')))
     +(v.bellek?cubuk(L('Bellek','Memory'),100*(1-v.bellek.bos/v.bellek.toplam),`${gb(v.bellek.toplam-v.bellek.bos)} / ${gb(v.bellek.toplam)} GB`):'')
     +(v.disk?cubuk('Disk',100*(1-v.disk.bos/v.disk.toplam),`${gb(v.disk.bos)}${L(' GB boş / ',' GB free / ')}${gb(v.disk.toplam)} GB`):'')
-    +(v.pil?cubuk(L('Pil','Battery'),v.pil.yuzde,'%'+v.pil.yuzde+(v.pil.sarj?L(' · şarjda',' · charging'):'')):''));
+    +(v.pil?cubuk(L('Pil','Battery'),v.pil.yuzde,yz(v.pil.yuzde)+(v.pil.sarj?L(' · şarjda',' · charging'):'')):''));
 }
 // Clipboard history: the last 20 texts, in memory only (cleared when RYOCS closes), collected only while the card is open.
 // Copies that password managers mark "exclude from history" are skipped on the Rust side. Clicking a row copies the text again.
@@ -2721,7 +2721,7 @@ function yerListe(){
   $('#aYerYukle').disabled=$('#aYerSilB').disabled=!l.length;return l;
 }
 $('#aYerKaydet').onclick=async()=>{
-  const a=await sor(L('Yerleşimi kaydet','Save layout'),[{ad:'Ad',ipucu:L('ör. Çalışma düzeni','e.g. Work layout'),zorunlu:1}],L('Kaydet','Save'),L('Kartların yeri, boyutu ve hangilerinin açık olduğu saklanır. Aynı adlı yedeğin yerine geçer.','Card places, sizes and which cards are open are saved. Replaces a layout with the same name.'));
+  const a=await sor(L('Yerleşimi kaydet','Save layout'),[{ad:L('Ad','Name'),ipucu:L('ör. Çalışma düzeni','e.g. Work layout'),zorunlu:1}],L('Kaydet','Save'),L('Kartların yeri, boyutu ve hangilerinin açık olduğu saklanır. Aynı adlı yedeğin yerine geçer.','Card places, sizes and which cards are open are saved. Replaces a layout with the same name.'));
   const ad=a?.[0]?.trim().slice(0,40);if(!ad)return;
   S.ayar.yerYedek=[{ad,t:Date.now(),v:yerAl()},...yerListe().filter(y=>y.ad!==ad)].slice(0,10);kaydet();yerListe();tost(L('Yerleşim kaydedildi: ','Layout saved: ')+ad);
 };
@@ -2794,7 +2794,7 @@ $('#sp').onclick=async e=>{
     spSon='';await spotify(r.durum==='ok'?'':L('Komut reddedildi (Premium ve açık bir cihaz gerekir)','Command refused (needs Premium and an active device)'));
   }finally{spMesgul=false;for(const x of $('#sp').querySelectorAll('[data-c]'))x.disabled=false}
 };
-$('#ses').oninput=e=>e.target.title=L('Ses düzeyi: %','Volume: %')+e.target.value;
+$('#ses').oninput=e=>e.target.title=L('Ses düzeyi: ','Volume: ')+yz(e.target.value);
 $('#ses').onchange=async e=>{
   sesBekle=Date.now()+3000; // Spotify can take a few seconds to report the new value: the slider must not jump back
   const r=await api('/api/spotify/volume',{v:+e.target.value});

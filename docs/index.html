@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>RYOCS – personal dashboard for Windows</title>
+<meta name="description" content="RYOCS is a calm, all-in-one personal dashboard for Windows: calendar, tasks, notes, weather, news, Spotify, focus timer and more. Free and open source.">
+<meta property="og:title" content="RYOCS – personal dashboard for Windows">
+<meta property="og:description" content="Calendar, tasks, notes, weather, news, Spotify and a focus timer on one calm screen. Free and open source.">
+<meta property="og:image" content="img/dashboard.png">
+<link rel="icon" href="img/icon.png">
+<style>
+:root{--bg:#e9eaec;--card:#eef0f2;--hi:#fff;--lo:#c5c7cc;--tx:#3f424a;--mu:#6b6e77;--ac:#6f9f77;--ac2:#e9a25b;--ln:#d8dade;
+  --up:9px 9px 18px var(--lo),-9px -9px 18px var(--hi);--in:inset 5px 5px 10px var(--lo),inset -5px -5px 10px var(--hi)}
+@media (prefers-color-scheme:dark){:root{--bg:#2a2d33;--card:#2d3037;--hi:#353840;--lo:#1f2126;--tx:#dfe1e6;--mu:#a1a5ae;--ln:#3a3d45;--ac:#8fb996}}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.6 "Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:inherit}
+.w{max-width:1120px;margin:0 auto;padding:0 20px}
+header{padding:22px 0}
+header .w{display:flex;align-items:center;gap:12px}
+.logo{display:flex;align-items:center;gap:10px;font-weight:300;letter-spacing:.35em;font-size:18px;text-decoration:none}
+.logo img{width:28px;height:28px}
+nav{margin-left:auto;display:flex;gap:18px;font-size:14px}
+nav a{text-decoration:none;color:var(--mu)}nav a:hover{color:var(--tx)}
+.hero{text-align:center;padding:40px 0 30px}
+.hero h1{font-weight:300;font-size:clamp(34px,6vw,58px);line-height:1.1;margin:0 0 16px;letter-spacing:-.01em}
+.hero p{max-width:640px;margin:0 auto 28px;color:var(--mu);font-size:18px}
+.btns{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:13px 24px;border-radius:999px;background:var(--bg);box-shadow:var(--up);text-decoration:none;font-weight:600;font-size:15px;transition:box-shadow .2s,transform .2s}
+.btn:hover{transform:translateY(-1px)}.btn:active{box-shadow:var(--in);transform:none}
+.btn.ana{background:var(--ac);color:#fff;box-shadow:0 10px 22px -8px var(--ac)}
+.btn svg{width:18px;height:18px;fill:currentColor}
+.small{font-size:13px;color:var(--mu);margin-top:14px}
+.shot{margin:34px auto 0;border-radius:22px;overflow:hidden;box-shadow:var(--up);background:var(--card);padding:10px}
+.shot img{display:block;width:100%;height:auto;border-radius:14px}
+section{padding:60px 0 10px}
+h2{font-weight:300;font-size:32px;margin:0 0 8px;text-align:center}
+.lead{text-align:center;color:var(--mu);max-width:620px;margin:0 auto 34px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:20px}
+.f{background:var(--bg);border-radius:20px;box-shadow:var(--up);padding:22px}
+.f i{display:grid;place-items:center;width:42px;height:42px;border-radius:14px;box-shadow:var(--in);font-style:normal;font-size:20px;margin-bottom:12px}
+.f h3{margin:0 0 6px;font-size:17px;font-weight:600}
+.f p{margin:0;color:var(--mu);font-size:14.5px}
+.gal{display:grid;grid-template-columns:repeat(2,1fr);gap:22px}
+.gal figure{margin:0;border-radius:18px;box-shadow:var(--up);padding:8px;background:var(--card)}
+.gal img{display:block;width:100%;height:auto;border-radius:12px;cursor:zoom-in}
+.gal figcaption{font-size:14px;color:var(--mu);padding:10px 6px 4px}
+.steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:20px;counter-reset:s}
+.steps div{background:var(--bg);border-radius:20px;box-shadow:var(--up);padding:22px 22px 22px 66px;position:relative}
+.steps div::before{counter-increment:s;content:counter(s);position:absolute;left:20px;top:20px;width:32px;height:32px;border-radius:50%;box-shadow:var(--in);display:grid;place-items:center;font-weight:600;color:var(--ac)}
+.steps h3{margin:0 0 4px;font-size:16px}.steps p{margin:0;color:var(--mu);font-size:14.5px}
+code{font-family:"Cascadia Code",Consolas,monospace;font-size:.88em;background:var(--card);box-shadow:var(--in);padding:2px 7px;border-radius:7px}
+footer{padding:60px 0 40px;text-align:center;color:var(--mu);font-size:14px}
+dialog{border:0;padding:0;background:transparent;max-width:min(1400px,96vw)}
+dialog::backdrop{background:rgba(20,22,26,.75)}
+dialog img{display:block;max-width:100%;max-height:92vh;border-radius:12px}
+@media (max-width:720px){.gal{grid-template-columns:1fr}nav{display:none}.hero{padding-top:20px}}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}.btn{transition:none}}
+</style>
+</head>
+<body>
+<header><div class="w">
+  <a class="logo" href="#"><img src="img/icon.png" alt="">RYOCS</a>
+  <nav><a href="#features">Features</a><a href="#screens">Screenshots</a><a href="#start">Get started</a><a href="https://github.com/ryocs15/ryocs">GitHub</a></nav>
+</div></header>
+
+<main>
+<div class="hero w">
+  <h1>Your day, on one calm screen</h1>
+  <p>RYOCS is a personal dashboard for Windows. Calendar, tasks, notes, weather, news, music and a focus timer, side by side, always one click away in the tray.</p>
+  <div class="btns">
+    <a class="btn ana" href="https://github.com/ryocs15/ryocs/releases/latest"><svg viewBox="0 0 24 24"><path d="M12 3v11.2l4.6-4.6 1.4 1.4-7 7-7-7 1.4-1.4 4.6 4.6V3zM4 19h16v2H4z"/></svg>Download for Windows</a>
+    <a class="btn" href="https://github.com/ryocs15/ryocs"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 0 0-3.2 19.5c.5.1.7-.2.7-.5v-1.7c-2.8.6-3.4-1.3-3.4-1.3-.5-1.2-1.1-1.5-1.1-1.5-.9-.6.1-.6.1-.6 1 .1 1.5 1 1.5 1 .9 1.5 2.3 1.1 2.9.8.1-.6.4-1.1.6-1.3-2.2-.3-4.6-1.1-4.6-5a3.9 3.9 0 0 1 1-2.7 3.6 3.6 0 0 1 .1-2.7s.8-.3 2.8 1a9.6 9.6 0 0 1 5 0c1.9-1.3 2.8-1 2.8-1 .5 1.4.2 2.4.1 2.7a3.9 3.9 0 0 1 1 2.7c0 3.9-2.4 4.7-4.6 5 .4.3.7.9.7 1.9V21c0 .3.2.6.7.5A10 10 0 0 0 12 2z"/></svg>Source code</a>
+  </div>
+  <p class="small">Free and open source (MIT) · Windows 10 and 11 · English and Turkish</p>
+  <div class="shot"><img src="img/dashboard.png" alt="The RYOCS dashboard with clock, calendar, apps, tasks, notes, news, weather, Spotify and focus cards" width="1600" height="900"></div>
+</div>
+
+<section id="features"><div class="w">
+  <h2>Everything you check during the day</h2>
+  <p class="lead">Each card can be moved, resized, hidden or tuned to taste. Turn on only what you need.</p>
+  <div class="grid">
+    <div class="f"><i>📅</i><h3>Google Calendar</h3><p>Month and week views, upcoming events, birthdays, important dates and your regional holidays.</p></div>
+    <div class="f"><i>✅</i><h3>Tasks and habits</h3><p>Reminders, repeats on any days you like, priorities, overdue tracking and habit streaks.</p></div>
+    <div class="f"><i>📝</i><h3>Notes</h3><p>Quick notes with checklists, several notes in tabs, word count and full search.</p></div>
+    <div class="f"><i>⛅</i><h3>Weather</h3><p>Hourly and 7-day forecasts from Open-Meteo, plus a morning alert when rain or frost is on the way.</p></div>
+    <div class="f"><i>📰</i><h3>News</h3><p>BBC News by category in English, Turkish sources in Turkish. Filter out keywords and sources.</p></div>
+    <div class="f"><i>🎵</i><h3>Spotify</h3><p>See what is playing, skip, pause, change the volume and peek at what is up next.</p></div>
+    <div class="f"><i>⏱️</i><h3>Focus timer</h3><p>Pomodoro rounds with a daily goal and streak. Do not disturb holds notifications until the round ends.</p></div>
+    <div class="f"><i>✉️</i><h3>Gmail</h3><p>Your unread mail at a glance, read-only. Click a message to open it in the browser.</p></div>
+    <div class="f"><i>💱</i><h3>Rates, system, clipboard</h3><p>Currency and gold prices, CPU, memory, disk and battery, and a private clipboard history.</p></div>
+    <div class="f"><i>🔎</i><h3>Search everything</h3><p>Press Ctrl+F to find apps, tasks, notes, events and commands in one place.</p></div>
+    <div class="f"><i>🎨</i><h3>Make it yours</h3><p>12 themes, glass look, animated backgrounds, accent colours, drag-to-resize layout and saved layouts.</p></div>
+    <div class="f"><i>🔒</i><h3>Private by design</h3><p>Your data stays in your user folder. Optional PIN lock, daily backups and OneDrive sync.</p></div>
+  </div>
+</div></section>
+
+<section id="screens"><div class="w">
+  <h2>A closer look</h2>
+  <p class="lead">Light, dark and glass, in English or Turkish. Click a picture to enlarge it.</p>
+  <div class="gal">
+    <figure><img src="img/dark.png" alt="Dark theme with Gmail, calendar, news, currency, system and clipboard cards" loading="lazy" width="1600" height="900"><figcaption>Dark theme with Gmail, rates, system info and clipboard history</figcaption></figure>
+    <figure><img src="img/search.png" alt="Search results grouped into commands, tasks, habits, notes and events" loading="lazy" width="1600" height="900"><figcaption>One search box for apps, tasks, notes, events and commands</figcaption></figure>
+    <figure><img src="img/settings.png" alt="Appearance settings with light and dark themes" loading="lazy" width="1600" height="900"><figcaption>Twelve themes and an automatic day/night switch</figcaption></figure>
+    <figure><img src="img/glass.png" alt="The dashboard in the glass look" loading="lazy" width="1600" height="900"><figcaption>The glass look on a light theme</figcaption></figure>
+  </div>
+</div></section>
+
+<section id="start"><div class="w">
+  <h2>Get started</h2>
+  <p class="lead">Installs for your user only, no admin rights needed.</p>
+  <div class="steps">
+    <div><h3>Download</h3><p>Get <code>RYOCS-Setup.exe</code> from the <a href="https://github.com/ryocs15/ryocs/releases/latest">latest release</a> and run it. If SmartScreen warns, choose <em>More info → Run anyway</em>.</p></div>
+    <div><h3>Pick your cards</h3><p>Weather, news and rates work right away. Open <em>Settings → Cards</em> to switch cards on or off.</p></div>
+    <div><h3>Connect accounts</h3><p>For Google Calendar, Gmail or Spotify, follow the guided setup in <em>Settings → Accounts</em>. Your keys stay on your PC.</p></div>
+  </div>
+</div></section>
+</main>
+
+<footer><div class="w">
+  RYOCS is free and open source under the MIT license. · <a href="https://github.com/ryocs15/ryocs">GitHub</a> · <a href="https://github.com/ryocs15/ryocs/issues">Report an issue</a>
+</div></footer>
+
+<dialog id="big"><img alt=""></dialog>
+<script>
+const d=document.getElementById('big'),im=d.querySelector('img');
+document.querySelectorAll('.gal img,.shot img').forEach(i=>i.addEventListener('click',()=>{im.src=i.src;im.alt=i.alt;d.showModal()}));
+d.addEventListener('click',()=>d.close());
+</script>
+</body>
+</html>
