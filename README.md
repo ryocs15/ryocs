@@ -45,10 +45,78 @@ The installer is not code-signed yet, so Windows SmartScreen may warn on first r
 
 ## Connecting accounts
 
-Google Calendar, Gmail and Spotify use your own developer credentials, which stay on your computer (`%APPDATA%\RYOCS\config.json`). RYOCS walks you through the setup in **Settings → Accounts**:
+Weather, news, currency rates, notes, tasks and the focus timer work right away. You only need this section if you want to see your **Google Calendar**, **Gmail** or **Spotify** inside RYOCS.
 
-- **Google**: create a Google Cloud project, enable the *Google Calendar API* (and the *Gmail API* for the mail card), create a *Desktop app* OAuth client and paste its ID and secret. Gmail access is read-only.
-- **Spotify**: create an app in the Spotify for Developers dashboard and paste its Client ID. Playback control needs Spotify Premium.
+### Why is there a setup step?
+
+RYOCS is a small free app, not a company with its own Google or Spotify account. So instead of signing in through *our* key, you create your **own free key** once. It sounds technical, but it is just filling in a few forms, and it takes about 10 minutes for Google and 3 minutes for Spotify.
+
+A few words you will see:
+
+- **Client ID / Client secret**: a username and password for the *app*, not for you. They tell Google or Spotify that the requests come from your copy of RYOCS.
+- **Project / app**: just a folder on Google's or Spotify's website that holds this key.
+- **Permission (consent) screen**: the page where Google or Spotify asks *"Do you allow RYOCS to see your calendar?"*. You click **Allow** once.
+
+It is free, it needs no credit card, and the key stays on your computer in `%APPDATA%\RYOCS\config.json`. Nobody else, including the RYOCS developers, can see it.
+
+> 💡 Inside RYOCS, **Settings → Accounts → Set up and connect** opens a window with the same steps and buttons that open the right pages for you. You can follow that window instead of this guide.
+
+### Google Calendar and Gmail
+
+**Part 1: create your key on Google's website**
+
+1. Open **[console.cloud.google.com](https://console.cloud.google.com)** and sign in with the Google account whose calendar you want to see. If it asks you to accept the terms, accept them.
+2. **Create a project.** At the top of the page, click the project picker (next to the *Google Cloud* logo) → **New project**. Name it `RYOCS` → **Create**. Wait a few seconds until the top bar shows *RYOCS*.
+3. **Turn on the calendar.** Open **[Google Calendar API](https://console.cloud.google.com/apis/library/calendar-json.googleapis.com)** and click **Enable**.
+   For the mail card, also open **[Gmail API](https://console.cloud.google.com/apis/library/gmail.googleapis.com)** and click **Enable**.
+4. **Set up the permission screen.** Open **[Google Auth Platform](https://console.cloud.google.com/auth/overview)** → **Get started**:
+   - *App name*: `RYOCS`, *User support email*: your e-mail → **Next**
+   - *Audience*: choose **External** → **Next**
+   - *Contact information*: your e-mail → **Next**
+   - Tick the agreement → **Create**
+5. **Add yourself as a tester.** In the left menu click **Audience** → under *Test users* click **Add users** → type your own Gmail address → **Save**.
+6. **Create the key.** In the left menu click **Clients** → **Create client**:
+   - *Application type*: **Desktop app**
+   - *Name*: `RYOCS` → **Create**
+   - In the window that appears, click **Download JSON**. This file is your key. Keep it; do not share it.
+
+**Part 2: give the key to RYOCS**
+
+7. In RYOCS open **Settings** (the gear icon, or Ctrl+,) → **Accounts** → next to *Google Calendar* click **Set up and connect**.
+8. Click **Choose the downloaded JSON file…** and pick the file from step 6. (Or copy the *Client ID* and *Client secret* by hand.) → **Save and connect**.
+9. Your browser opens. Choose your Google account.
+10. Google shows **"Google hasn't verified this app"**. This is normal: the "app" is the key you made yourself a minute ago. Click **Advanced** → **Go to RYOCS (unsafe)**.
+11. Tick all the boxes (calendar, and mail if you want the Gmail card) → **Continue**.
+12. The page says **"Google Calendar connected"**. Close the tab and go back to RYOCS. Your calendar appears within a few seconds.
+
+**Good to know**
+
+- **Signed out after a week?** While the key is in *Testing* mode, Google asks you to sign in again every 7 days. To stop this, go to **Audience** → **Publish app** → **Confirm**. You do not need Google to review anything: you are the only user.
+- **Gmail card says "Update permission"?** You connected before the Gmail card existed. Click **Update permission** on the card and allow mail access in the browser.
+- **"Access blocked" or "Error 403: access_denied"?** Your address is not in the test users list. Repeat step 5.
+- **Gmail card says the API is turned off?** Repeat the Gmail part of step 3.
+- RYOCS only **reads** your mail. It cannot send, delete or change anything.
+
+### Spotify
+
+1. Open **[developer.spotify.com/dashboard](https://developer.spotify.com/dashboard)** and log in with your normal Spotify account. Accept the terms if asked.
+2. Click **Create app** and fill in:
+   - *App name*: `RYOCS`, *App description*: anything, for example `My dashboard`
+   - *Redirect URI*: copy this exactly, then click **Add**:
+     ```
+     http://127.0.0.1:8765/callback/spotify
+     ```
+   - *Which API/SDKs are you planning to use?*: tick **Web API**
+   - Tick the agreement → **Save**
+3. On the app page click **Settings** and copy the **Client ID** (a 32-character code). You do **not** need the client secret.
+4. In RYOCS open **Settings → Accounts** → next to *Spotify* click **Set up and connect**, paste the Client ID → **Save and connect**.
+5. Your browser opens: click **Agree**. Close the tab and go back to RYOCS.
+
+Start a song on any device (phone, PC, speaker) and it shows up on the Spotify card. Seeing what is playing works with a free account; **play, pause, skip and volume need Spotify Premium** (a Spotify rule).
+
+### Disconnecting
+
+**Settings → Accounts → Disconnect** removes the sign-in from RYOCS. To remove the key completely, also delete the project on Google Cloud or the app on the Spotify dashboard.
 
 Weather, news and currency rates need no account.
 

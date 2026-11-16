@@ -85,7 +85,7 @@ fn provider(name: &str) -> Result<Provider, String> {
             scope: "user-read-playback-state user-modify-playback-state user-read-currently-playing",
             extra: &[],
         }),
-        _ => Err("bilinmeyen servis".into()),
+        _ => Err("unknown service".into()),
     }
 }
 
@@ -1084,7 +1084,7 @@ fn handle(mut req: Request) {
         if sonuc.is_ok() {
             olay(Olay::Goster(true)); // the user should return from the browser to the app
         }
-        let servis = if name == "google" { "Google Takvim" } else { "Spotify" };
+        let servis = if name == "google" { l("Google Takvim", "Google Calendar") } else { "Spotify" };
         return send(req, 200, HTML, sonuc_sayfasi(servis, sonuc));
     }
     let out: Result<Value, String> = if !post && path == "/api/state" {
