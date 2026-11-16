@@ -6,6 +6,20 @@ RYOCS is a small native app (Rust + WebView2). Your data stays on your computer 
 
 The interface is in **English** and **Turkish**. It follows the Windows display language and can be changed in Settings → General → Language.
 
+**[Project page](https://ryocs15.github.io/ryocs/)** · **[Download](https://github.com/ryocs15/ryocs/releases/latest)**
+
+![The RYOCS dashboard with clock, calendar, apps, tasks, notes, news, weather, Spotify and focus cards](docs/img/dashboard.png)
+
+## Screenshots
+
+| Dark theme | Search everything |
+| --- | --- |
+| ![Dark theme with Gmail, calendar, news, currency, system and clipboard cards](docs/img/dark.png) | ![Search results grouped into commands, tasks, habits, notes and events](docs/img/search.png) |
+| **Themes** | **Glass look** |
+| ![Appearance settings with light and dark themes](docs/img/settings.png) | ![The dashboard in the glass look](docs/img/glass.png) |
+
+*Screenshots use demo data.*
+
 ## Features
 
 - **Clock** with several dial styles, a second time zone, sunrise/sunset and countdowns
