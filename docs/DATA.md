@@ -8,6 +8,7 @@ Everything RYOCS stores lives in `%APPDATA%\RYOCS`. Nothing is sent anywhere exc
 | `config.json` | Weather city and the Google / Spotify keys you created. |
 | `tokens.json` | Sign-in tokens for Google and Spotify (deleted by *Disconnect*). |
 | `esitle.json` | OneDrive sync: on/off, folder, last synced fingerprint. |
+| `pencere.json` | Window: maximized or not, and the normal position and size (`maks`, `x`, `y`, `w`, `h`, screen pixels). |
 | `yedekler\` | Backups: `data-YYYY-MM-DD.json` (one per day, last 14), `data-geri-alma.json` (the state before the last restore or import), `data-onedrive.json` (the OneDrive copy that lost a sync conflict). |
 | `hata.log` | Error log (over 1 MB the old one becomes `hata.old`). |
 | `ryocs.png` | Notification icon. |
@@ -29,6 +30,7 @@ Format version: `surum` (currently **1**). A save without `surum` is format 0 (v
 | `uygulamalar` | array | Apps and games `{ad, yol, simge, n, son}`: name, path or `steam://` link, icon (PNG data URL), times opened, last opened (ms). |
 | `sayimlar` | array | Countdowns `{ad, t}` (`t` = `YYYY-MM-DD`). |
 | `odak`, `biten` | object | Per day (`YYYY-MM-DD`): finished focus rounds and completed tasks. Kept for 90 days. |
+| `odakLog` | array | Finished work rounds `{g, dk, ne}`: day, minutes, the "working on" note (if any). Kept for 90 days. |
 | `havaUyari`, `ozet` | string | Day of the last weather alert and of the last morning summary. |
 | `ayar` | object | Settings (below). |
 
@@ -52,7 +54,8 @@ Missing keys mean the default.
 | `havaGun`, `havaUyari`, `sehirler`, `birim` | Weather: 3-day view, morning alert, extra cities `[{ad, bolge, lat, lon}]` (older saves: plain names), units `c` / `f` (missing = °F in the US). |
 | `haberKat`, `haberKelime`, `haberGizli` | News category, hidden words, hidden sources. |
 | `calisma`, `mola`, `hedef`, `odakOto`, `rahatsiz`, `calismaAd`, `molaAd`, `odakNe` | Focus: work and break minutes, daily goal, auto start, do not disturb, own labels, "working on" note. |
-| `ozet`, `tepsiBilgi` | Morning summary on/off, "running in the tray" notice already shown. |
+| `ozet`, `tepsiBilgi`, `tur` | Morning summary on/off, "running in the tray" notice already shown, first-run tips already shown. |
+| `kisayol` | Global show / hide shortcut: index in the list (0 Win+Ctrl+R, 1 Win+Alt+Y, 2 Ctrl+Alt+Shift+R, 3 Ctrl+Alt+Space) or `yok` = off. |
 
 ## config.json
 

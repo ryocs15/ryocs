@@ -50,7 +50,8 @@ static BELIRTEC_DOSYASI: Mutex<()> = Mutex::new(());
 /// Calendar list cache (so Google is not asked on every month navigation).
 static TAKVIM_LISTESI: Mutex<Option<(std::time::Instant, Value)>> = Mutex::new(None);
 
-static OAUTH_STATE: Mutex<(String, String)> = Mutex::new((String::new(), String::new()));
+/// Pending OAuth requests per provider: (state, PKCE verifier). Google and Spotify can be connected at the same time.
+static OAUTH_STATE: LazyLock<Mutex<HashMap<&'static str, (String, String)>>> = LazyLock::new(Default::default);
 static AGENT: LazyLock<ureq::Agent> = LazyLock::new(|| {
     ureq::AgentBuilder::new()
         .tls_connector(Arc::new(native_tls::TlsConnector::new().expect("TLS")))
@@ -96,12 +97,22 @@ fn dir() -> PathBuf {
 }
 
 /// Language of user-facing text: the choice in Settings (data.json ayar.dil), otherwise the Windows UI language (Turkish → tr).
+/// Cached (0: not read yet, 1: Turkish, 2: English); reset whenever data.json is written, because the setting may have changed.
+static DIL: std::sync::atomic::AtomicU8 = std::sync::atomic::AtomicU8::new(0);
 fn dil_tr() -> bool {
-    match read_json("data.json")["ayar"]["dil"].as_str() {
+    use std::sync::atomic::Ordering::Relaxed;
+    match DIL.load(Relaxed) {
+        1 => return true,
+        2 => return false,
+        _ => {}
+    }
+    let tr = match read_json("data.json")["ayar"]["dil"].as_str() {
         Some("tr") => true,
         Some("en") => false,
         _ => (unsafe { windows_sys::Win32::Globalization::GetUserDefaultUILanguage() } & 0x3ff) == 0x1f,
-    }
+    };
+    DIL.store(if tr { 1 } else { 2 }, Relaxed);
+    tr
 }
 
 /// Picks the Turkish or English text.
@@ -148,6 +159,9 @@ fn write_text(name: &str, s: &str) -> Result<(), String> {
     let _y = kilit(&YAZ); // two saves at once must not write the same temporary file together
     let p = dir().join(name);
     let tmp = p.with_extension("tmp");
+    if name == "data.json" {
+        DIL.store(0, std::sync::atomic::Ordering::Relaxed);
+    }
     fs::write(&tmp, s).and_then(|_| fs::rename(&tmp, &p)).map_err(|e| e.to_string())
 }
 
@@ -487,6 +501,7 @@ fn esitle_cek(k: &std::path::Path) -> Result<(), String> {
     // written byte for byte: the local hash becomes the last synced hash, so the next remote change is not mistaken for a "conflict"
     let tmp = yerel.with_extension("tmp");
     fs::write(&tmp, &b).and_then(|_| fs::rename(&tmp, &yerel)).map_err(|e| e.to_string())?;
+    DIL.store(0, std::sync::atomic::Ordering::Relaxed);
     esitle_oz_yaz(&oz(&b));
     Ok(())
 }
@@ -619,6 +634,7 @@ fn config_get() -> Value {
         "google": hesap("google"), "spotify": hesap("spotify"),
         "surum": env!("CARGO_PKG_VERSION"),
         "kisayol": tepsi::kisayol(),
+        "kisayollar": tepsi::adlar(),
     })
 }
 
@@ -691,7 +707,7 @@ fn connect(p: &Provider) -> Result<Value, String> {
     let (id, _) = creds(p.name)?;
     let (st, dogrulayici) = (rastgele(), rastgele());
     let meydan = pkce(&dogrulayici);
-    *kilit(&OAUTH_STATE) = (st.clone(), dogrulayici);
+    kilit(&OAUTH_STATE).insert(p.name, (st.clone(), dogrulayici));
     let red = redirect(p.name);
     let mut q = vec![
         ("client_id", id.as_str()), ("response_type", "code"),
@@ -890,7 +906,7 @@ h1{font-weight:400;font-size:20px;margin:0 0 8px}p{color:#747780;line-height:1.5
 fn callback(p: &Provider, path_and_query: &str) -> Result<(), String> {
     let u = url::Url::parse(&format!("{ORIGIN}{path_and_query}")).map_err(|e| e.to_string())?;
     let q: HashMap<String, String> = u.query_pairs().into_owned().collect();
-    let (st, dogrulayici) = std::mem::take(&mut *kilit(&OAUTH_STATE));
+    let (st, dogrulayici) = kilit(&OAUTH_STATE).remove(p.name).unwrap_or_default();
     if st.is_empty() || q.get("state") != Some(&st) {
         return Err(l("Geçersiz istek (state uyuşmuyor). Uygulamadan yeniden bağlanın.", "Invalid request (state mismatch). Connect again from the app.").into());
     }
@@ -999,12 +1015,25 @@ fn calendar(req_body: &str) -> Result<Value, String> {
         let isler: Vec<_> = takvimler.iter().map(|c| {
             let (id, auth) = (c["id"].as_str().unwrap_or("primary").to_string(), &auth);
             k.spawn(move || {
-                body(AGENT.request_url("GET", &takvim_url(&id, &["events"])?)
-                    .query("timeMin", min).query("timeMax", max)
-                    .query("singleEvents", "true").query("orderBy", "startTime").query("maxResults", "250")
-                    // only the fields the UI uses: on a slow network the response is several times smaller
-                    .query("fields", "items(id,summary,start,end,recurringEventId,location,htmlLink,extendedProperties,description,eventType)")
-                    .set("Authorization", auth).call())
+                // a busy calendar has more than one page of 250 events (at most 4 pages: 1000 events per calendar)
+                let (mut items, mut sayfa) = (vec![], None::<String>);
+                for _ in 0..4 {
+                    let mut q = AGENT.request_url("GET", &takvim_url(&id, &["events"])?)
+                        .query("timeMin", min).query("timeMax", max)
+                        .query("singleEvents", "true").query("orderBy", "startTime").query("maxResults", "250")
+                        // only the fields the UI uses: on a slow network the response is several times smaller
+                        .query("fields", "nextPageToken,items(id,summary,start,end,recurringEventId,location,htmlLink,extendedProperties,description,eventType)");
+                    if let Some(t) = &sayfa {
+                        q = q.query("pageToken", t);
+                    }
+                    let v = body(q.set("Authorization", auth).call())?;
+                    items.extend(v["items"].as_array().cloned().unwrap_or_default());
+                    match v["nextPageToken"].as_str() {
+                        Some(t) => sayfa = Some(t.into()),
+                        None => break,
+                    }
+                }
+                Ok(json!({ "items": items }))
             })
         }).collect();
         isler.into_iter().map(|h| h.join().unwrap_or(Err("thread".into()))).collect()
@@ -1048,6 +1077,34 @@ fn calendar_add(req_body: &str) -> Result<Value, String> {
     }
     let t = token(&provider("google")?)?;
     body(AGENT.request_url("POST", &takvim_url(takvim, &["events"])?).set("Authorization", &format!("Bearer {t}")).send_json(ev))
+}
+
+/// Edits an event: title and/or start + end (PATCH: only the fields sent change). Checked like adding, before any network call.
+fn calendar_edit(b: &str) -> Result<Value, String> {
+    let r: Value = serde_json::from_str(b).map_err(|e| e.to_string())?;
+    let id = r["id"].as_str().filter(|s| etkinlik_id(s)).ok_or(l("Geçersiz etkinlik", "Invalid event"))?;
+    let takvim = r["takvim"].as_str().unwrap_or("primary");
+    if !takvim_id(takvim) {
+        return Err(l("Geçersiz takvim", "Invalid calendar").into());
+    }
+    let mut ev = json!({});
+    if let Some(s) = r["summary"].as_str() {
+        let s = s.trim();
+        if s.is_empty() || s.chars().count() > 300 {
+            return Err(l("Başlık gerekli", "A title is required").into());
+        }
+        ev["summary"] = json!(s);
+    }
+    // the UI sends the other key as null ({date, dateTime: null}): PATCH merges objects, so a timed event can become all-day
+    if r["start"].is_object() && r["end"].is_object() {
+        ev["start"] = r["start"].clone();
+        ev["end"] = r["end"].clone();
+    }
+    if ev.as_object().is_some_and(|o| o.is_empty()) {
+        return Err(l("Değişiklik yok", "Nothing to change").into());
+    }
+    let t = token(&provider("google")?)?;
+    body(AGENT.request_url("PATCH", &takvim_url(takvim, &["events", id])?).set("Authorization", &format!("Bearer {t}")).send_json(ev))
 }
 
 /// Google event ID: letters, digits and underscore only (since it is added to the address).
@@ -1101,11 +1158,26 @@ fn yedekten(b: &str) -> Result<Value, String> {
     geri_yukle(serde_json::from_str(s.trim_start_matches('\u{feff}')).map_err(|e| e.to_string())?)
 }
 
+/// The user's Downloads folder, also when it was moved (Known Folder API); None if Windows cannot tell.
+fn indirilenler() -> Option<PathBuf> {
+    use windows_sys::Win32::System::Com::CoTaskMemFree;
+    use windows_sys::Win32::UI::Shell::{FOLDERID_Downloads, SHGetKnownFolderPath};
+    unsafe {
+        let mut p = std::ptr::null_mut();
+        let ok = SHGetKnownFolderPath(&FOLDERID_Downloads, 0, std::ptr::null_mut(), &mut p) >= 0 && !p.is_null();
+        let yol = ok.then(|| PathBuf::from(String::from_utf16_lossy(std::slice::from_raw_parts(p, (0..).take_while(|&i| *p.add(i) != 0).count()))));
+        CoTaskMemFree(p as _); // also required when the call fails
+        yol
+    }
+}
+
 fn disa_aktar() -> Result<Value, String> {
     use std::os::windows::process::CommandExt;
-    // shortcut: the default location of Downloads is assumed; if it was moved, use the known folder API (SHGetKnownFolderPath)
-    let hedef = PathBuf::from(std::env::var("USERPROFILE").map_err(|e| e.to_string())?)
-        .join("Downloads").join(format!("RYOCS-yedek-{}.json", ymd((now() / 86_400) as i64)));
+    let klasor = match indirilenler() {
+        Some(k) => k,
+        None => PathBuf::from(std::env::var("USERPROFILE").map_err(|e| e.to_string())?).join("Downloads"),
+    };
+    let hedef = klasor.join(format!("RYOCS-yedek-{}.json", ymd((now() / 86_400) as i64)));
     fs::copy(dir().join("data.json"), &hedef).map_err(|e| e.to_string())?;
     quiet("explorer").raw_arg(format!("/select,\"{}\"", hedef.display())).spawn().ok();
     Ok(json!(hedef))
@@ -1169,6 +1241,8 @@ fn handle(mut req: Request) {
             .and_then(|v| { backup(); write_json("data.json", &v)?; esitle_gonder(); Ok(Value::Null) })
     } else if post && path == "/api/calendar/add" {
         calendar_add(&b)
+    } else if post && path == "/api/calendar/edit" {
+        calendar_edit(&b)
     } else if post && path == "/api/notify" {
         notify(&b)
     } else if post && path == "/api/open" {
@@ -1205,6 +1279,14 @@ fn handle(mut req: Request) {
         Ok(config_get())
     } else if post && path == "/api/config" {
         config_set(&b)
+    } else if post && path == "/api/log/open" {
+        let p = dir().join("hata.log");
+        fs::OpenOptions::new().create(true).append(true).open(&p).ok(); // Notepad would ask to create a missing file
+        quiet("notepad").arg(p).spawn().map(|_| Value::Null).map_err(|e| e.to_string())
+    } else if post && path == "/api/kisayol" {
+        // index into the shortcut list, or null: none
+        let i = serde_json::from_str::<Value>(&b).ok().and_then(|v| v["i"].as_u64()).map_or(usize::MAX, |i| i as usize);
+        if tepsi::degistir(i) { Ok(json!(tepsi::kisayol())) } else { Err(l("Bu kısayolu başka bir uygulama kullanıyor", "Another app already uses this shortcut").into()) }
     } else if post && path == "/api/config/open" {
         quiet("notepad").arg(dir().join("config.json")).spawn().map(|_| Value::Null).map_err(|e| e.to_string())
     } else if let (true, Some(n)) = (post, path.strip_prefix("/api/creds/")) {
@@ -1265,19 +1347,43 @@ mod tepsi {
     use windows_sys::Win32::UI::WindowsAndMessaging::*;
 
     const WM_TEPSI: u32 = WM_APP + 1;
+    const WM_KISAYOL: u32 = WM_APP + 2; // wParam: new shortcut index (usize::MAX: none); returns 1 if it was taken
     const AC: i32 = 1;
     const CIK: i32 = 2;
     static PENCERE: AtomicPtr<core::ffi::c_void> = AtomicPtr::new(null_mut());
     static TASKBAR: AtomicU32 = AtomicU32::new(0);
-    /// Tried in order; Windows 11 reserves Win+Shift+R for screen recording, so the first free one is taken.
-    const KISAYOLLAR: [(u32, char, &str); 3] = [
+    /// The user's choice first (data.json ayar.kisayol), then in this order; Windows 11 reserves Win+Shift+R for screen recording.
+    const KISAYOLLAR: [(u32, char, &str); 4] = [
         (MOD_WIN | MOD_CONTROL, 'R', "Win+Ctrl+R"),
         (MOD_WIN | MOD_ALT, 'Y', "Win+Alt+Y"),
         (MOD_CONTROL | MOD_ALT | MOD_SHIFT, 'R', "Ctrl+Alt+Shift+R"),
+        (MOD_CONTROL | MOD_ALT, ' ', "Ctrl+Alt+Space"),
     ];
     static ALINAN: AtomicUsize = AtomicUsize::new(usize::MAX);
     pub fn kisayol() -> Option<&'static str> {
         KISAYOLLAR.get(ALINAN.load(Relaxed)).map(|k| k.2)
+    }
+    pub fn adlar() -> Vec<&'static str> {
+        KISAYOLLAR.iter().map(|k| k.2).collect()
+    }
+    /// From the server thread: the tray thread owns the hotkey, so it is changed there (SendMessage waits for the answer).
+    pub fn degistir(i: usize) -> bool {
+        let h = PENCERE.load(Relaxed);
+        !h.is_null() && unsafe { SendMessageW(h, WM_KISAYOL, i, 0) } != 0
+    }
+    /// Replaces the global shortcut; if the new one is used by another app the old one is registered again.
+    unsafe fn kisayol_ata(h: HWND, i: usize) -> bool {
+        let kaydet = |i: usize| KISAYOLLAR.get(i).is_some_and(|&(m, k, _)| RegisterHotKey(h, 1, m | MOD_NOREPEAT, k as u32) != 0);
+        let eski = ALINAN.load(Relaxed);
+        UnregisterHotKey(h, 1);
+        let ok = i == usize::MAX || kaydet(i);
+        if ok {
+            ALINAN.store(i, Relaxed);
+        } else {
+            kaydet(eski);
+        }
+        ipucu(h);
+        ok
     }
 
     pub fn w(s: &str) -> Vec<u16> {
@@ -1292,14 +1398,26 @@ mod tepsi {
         d
     }
 
+    fn ipucu_yaz(d: &mut NOTIFYICONDATAW) {
+        let tip = w(&kisayol().map_or("RYOCS".into(), |k| format!("RYOCS ({k})")));
+        d.szTip[..tip.len()].copy_from_slice(&tip);
+    }
+
     unsafe fn ekle(h: HWND) {
         let mut d = veri(h);
         d.uFlags = NIF_ICON | NIF_MESSAGE | NIF_TIP;
         d.uCallbackMessage = WM_TEPSI;
         d.hIcon = LoadImageW(GetModuleHandleW(null()), 1 as _, IMAGE_ICON, GetSystemMetrics(SM_CXSMICON), GetSystemMetrics(SM_CYSMICON), LR_DEFAULTCOLOR);
-        let tip = w(&kisayol().map_or("RYOCS".into(), |k| format!("RYOCS ({k})")));
-        d.szTip[..tip.len()].copy_from_slice(&tip);
+        ipucu_yaz(&mut d);
         Shell_NotifyIconW(NIM_ADD, &d);
+    }
+
+    /// The tooltip shows the current shortcut.
+    unsafe fn ipucu(h: HWND) {
+        let mut d = veri(h);
+        d.uFlags = NIF_TIP;
+        ipucu_yaz(&mut d);
+        Shell_NotifyIconW(NIM_MODIFY, &d);
     }
 
     pub fn kaldir() {
@@ -1312,6 +1430,7 @@ mod tepsi {
     unsafe extern "system" fn proc(h: HWND, m: u32, wp: WPARAM, lp: LPARAM) -> LRESULT {
         match m {
             WM_HOTKEY => olay(Olay::Degistir),
+            WM_KISAYOL => return kisayol_ata(h, wp) as LRESULT,
             WM_TEPSI => match lp as u32 {
                 WM_LBUTTONUP => olay(Olay::Goster(true)),
                 WM_RBUTTONUP => {
@@ -1351,8 +1470,16 @@ mod tepsi {
             // invisible top-level window (a message-only window does not get the "TaskbarCreated" broadcast)
             let h = CreateWindowExW(0, cls.as_ptr(), cls.as_ptr(), 0, 0, 0, 0, 0, null_mut(), null_mut(), inst, null());
             PENCERE.store(h, Relaxed);
-            if let Some(i) = KISAYOLLAR.iter().position(|(m, k, _)| RegisterHotKey(h, 1, m | MOD_NOREPEAT, *k as u32) != 0) {
-                ALINAN.store(i, Relaxed);
+            let tercih = super::read_json("data.json")["ayar"]["kisayol"].clone();
+            if tercih != "yok" {
+                let ilk = tercih.as_u64().map(|i| i as usize).filter(|&i| i < KISAYOLLAR.len());
+                for i in ilk.into_iter().chain((0..KISAYOLLAR.len()).filter(|&i| Some(i) != ilk)) {
+                    let (m, k, _) = KISAYOLLAR[i];
+                    if RegisterHotKey(h, 1, m | MOD_NOREPEAT, k as u32) != 0 {
+                        ALINAN.store(i, Relaxed);
+                        break;
+                    }
+                }
             }
             ekle(h);
             let mut msg: MSG = std::mem::zeroed();
@@ -1362,6 +1489,30 @@ mod tepsi {
             }
         });
     }
+}
+
+/// Saved window rectangle (physical px) if its top edge is still on a screen (a monitor may have been removed).
+fn pencere_yeri(v: &Value, ekranlar: &[(i32, i32, i32, i32)]) -> Option<(i32, i32, u32, u32)> {
+    let g = |k: &str| v[k].as_i64().and_then(|x| i32::try_from(x).ok());
+    let (x, y, w, h) = (g("x")?, g("y")?, g("w")?, g("h")?);
+    if w < 200 || h < 200 {
+        return None;
+    }
+    // at least 100 px of the title bar row must be on a screen, so the window can be grabbed
+    ekranlar.iter().any(|&(ex, ey, ew, eh)| x + w - 100 > ex && x + 100 < ex + ew && y >= ey - 10 && y + 40 < ey + eh).then_some((x, y, w as u32, h as u32))
+}
+
+/// Remembers maximized or not, and the normal size and position (only when the window is in its normal state).
+fn pencere_kaydet(w: &tao::window::Window) {
+    let mut v = read_json("pencere.json");
+    v["maks"] = json!(w.is_maximized());
+    if !w.is_maximized() && !w.is_minimized() {
+        if let Ok(p) = w.outer_position() {
+            let s = w.inner_size();
+            (v["x"], v["y"], v["w"], v["h"]) = (json!(p.x), json!(p.y), json!(s.width), json!(s.height));
+        }
+    }
+    write_json("pencere.json", &v).ok();
 }
 
 fn main() {
@@ -1375,10 +1526,20 @@ fn main() {
         fs::write(&cfg, CONFIG_SABLON).ok();
     }
     // If the port is taken the app is already running: bring the existing window to front instead of a second one.
-    let server = Server::http(ADDR);
-    if server.is_err() && AGENT.post(&format!("{ORIGIN}/api/show")).send_string("").is_ok() {
-        return;
-    }
+    let server = match Server::http(ADDR) {
+        Ok(s) => s,
+        Err(_) if AGENT.post(&format!("{ORIGIN}/api/show")).send_string("").is_ok() => return,
+        Err(e) => {
+            // another program holds the port: say so instead of an empty window (the port is fixed: OAuth redirect addresses use it)
+            hata_kaydet(&format!("port {ADDR} busy: {e}"));
+            let m = tepsi::w(&format!("{}\n\n{ADDR}", l("RYOCS açılamadı: gereken ağ bağlantı noktasını başka bir program kullanıyor. O programı kapatıp RYOCS'u yeniden açın.", "RYOCS could not start: another program is using the network port it needs. Close that program and start RYOCS again.")));
+            unsafe {
+                use windows_sys::Win32::UI::WindowsAndMessaging::{MessageBoxW, MB_ICONERROR};
+                MessageBoxW(std::ptr::null_mut(), m.as_ptr(), tepsi::w("RYOCS").as_ptr(), MB_ICONERROR);
+            }
+            return;
+        }
+    };
 
     use tao::event::{Event, WindowEvent};
     use tao::event_loop::{ControlFlow, EventLoopBuilder};
@@ -1386,16 +1547,14 @@ fn main() {
     use wry::WebViewBuilderExtWindows;
     let event_loop = EventLoopBuilder::<Olay>::with_user_event().build();
     *kilit(&PROXY) = Some(event_loop.create_proxy());
-    if let Ok(server) = server {
-        thread::spawn(move || {
-            for req in server.incoming_requests() {
-                thread::spawn(move || {
-                    // the panic hook writes details to hata.log; here it is enough that the thread dies
-                    std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| handle(req))).ok();
-                });
-            }
-        });
-    }
+    thread::spawn(move || {
+        for req in server.incoming_requests() {
+            thread::spawn(move || {
+                // the panic hook writes details to hata.log; here it is enough that the thread dies
+                std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| handle(req))).ok();
+            });
+        }
+    });
     // Same ID as the Start menu shortcut: taskbar grouping and notifications under the RYOCS name
     unsafe { windows_sys::Win32::UI::Shell::SetCurrentProcessExplicitAppUserModelID(tepsi::w(AUMID).as_ptr()) };
     let gizli = std::env::args().any(|a| a == "--gizli"); // at Windows startup: start in the tray only
@@ -1406,18 +1565,24 @@ fn main() {
         thread::sleep(Duration::from_secs(3));
         olay(Olay::Goster(false)); // the window must not stay hidden even if the page could not say "ready"
     });
-    let window = tao::window::WindowBuilder::new()
+    // last size and position (pencere.json); maximized the first time or when the saved place is off every screen
+    let yer = read_json("pencere.json");
+    let ekranlar: Vec<_> = event_loop.available_monitors().map(|m| (m.position().x, m.position().y, m.size().width as i32, m.size().height as i32)).collect();
+    let normal = pencere_yeri(&yer, &ekranlar);
+    let mut wb = tao::window::WindowBuilder::new()
         .with_title("RYOCS")
         .with_visible(false) // shown once the UI is ready: no white flash and no theme jump
-        .with_maximized(true) // fits the work area on every screen size
+        .with_maximized(normal.is_none() || yer["maks"].as_bool() != Some(false))
         .with_window_icon(tao::window::Icon::from_resource(1, None).ok())
         .with_taskbar_icon(tao::window::Icon::from_resource(1, None).ok())
         .with_inner_size(tao::dpi::LogicalSize::new(1180.0, 720.0))
         .with_min_inner_size(tao::dpi::LogicalSize::new(1060.0, 680.0)) // cards do not fit in anything smaller
         .with_decorations(false) // the page draws the title bar (neumorphic / glass)
-        .with_undecorated_shadow(true)
-        .build(&event_loop)
-        .expect("pencere");
+        .with_undecorated_shadow(true);
+    if let Some((x, y, w, h)) = normal {
+        wb = wb.with_position(tao::dpi::PhysicalPosition::new(x, y)).with_inner_size(tao::dpi::PhysicalSize::new(w, h));
+    }
+    let window = wb.build(&event_loop).expect("pencere");
     unsafe {
         // Windows 11: rounded corners for the borderless window too (no effect on Windows 10)
         use tao::platform::windows::WindowExtWindows;
@@ -1450,6 +1615,7 @@ fn main() {
             // Close button: hides to the tray; reminders and the focus timer keep running.
             Event::WindowEvent { event: WindowEvent::CloseRequested, .. } => {
                 hata_kaydet("info: close request → hidden to the tray");
+                pencere_kaydet(&window);
                 window.set_visible(false);
                 webview.evaluate_script("kapandi()").ok();
             }
@@ -1457,6 +1623,7 @@ fn main() {
             Event::UserEvent(Olay::Kapat) if !kapaniyor => {
                 kapaniyor = true;
                 webview.evaluate_script("kaydetSimdi()").ok();
+                pencere_kaydet(&window);
                 window.set_visible(false);
                 thread::spawn(|| {
                     thread::sleep(Duration::from_millis(700));
@@ -1486,6 +1653,7 @@ fn main() {
                     "kucult" => window.set_minimized(true),
                     "buyut" => window.set_maximized(!window.is_maximized()),
                     "kapat" => {
+                        pencere_kaydet(&window);
                         window.set_visible(false);
                         webview.evaluate_script("kapandi()").ok();
                     }
@@ -1688,6 +1856,29 @@ mod tests {
         assert!(yer_dogrula(&json!({"ad": "X", "lat": "1", "lon": 1.0})).is_err());
         assert_eq!(yer_dogrula(&json!({"ad": " X ", "bolge": "B", "lat": 1.5, "lon": -2.0, "fazla": 1})).unwrap(), json!({"ad": "X", "bolge": "B", "lat": 1.5, "lon": -2.0}));
         assert!(sehir_ara("  ").is_err());
+    }
+
+    #[test]
+    fn pencere_yeri_ekranda_olmali() {
+        let ekran = [(0, 0, 1920, 1080)];
+        let v = |x: i32, y: i32| json!({"x": x, "y": y, "w": 1200, "h": 800, "maks": false});
+        assert_eq!(pencere_yeri(&v(100, 50), &ekran), Some((100, 50, 1200, 800)));
+        assert_eq!(pencere_yeri(&v(2500, 50), &ekran), None); // the second monitor was removed
+        assert_eq!(pencere_yeri(&v(100, -400), &ekran), None); // title bar above the screen
+        assert_eq!(pencere_yeri(&v(-1150, 50), &ekran), None); // only 50 px visible
+        assert!(pencere_yeri(&v(2500, 50), &[(0, 0, 1920, 1080), (1920, 0, 2560, 1440)]).is_some());
+        assert_eq!(pencere_yeri(&json!({}), &ekran), None);
+        assert_eq!(pencere_yeri(&json!({"x": 0, "y": 0, "w": 50, "h": 50}), &ekran), None);
+    }
+
+    #[test]
+    fn etkinlik_duzenleme_dogrulama() {
+        // rejected before any network call
+        assert!(calendar_edit(r#"{"id":"a/b","summary":"x"}"#).is_err());
+        assert!(calendar_edit(r#"{"id":"abc","takvim":"x y","summary":"x"}"#).is_err());
+        assert!(calendar_edit(r#"{"id":"abc","summary":"   "}"#).is_err());
+        assert!(calendar_edit(r#"{"id":"abc"}"#).is_err());
+        assert!(calendar_edit(r#"{"id":"abc","start":{"date":"2026-01-01"}}"#).is_err()); // start without end
     }
 
     #[test]

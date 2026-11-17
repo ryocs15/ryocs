@@ -4,3 +4,6 @@ const {esit}=RT;
 esit('tr defaults',[OTO12,saat(new Date(2026,10,4,18,5)),OTO_HB,GUN()[0],FAH(),tatilId()],
   [false,'18:05',1,'Pzt',false,'tr.turkish#holiday@group.v.calendar.google.com']);
 S.ayar.saatBicim='h12';esit('12 h in Turkish',saat(new Date(2026,10,4,18,5)),'6:05 ÖS');
+
+// Bundle news times are UTC without a zone: they get a Z so "… ago" is right
+await haber(true);RT.dogru('Bundle time read as UTC',haberV[haberK()]?.[0]?.t.endsWith('Z'));

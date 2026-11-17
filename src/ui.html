@@ -480,6 +480,9 @@ button.dot:hover{transform:scale(1.3)}
 .halka b{position:absolute;inset:0;display:grid;place-items:center;font:200 24px "Segoe UI Variable Display","Segoe UI",sans-serif}
 .halka small{position:absolute;left:0;right:0;top:64%;text-align:center;font-size:11px;color:var(--mu);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 16px}
 .odakNe{display:block;max-width:100%;margin:8px auto 0;border:0;background:none;color:var(--tx);font:inherit;font-size:12px;padding:3px 8px;border-radius:8px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.odNe>div{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 8px;font-size:12px;margin-top:6px}.odNe span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.odNe small{color:var(--mu)}.odNe i{grid-column:1/-1;height:4px;border-radius:2px;background:var(--ye);opacity:.7}
+.tur{margin:14px 0 0;padding-left:20px;display:grid;gap:10px;font-size:14px;line-height:1.45}
+.ayAra{margin:0 2px 10px;padding:8px 12px;font-size:13px}#ayarlar .araGizli{display:none}
 .odakNe.bos{color:var(--mu)}.odakNe:hover{box-shadow:var(--up-s)}.odakNe{transition:box-shadow .2s,color .2s}
 #ilerleme{transition:stroke-dashoffset 1s linear,stroke .3s}
 .odak .ctl{flex-direction:column;margin:0}
@@ -866,7 +869,7 @@ function selamYazi(n,d){
 </div>
 
 <dialog id="ayarlar" aria-labelledby="ayB"><div class="ayKap">
-  <nav class="ayNav" role="tablist" aria-label="Ayar kategorileri" aria-orientation="vertical"><h1 id="ayB">Ayarlar</h1><button role="tab" data-b="gorunum" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 0 0 0 18c.8 0 1.5-.7 1.5-1.5 0-.4-.1-.7-.4-1-.2-.3-.4-.6-.4-1 0-.8.7-1.5 1.5-1.5H16a5 5 0 0 0 5-5c0-4.4-4-8-9-8zm-5.5 9a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm3-4a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm3 4a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z"/></svg>Görünüm</button><button role="tab" data-b="kartlar" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h7v9H4zm9 0h7v5h-7zm0 7h7v9h-7zM4 15h7v5H4z"/></svg>Kartlar</button><button role="tab" data-b="takvim" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 2v2H5a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2V2h-2v2H9V2zM5 9h14v10H5z"/></svg>Takvim</button><button role="tab" data-b="genel" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22a2 2 0 0 0 2-2h-4a2 2 0 0 0 2 2zm6-6v-5c0-3.1-1.6-5.6-4.5-6.3V4a1.5 1.5 0 0 0-3 0v.7C7.6 5.4 6 7.9 6 11v5l-2 2v1h16v-1z"/></svg>Genel ve bildirimler</button><button role="tab" data-b="hesaplar" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm0 2c-3.3 0-8 1.7-8 5v1h16v-1c0-3.3-4.7-5-8-5z"/></svg>Hesaplar</button><button role="tab" data-b="veri" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3C7.6 3 4 4.3 4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6c0-1.7-3.6-3-8-3zm0 2c3.9 0 6 1.1 6 1s-2.1 1-6 1-6-1.1-6-1 2.1-1 6-1zm6 13c0 .1-2.1 1-6 1s-6-.9-6-1v-2.3c1.5.8 3.7 1.3 6 1.3s4.5-.5 6-1.3zm0-5c0 .1-2.1 1-6 1s-6-.9-6-1v-2.3c1.5.8 3.7 1.3 6 1.3s4.5-.5 6-1.3z"/></svg>Veri</button></nav>
+  <nav class="ayNav" role="tablist" aria-label="Ayar kategorileri" aria-orientation="vertical"><h1 id="ayB">Ayarlar</h1><input class="in ayAra" id="ayAra" type="search" placeholder="Ayarlarda ara" aria-label="Ayarlarda ara" autocomplete="off"><button role="tab" data-b="gorunum" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 0 0 0 18c.8 0 1.5-.7 1.5-1.5 0-.4-.1-.7-.4-1-.2-.3-.4-.6-.4-1 0-.8.7-1.5 1.5-1.5H16a5 5 0 0 0 5-5c0-4.4-4-8-9-8zm-5.5 9a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm3-4a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm3 4a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z"/></svg>Görünüm</button><button role="tab" data-b="kartlar" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h7v9H4zm9 0h7v5h-7zm0 7h7v9h-7zM4 15h7v5H4z"/></svg>Kartlar</button><button role="tab" data-b="takvim" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 2v2H5a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2V2h-2v2H9V2zM5 9h14v10H5z"/></svg>Takvim</button><button role="tab" data-b="genel" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22a2 2 0 0 0 2-2h-4a2 2 0 0 0 2 2zm6-6v-5c0-3.1-1.6-5.6-4.5-6.3V4a1.5 1.5 0 0 0-3 0v.7C7.6 5.4 6 7.9 6 11v5l-2 2v1h16v-1z"/></svg>Genel ve bildirimler</button><button role="tab" data-b="hesaplar" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm0 2c-3.3 0-8 1.7-8 5v1h16v-1c0-3.3-4.7-5-8-5z"/></svg>Hesaplar</button><button role="tab" data-b="veri" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3C7.6 3 4 4.3 4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6c0-1.7-3.6-3-8-3zm0 2c3.9 0 6 1.1 6 1s-2.1 1-6 1-6-1.1-6-1 2.1-1 6-1zm6 13c0 .1-2.1 1-6 1s-6-.9-6-1v-2.3c1.5.8 3.7 1.3 6 1.3s4.5-.5 6-1.3zm0-5c0 .1-2.1 1-6 1s-6-.9-6-1v-2.3c1.5.8 3.7 1.3 6 1.3s4.5-.5 6-1.3z"/></svg>Veri</button></nav>
   <div class="ic ayIc">
   <div class="dh"><h2 class="ayBas" id="ayBas">Görünüm</h2><button class="rb" data-kapat aria-label="Kapat" title="Kapat (Esc)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.4 5 5 6.4 10.6 12 5 17.6 6.4 19 12 13.4 17.6 19 19 17.6 13.4 12 19 6.4 17.6 5 12 10.6z"/></svg></button></div>
   <section class="ayBol" data-b="gorunum" role="tabpanel" aria-label="Görünüm">
@@ -910,7 +913,7 @@ function selamYazi(n,d){
   <div class="ar"><span>Profil fotoğrafı<small>yoksa adının baş harfi gösterilir</small></span><div class="grp"><span class="avatar" id="aAvatar" aria-hidden="true"></span><button class="btn" id="aFotoSec">Seç</button><button class="btn" id="aFotoSil">Kaldır</button><input type="file" id="aFoto" accept="image/*" hidden></div></div>
   <div class="ar"><span>PIN kilidi<small id="aPinD"></small></span><div class="grp"><button class="btn" id="aPin"></button><button class="btn" id="aPinSil">Kaldır</button></div></div>
   <div class="ar"><span>Windows açılınca başlat<small>tepside, pencere açılmadan başlar</small></span><button class="sw" role="switch" id="aBaslat" aria-label="Windows açılınca başlat"></button></div>
-  <div class="ar"><span>Göster / gizle<small id="aKisa">her yerden</small></span><kbd id="aKbd">—</kbd></div>
+  <div class="ar"><span>Göster / gizle<small id="aKisa">her yerden</small></span><select class="in" id="aKbd" aria-label="Göster / gizle kısayolu"></select></div>
   <div class="ar"><span>Kapat düğmesi<small>RYOCS tepside çalışmaya devam eder; çıkmak için simgeye sağ tıklayın</small></span></div>
   <div class="ar"><span>Sabah özeti<small>günün ilk açılışında görevler, etkinlikler ve hava</small></span><button class="sw" role="switch" id="aOzet" aria-label="Sabah özeti"></button></div>
   <div class="ar"><span>Güncellemeler<small id="aGunD"></small></span><button class="btn" id="aGunB">Şimdi denetle</button></div>
@@ -927,6 +930,7 @@ function selamYazi(n,d){
   <div class="ar"><label for="aYedekSec">Yedekten geri yükle<small>her gün otomatik, son 14 gün</small></label><div class="grp"><select class="in" id="aYedekSec"></select><button class="btn" id="aGeri">Yükle</button></div></div>
   <div class="ar"><span>OneDrive ile eşitle<small id="aEsD">kapalı</small></span><div class="grp"><button class="btn" id="aEsCoz" hidden>Çöz…</button><button class="sw" role="switch" id="aEs" aria-checked="false" aria-label="OneDrive ile eşitle"></button></div></div>
   <div class="ar"><span>Yedek klasörü</span><button class="btn" id="aYedek">Klasörü aç</button></div>
+  <div class="ar"><span>Hata kaydı<small>bir sorunu bildirirken işe yarar</small></span><button class="btn" id="aLog">Aç</button></div>
   <div class="ar"><span>Dışa / içe aktar<small>tüm veriler tek bir JSON dosyasında</small></span><div class="grp"><button class="btn" id="aDis">Dışa aktar</button><button class="btn" id="aIc">İçe aktar</button><input type="file" id="aDosya" accept=".json,application/json" hidden></div></div>
   </section>
   </div>
@@ -940,7 +944,7 @@ function selamYazi(n,d){
 
 <script>
 // Static HTML text is written in Turkish; in English it is replaced once at startup (exact text and title/aria-label/placeholder/alt). Dynamic text uses L().
-if(DIL!=='tr'){const T={"Güncellemeler":"Updates","Şimdi denetle":"Check now","Ay":"Month","Hafta":"Week","Bugün":"Today","Uygulamalar ve oyunlar":"Apps and games","Görevler":"Tasks","Alışkanlıklar":"Habits","Ekle":"Add","Haberler":"News","Hava durumu yükleniyor…":"Loading weather…","Odak":"Focus","Döviz ve altın":"Currency and gold","Sistem":"System","Pano":"Clipboard","Temizle":"Clear","Ayarlar":"Settings","Görünüm":"Appearance","Kartlar":"Cards","Takvim":"Calendar","Genel ve bildirimler":"General and notifications","Hesaplar":"Accounts","Veri":"Data","Temel temalar":"Basic themes","Diğer temalar":"Other themes","Otomatik geçiş":"Automatic switch","gündüz ve gece için iki tema arasında kendiliğinden geçer":"switches between two themes for day and night","Kapalı":"Off","Gün ışığı":"Daylight","Gündüz / gece":"Day / night","otomatik geçişte kullanılan temalar":"themes used by the automatic switch","Cam görünüm":"Glass look","yalnızca açık temada: saydam, parlak yüzeyler":"light themes only: translucent, glossy surfaces","Vurgu rengi":"Accent color","düğmeler, çubuklar, anahtarlar ve odak çerçevesi":"buttons, bars, switches and the focus ring","Arka plan":"Background","kartların arkasında hareketli desen":"animated pattern behind the cards","Yok":"None","Işık":"Light","Kabarcık":"Bubbles","Şerit":"Ribbon","Geometri":"Geometry","Dalga":"Wave","Yıldız":"Stars","Animasyonlar":"Animations","Anahtarla kartı aç ya da kapat; kapatılan kart açılınca eski yerine döner. “Ayarlar” kartın kendi ayarlarını açar (kartta boş bir yere sağ tıklayarak da açılır).":"Turn a card on or off with the switch; a closed card returns to its old place when reopened. “Settings” opens the card's own settings (also by right-clicking an empty spot on the card)","Genel":"General","Uygulama simgeleri":"App icons","Küçük":"Small","Orta":"Medium","Büyük":"Large","Kart yerleşimi":"Card layout","kartları başlıklarından sürükleyerek yerlerini, aralarındaki boşluktan sürükleyerek boyutlarını değiştirebilirsin":"drag cards by their titles to move them, and the gaps between them to resize","Varsayılana dön":"Reset to default","Yerleşim yedekleri":"Layout backups","kartların yeri, boyutu ve açık/kapalı durumu; uygulamadan önceki hâl \"Önceki yerleşim\" olarak saklanır":"card places, sizes and open/closed state; the state before applying is kept as \"Previous layout\"","Kaydet":"Save","Uygula":"Apply","Sil":"Delete","Hava durumu şehri":"Weather city","İkinci saat":"Second clock","saat kartında; aynı saat dilimindeysen Türkiye gösterilir":"on the clock card; if you are in the same time zone, Turkey is shown","Çalışma süresi (dk)":"Work time (min)","Mola süresi (dk)":"Break time (min)","Günlük hedef (tur)":"Daily goal (rounds)","kart büyükken ilerlemesi görünür":"progress shows when the card is large","Etkinlik bildirimi":"Event notification","takvim etkinliğinden 10 dakika önce":"10 minutes before a calendar event","Etkinlik görünümü":"Event look","Türe göre renk ve simge. Tek bir etkinliği değiştirmek için etkinliğe tıklayıp “Renk ve simge”yi seç.":"Color and icon by type. To change a single event, click it and choose “Color and icon”.","Gösterilen takvimler":"Calendars shown","Adın":"Your name","selamlarda sana adınla hitap edilir":"greetings use your name","Profil fotoğrafı":"Profile picture","yoksa adının baş harfi gösterilir":"your initial is shown if empty","Seç":"Choose","Kaldır":"Remove","PIN kilidi":"PIN lock","Windows açılınca başlat":"Start with Windows","tepside, pencere açılmadan başlar":"starts in the tray without opening the window","Göster / gizle":"Show / hide","her yerden":"from anywhere","Kapat düğmesi":"Close button","RYOCS tepside çalışmaya devam eder; çıkmak için simgeye sağ tıklayın":"RYOCS keeps running in the tray; right-click the icon to exit","Sabah özeti":"Morning summary","günün ilk açılışında görevler, etkinlikler ve hava":"tasks, events and weather on the first open of the day","Kısayollar":"Shortcuts","Ctrl+F ara · Ctrl+N yeni öğe · Ctrl+, ayarlar · F5 yenile":"Ctrl+F search · Ctrl+N new item · Ctrl+, settings · F5 refresh","Göreve çift tık: düzenle · Sağ tık: menü · Alt+↑/↓: görevi taşı":"Task double-click: edit · Right-click: menu · Alt+↑/↓: move task","Notlarda Ctrl+Enter: yapılacak kutusu ekle / işaretle":"In notes Ctrl+Enter: add / tick a checkbox","Google Takvim":"Google Calendar","Kimlikler":"Credentials","Bağla":"Connect","Gelişmiş":"Advanced","kimlikleri config.json dosyasında elle düzenle":"edit the credentials in config.json by hand","Dosyayı aç":"Open file","Yedekten geri yükle":"Restore from backup","her gün otomatik, son 14 gün":"automatic every day, last 14 days","Yükle":"Load","OneDrive ile eşitle":"Sync with OneDrive","kapalı":"off","Çöz…":"Resolve…","Yedek klasörü":"Backup folder","Klasörü aç":"Open folder","Dışa / içe aktar":"Export / import","tüm veriler tek bir JSON dosyasında":"all data in a single JSON file","Dışa aktar":"Export","İçe aktar":"Import","Simge durumuna küçült":"Minimize","Önceki boyutuna getir":"Restore down","Kapat (tepside çalışmaya devam eder)":"Close (keeps running in the tray)","Yenile":"Refresh","Yenile (F5)":"Refresh (F5)","Profil":"Profile","Hızlı bağlantılar":"Quick links","Ara ya da komut yaz (Ctrl+F)":"Search or type a command (Ctrl+F)","Uygulamalar, görevler, notlar, etkinlikler, bağlantılar ve komutlar":"Apps, tasks, notes, events, links and commands","Ara":"Search","Ayarlar (Ctrl+,)":"Settings (Ctrl+,)","Saat":"Clock","Takvim görünümü":"Calendar view","Bugüne dön":"Back to today","Önceki":"Previous","Sonraki":"Next","Uygulama ekle":"Add app","Uygulama ya da oyun ekle":"Add an app or game","Uygulama ara…  Enter: ilkini aç":"Search apps…  Enter: open the first","Uygulama ara":"Search apps","Yapılacaklar ve alışkanlıklar":"Tasks and habits","Liste":"List","Süzgeci kaldır":"Remove filter","Liste seçenekleri":"List options","Yeni görev (Ctrl+N)":"New task (Ctrl+N)","Yeni görev":"New task","Hatırlatma zamanı ekle":"Add a reminder time","Hatırlatma zamanı":"Reminder time","Notlar":"Notes","Not listesi":"Note list","Aklındakini yaz…  Ctrl+Enter: yapılacak kutusu":"Write what's on your mind…  Ctrl+Enter: checkbox","Not":"Note","Haberleri yenile":"Refresh news","Haber kategorisi":"News category","Hava durumu":"Weather","Ses düzeyi":"Volume","Başlat":"Start","Sıfırla":"Reset","Mailleri yenile":"Refresh mail","Pano geçmişi":"Clipboard history","Geçmişi temizle":"Clear history","Ayar kategorileri":"Settings categories","Kapat":"Close","Kapat (Esc)":"Close (Esc)","Otomatik tema geçişi":"Automatic theme switch","Gündüz teması":"Day theme","Gece teması":"Night theme","Arka plan animasyonu":"Background animation","Uygulama simgelerinin boyutu":"App icon size","Kayıtlı yerleşim":"Saved layout","Etkinlikten 10 dakika önce bildir":"Notify 10 minutes before events","Ad":"Name","Kurulum adımları ve istemci kimliği":"Setup steps and client ID"},c=v=>{const t=v.trim();return T[t]?v.replace(t,T[t]):v};
+if(DIL!=='tr'){const T={"Hata kaydı":"Error log","bir sorunu bildirirken işe yarar":"useful when reporting a problem","Aç":"Open","Ayarlarda ara":"Search settings","Göster / gizle kısayolu":"Show / hide shortcut","Güncellemeler":"Updates","Şimdi denetle":"Check now","Ay":"Month","Hafta":"Week","Bugün":"Today","Uygulamalar ve oyunlar":"Apps and games","Görevler":"Tasks","Alışkanlıklar":"Habits","Ekle":"Add","Haberler":"News","Hava durumu yükleniyor…":"Loading weather…","Odak":"Focus","Döviz ve altın":"Currency and gold","Sistem":"System","Pano":"Clipboard","Temizle":"Clear","Ayarlar":"Settings","Görünüm":"Appearance","Kartlar":"Cards","Takvim":"Calendar","Genel ve bildirimler":"General and notifications","Hesaplar":"Accounts","Veri":"Data","Temel temalar":"Basic themes","Diğer temalar":"Other themes","Otomatik geçiş":"Automatic switch","gündüz ve gece için iki tema arasında kendiliğinden geçer":"switches between two themes for day and night","Kapalı":"Off","Gün ışığı":"Daylight","Gündüz / gece":"Day / night","otomatik geçişte kullanılan temalar":"themes used by the automatic switch","Cam görünüm":"Glass look","yalnızca açık temada: saydam, parlak yüzeyler":"light themes only: translucent, glossy surfaces","Vurgu rengi":"Accent color","düğmeler, çubuklar, anahtarlar ve odak çerçevesi":"buttons, bars, switches and the focus ring","Arka plan":"Background","kartların arkasında hareketli desen":"animated pattern behind the cards","Yok":"None","Işık":"Light","Kabarcık":"Bubbles","Şerit":"Ribbon","Geometri":"Geometry","Dalga":"Wave","Yıldız":"Stars","Animasyonlar":"Animations","Anahtarla kartı aç ya da kapat; kapatılan kart açılınca eski yerine döner. “Ayarlar” kartın kendi ayarlarını açar (kartta boş bir yere sağ tıklayarak da açılır).":"Turn a card on or off with the switch; a closed card returns to its old place when reopened. “Settings” opens the card's own settings (also by right-clicking an empty spot on the card)","Genel":"General","Uygulama simgeleri":"App icons","Küçük":"Small","Orta":"Medium","Büyük":"Large","Kart yerleşimi":"Card layout","kartları başlıklarından sürükleyerek yerlerini, aralarındaki boşluktan sürükleyerek boyutlarını değiştirebilirsin":"drag cards by their titles to move them, and the gaps between them to resize","Varsayılana dön":"Reset to default","Yerleşim yedekleri":"Layout backups","kartların yeri, boyutu ve açık/kapalı durumu; uygulamadan önceki hâl \"Önceki yerleşim\" olarak saklanır":"card places, sizes and open/closed state; the state before applying is kept as \"Previous layout\"","Kaydet":"Save","Uygula":"Apply","Sil":"Delete","Hava durumu şehri":"Weather city","İkinci saat":"Second clock","saat kartında; aynı saat dilimindeysen Türkiye gösterilir":"on the clock card; if you are in the same time zone, Turkey is shown","Çalışma süresi (dk)":"Work time (min)","Mola süresi (dk)":"Break time (min)","Günlük hedef (tur)":"Daily goal (rounds)","kart büyükken ilerlemesi görünür":"progress shows when the card is large","Etkinlik bildirimi":"Event notification","takvim etkinliğinden 10 dakika önce":"10 minutes before a calendar event","Etkinlik görünümü":"Event look","Türe göre renk ve simge. Tek bir etkinliği değiştirmek için etkinliğe tıklayıp “Renk ve simge”yi seç.":"Color and icon by type. To change a single event, click it and choose “Color and icon”.","Gösterilen takvimler":"Calendars shown","Adın":"Your name","selamlarda sana adınla hitap edilir":"greetings use your name","Profil fotoğrafı":"Profile picture","yoksa adının baş harfi gösterilir":"your initial is shown if empty","Seç":"Choose","Kaldır":"Remove","PIN kilidi":"PIN lock","Windows açılınca başlat":"Start with Windows","tepside, pencere açılmadan başlar":"starts in the tray without opening the window","Göster / gizle":"Show / hide","her yerden":"from anywhere","Kapat düğmesi":"Close button","RYOCS tepside çalışmaya devam eder; çıkmak için simgeye sağ tıklayın":"RYOCS keeps running in the tray; right-click the icon to exit","Sabah özeti":"Morning summary","günün ilk açılışında görevler, etkinlikler ve hava":"tasks, events and weather on the first open of the day","Kısayollar":"Shortcuts","Ctrl+F ara · Ctrl+N yeni öğe · Ctrl+, ayarlar · F5 yenile":"Ctrl+F search · Ctrl+N new item · Ctrl+, settings · F5 refresh","Göreve çift tık: düzenle · Sağ tık: menü · Alt+↑/↓: görevi taşı":"Task double-click: edit · Right-click: menu · Alt+↑/↓: move task","Notlarda Ctrl+Enter: yapılacak kutusu ekle / işaretle":"In notes Ctrl+Enter: add / tick a checkbox","Google Takvim":"Google Calendar","Kimlikler":"Credentials","Bağla":"Connect","Gelişmiş":"Advanced","kimlikleri config.json dosyasında elle düzenle":"edit the credentials in config.json by hand","Dosyayı aç":"Open file","Yedekten geri yükle":"Restore from backup","her gün otomatik, son 14 gün":"automatic every day, last 14 days","Yükle":"Load","OneDrive ile eşitle":"Sync with OneDrive","kapalı":"off","Çöz…":"Resolve…","Yedek klasörü":"Backup folder","Klasörü aç":"Open folder","Dışa / içe aktar":"Export / import","tüm veriler tek bir JSON dosyasında":"all data in a single JSON file","Dışa aktar":"Export","İçe aktar":"Import","Simge durumuna küçült":"Minimize","Önceki boyutuna getir":"Restore down","Kapat (tepside çalışmaya devam eder)":"Close (keeps running in the tray)","Yenile":"Refresh","Yenile (F5)":"Refresh (F5)","Profil":"Profile","Hızlı bağlantılar":"Quick links","Ara ya da komut yaz (Ctrl+F)":"Search or type a command (Ctrl+F)","Uygulamalar, görevler, notlar, etkinlikler, bağlantılar ve komutlar":"Apps, tasks, notes, events, links and commands","Ara":"Search","Ayarlar (Ctrl+,)":"Settings (Ctrl+,)","Saat":"Clock","Takvim görünümü":"Calendar view","Bugüne dön":"Back to today","Önceki":"Previous","Sonraki":"Next","Uygulama ekle":"Add app","Uygulama ya da oyun ekle":"Add an app or game","Uygulama ara…  Enter: ilkini aç":"Search apps…  Enter: open the first","Uygulama ara":"Search apps","Yapılacaklar ve alışkanlıklar":"Tasks and habits","Liste":"List","Süzgeci kaldır":"Remove filter","Liste seçenekleri":"List options","Yeni görev (Ctrl+N)":"New task (Ctrl+N)","Yeni görev":"New task","Hatırlatma zamanı ekle":"Add a reminder time","Hatırlatma zamanı":"Reminder time","Notlar":"Notes","Not listesi":"Note list","Aklındakini yaz…  Ctrl+Enter: yapılacak kutusu":"Write what's on your mind…  Ctrl+Enter: checkbox","Not":"Note","Haberleri yenile":"Refresh news","Haber kategorisi":"News category","Hava durumu":"Weather","Ses düzeyi":"Volume","Başlat":"Start","Sıfırla":"Reset","Mailleri yenile":"Refresh mail","Pano geçmişi":"Clipboard history","Geçmişi temizle":"Clear history","Ayar kategorileri":"Settings categories","Kapat":"Close","Kapat (Esc)":"Close (Esc)","Otomatik tema geçişi":"Automatic theme switch","Gündüz teması":"Day theme","Gece teması":"Night theme","Arka plan animasyonu":"Background animation","Uygulama simgelerinin boyutu":"App icon size","Kayıtlı yerleşim":"Saved layout","Etkinlikten 10 dakika önce bildir":"Notify 10 minutes before events","Ad":"Name","Kurulum adımları ve istemci kimliği":"Setup steps and client ID"},c=v=>{const t=v.trim();return T[t]?v.replace(t,T[t]):v};
   for(const w=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT),_=0;w.nextNode();)if(w.currentNode.nodeValue.trim())w.currentNode.nodeValue=c(w.currentNode.nodeValue);
   for(const e of document.querySelectorAll('[title],[aria-label],[placeholder],[alt]'))for(const k of ['title','aria-label','placeholder','alt'])if(e.hasAttribute(k))e.setAttribute(k,c(e.getAttribute(k)));}
 // the window is shown at once (on hidden start Rust does not show it): the user sees the splash screen in the first frame
@@ -993,6 +997,7 @@ const animMs=ms=>K.dataset.anim==='off'?0:ms;
 const gunStr=d=>d.getFullYear()+'-'+iki(d.getMonth()+1)+'-'+iki(d.getDate());
 const saat24=d=>iki(d.getHours())+':'+iki(d.getMinutes()); // machine format (datetime-local, API times)
 const yerel=d=>gunStr(d)+'T'+saat24(d); // datetime-local format
+const offTarih=d=>{const o=-d.getTimezoneOffset(),a=Math.abs(o);return gunStr(d)+'T'+saat24(d)+':00'+(o<0?'-':'+')+iki(a/60|0)+':'+iki(a%60)}; // RFC 3339 with the local offset
 // Shown times: 24 or 12 hours (S.ayar.saatBicim 'h24' | 'h12'; missing: the locale's habit, e.g. 12 h for en-US)
 const OTO12=(()=>{try{return/^h1[12]$/.test(new Intl.DateTimeFormat(LOC,{hour:'numeric'}).resolvedOptions().hourCycle)}catch{return false}})();
 const SAAT12=()=>{const b=A('saatBicim');return b==='h12'||(!b&&OTO12)};
@@ -1223,7 +1228,8 @@ async function ileriAl(zorla){
   if(!zorla&&Date.now()-ileriT<6e5)return;
   const b=new Date();b.setHours(0,0,0,0);const s=new Date(b);s.setDate(s.getDate()+183);
   const r=await api('/api/calendar',{min:b.toISOString(),max:s.toISOString(),tatil:tatilId()});
-  if(r.durum!=='ok'){if(r.durum==='kimlik_yok'||r.durum==='bagli_degil')ileri=[];return}
+  takvimDenendi=true;
+  if(r.durum!=='ok'){if(r.durum==='kimlik_yok'||r.durum==='bagli_degil'){ileri=[];ileriT=0}return}
   ileriT=Date.now();ileri=r.veri.items||[];
   try{localStorage.ileri=JSON.stringify(ileri)}catch{}
   takvimEk();
@@ -1436,6 +1442,7 @@ function normal(v){
   if(yk.length){n.ayar.kartKapali=[...new Set([...dizi(n.ayar.kartKapali),...yk])];n.ayar.kartBilinen=[...bl,...yk]}
   n.aktifNot=Math.min(Math.max(0,+o.aktifNot||0),n.notlar.length-1);
   const sinir=gunStr(new Date(Date.now()-90*864e5));for(const o of [n.odak,n.biten])for(const k in o)if(k<sinir)delete o[k];
+  n.odakLog=dizi(o.odakLog).filter(x=>x&&typeof x.g==='string'&&x.g>=sinir&&x.dk>0); // finished work rounds {g, dk, ne}, 90 days
   return n;
 }
 
@@ -1685,13 +1692,15 @@ $('#not').onkeydown=e=>{
 };
 
 // Reminders: one Windows notification for due tasks and (if enabled) events starting within 10 minutes
-let yakin=[];const bildirilen=new Set();
+const bildirilen=new Set();
+// events of the next 6 months (ileri) without hidden calendars: reminders and the summary use these, whatever month the calendar shows
+const ileriGor=()=>{const g=gizliT();return ileri.filter(e=>e.start&&!g.includes(e._t))};
 function hatirlat(){
   if(!S)return;
   const simdi=new Date();let degisti=false;
   for(const t of S.todos)if(t.due&&!t.d&&!t.n&&new Date(t.due)<=simdi){bildir(t.tek?L('Hatırlatıcı · ','Reminder · ')+tekAd(t.tek):L('Hatırlatıcı','Reminder'),t.t);t.n=true;degisti=true}
   if(degisti){ciz();kaydet()}
-  if(A('etk')!==false)for(const e of yakin){
+  if(A('etk')!==false)for(const e of ileriGor()){
     const b=new Date(e.start.dateTime),k=b-simdi;
     if(k>0&&k<=6e5&&!bildirilen.has(e.id)){bildirilen.add(e.id);bildir(L('Yaklaşan etkinlik','Upcoming event'),`${e.summary||L('(başlıksız)','(untitled)')} · ${saat(b)}`)}
   }
@@ -1706,13 +1715,15 @@ function havaUyar(){
   S.havaUyari=g;kaydet();if(u.length)bildir(L('Hava uyarısı','Weather alert'),L('Bugün ','Today ')+u.join(', ')+'.');
 }
 // Morning summary: once on the first open of the day (after 05:00)
-let bugunEv=null,takvimDenendi=false;
+let takvimDenendi=false;
 function ozet(){
   const n=new Date(),g=gunStr(n);
   if(!S||A('ozet')===false||S.ozet===g||n.getHours()<5||!havaDenendi||!takvimDenendi)return;
   const gb=S.todos.filter(t=>!t.d&&t.due&&t.due.slice(0,10)<=g),gec=gb.filter(t=>new Date(t.due)<n).length,p=[],c=[];
   p.push(gb.length?`${gb.length}${L(' görev',' tasks')}${gec?` (${gec}${L(' gecikmiş)',' overdue)')}`:''}`:L('Bugün için görev yok','No tasks for today'));
-  if(bugunEv){
+  if(ileriT){ // the calendar answered in this session
+    const l=ileriGor(),yarin=new Date(n);yarin.setDate(yarin.getDate()+1);
+    const bugunEv=l.filter(e=>evGunde(e,g)),yarinEv=l.filter(e=>tur(e)&&evGun(e)===gunStr(yarin)); // tomorrow: only those that start
     const ozel=bugunEv.filter(tur),olagan=bugunEv.filter(e=>!tur(e));
     const ilk=olagan.filter(e=>e.start.dateTime&&new Date(e.start.dateTime)>n).sort((a,b)=>new Date(a.start.dateTime)-new Date(b.start.dateTime))[0];
     if(ilk)c.push(`${L('ilk etkinlik','first event')} ${saat(new Date(ilk.start.dateTime))} ${etkAd(ilk)}`);
@@ -2020,8 +2031,9 @@ async function ayarCiz(){
   }
   if(c.durum!=='ok')return;
   if(document.activeElement!==$('#aSehir'))$('#aSehir').value=c.veri.sehir;
-  $('#aKbd').textContent=c.veri.kisayol||'—';
-  $('#aKisa').textContent=c.veri.kisayol?L('her yerden','anywhere'):L('kullanılamıyor: denenen kısayolların hepsi başka uygulamalarda','unavailable: every shortcut tried is used by other apps');
+  const ks=c.veri.kisayollar||[];$('#aKbd').innerHTML=ks.map((k,i)=>`<option value="${i}">${k}</option>`).join('')+`<option value="yok">${L('Kapalı','Off')}</option>`;
+  $('#aKbd').value=c.veri.kisayol?String(ks.indexOf(c.veri.kisayol)):'yok';
+  $('#aKisa').textContent=c.veri.kisayol?L('her yerden','anywhere'):A('kisayol')==='yok'?L('kapalı','off'):L('kullanılamıyor: denenen kısayolların hepsi başka uygulamalarda','unavailable: every shortcut tried is used by other apps');
   $('#surum').textContent='RYOCS '+c.veri.surum;gunYaz();
   for(const p of ['google','spotify']){
     const d=c.veri[p],btn=$('#b_'+p);
@@ -2042,6 +2054,7 @@ $('#aTk').onclick=e=>{
 // Settings categories: one category at a time; the last one opened is remembered. ↑/↓ moves between categories.
 function ayKat(b){
   if(!$(`.ayNav [data-b="${b}"]`))b='gorunum';
+  $('#ayAra').value='';for(const x of document.querySelectorAll('#ayarlar .araGizli'))x.classList.remove('araGizli'); // a category click ends the search
   for(const t of document.querySelectorAll('.ayNav [data-b]')){const s=t.dataset.b===b;t.setAttribute('aria-selected',s);t.tabIndex=s?0:-1}
   for(const s of document.querySelectorAll('.ayBol'))s.hidden=s.dataset.b!==b;
   $('#ayBas').textContent=$(`.ayNav [data-b="${b}"]`).textContent;$('.ayIc').scrollTop=0;
@@ -2052,6 +2065,15 @@ $('.ayNav').onkeydown=e=>{
   if(!['ArrowDown','ArrowUp'].includes(e.key))return;e.preventDefault();
   const l=[...document.querySelectorAll('.ayNav [data-b]')],i=l.indexOf(document.activeElement),n=l[(i+(e.key==='ArrowDown'?1:l.length-1))%l.length];
   ayKat(n.dataset.b);n.focus();
+};
+// Search across all categories: rows (.ar) whose text matches stay, sections without a match are hidden
+$('#ayAra').oninput=e=>{
+  const q=katla(e.target.value.trim());
+  if(!q){let k;try{k=localStorage.ayKat}catch{}return ayKat(k||'gorunum')}
+  let n=0;
+  for(const s of document.querySelectorAll('.ayBol')){let v=0;for(const r of s.querySelectorAll('.ar')){const ok=katla(r.textContent).includes(q);r.classList.toggle('araGizli',!ok);v+=ok}s.hidden=!v;n+=v}
+  for(const t of document.querySelectorAll('.ayNav [data-b]'))t.setAttribute('aria-selected','false');
+  $('#ayBas').textContent=n?L('Arama sonuçları','Search results'):L('Sonuç yok','No results');$('.ayIc').scrollTop=0;
 };
 const ayarAc=()=>{if(!S)return tost(L('Veriler yüklenemedi','Could not load data'));let k;try{k=localStorage.ayKat}catch{}ayKat(k||'gorunum');ayarCiz();takvimAyarCiz();ac($('#ayarlar'))};
 $('#ayar').onclick=ayarAc;
@@ -2115,7 +2137,7 @@ const KART_AYAR={
   spotify:{ayar:[],gizle:[['ses',L('Ses kaydırıcısı','Volume slider'),'#ses'],['kapak',L('Büyük kapak (kart uzunken)','Large cover (when the card is tall)'),null],['sira',L('Sıradaki şarkılar (kart büyükken)','Up next (when the card is large)'),'#spEk']]},
   kur:{ayar:[],gizle:[]},sistem:{ayar:[],gizle:[]},pano:{ayar:[],gizle:[]},mail:{ayar:[],gizle:[]},
   odak:{ayar:[['calisma',L('Çalışma süresi (dk)','Work time (min)'),'sayi',[1,180],25],['mola',L('Mola süresi (dk)','Break time (min)'),'sayi',[1,180],5],['hedef',L('Günlük hedef (tur)','Daily goal (rounds)'),'sayi',[1,20],4],['calismaAd',L('Çalışma adı (boşsa “Çalışma”)','Work label (empty: “Work”)'),'metin',0,''],['molaAd',L('Mola adı (boşsa “Mola”)','Break label (empty: “Break”)'),'metin',0,''],['odakOto',L('Tur bitince sonrakini kendiliğinden başlat','Start the next round automatically'),'sw',0,false],['rahatsiz',L('Çalışırken bildirimleri biriktir, tur bitince tek bildirimle göster','Hold notifications while working, show them in one notification when the round ends'),'sw',0,true]],
-    gizle:[['ne',L('Üzerinde çalışılan iş','What you are working on'),'#odakNe'],['sayac',L('Serbest sayaç','Free timer'),'#serbest'],['spark',L('Başlıkta 7 günlük mini grafik','7-day mini chart in the title'),'#odakIst .spark'],['ek',L('Bugün, seri, hedef ve grafik (kart büyükken)','Today, streak, goal and chart (when the card is large)'),'#odakEk']]}};
+    gizle:[['ne',L('Üzerinde çalışılan iş','What you are working on'),'#odakNe'],['hafta',L('Bu hafta neye çalıştın (kart büyükken)','This week by task (when the card is large)'),'.odNe'],['sayac',L('Serbest sayaç','Free timer'),'#serbest'],['spark',L('Başlıkta 7 günlük mini grafik','7-day mini chart in the title'),'#odakIst .spark'],['ek',L('Bugün, seri, hedef ve grafik (kart büyükken)','Today, streak, goal and chart (when the card is large)'),'#odakEk']]}};
 document.head.insertAdjacentHTML('beforeend','<style>'+Object.entries(KART_AYAR).flatMap(([k,a])=>a.gizle.filter(g=>g[2]).map(([id,,sel])=>`[data-kart=${k}][data-gizle~=${id}] ${sel}{display:none!important}`)).join('')+'</style>');
 $('#aKartlar').onclick=e=>{const b=e.target.closest('[data-ka],[data-kg]');if(!b)return;if(b.dataset.ka)return kartAyar(b.dataset.ka);kartAc(b.dataset.kg,b.getAttribute('aria-checked')!=='true')};
 const kartGizli=(el,id)=>(el.dataset.gizle||'').split(' ').includes(id);
@@ -2286,7 +2308,14 @@ function bekle(p){
     setTimeout(()=>kapat(d),animMs(1400)+300);
   },1500);
 }
+$('#aKbd').onchange=async e=>{
+  const v=e.target.value,r=await api('/api/kisayol',{i:v==='yok'?null:+v});
+  if(r.durum==='ok'){S.ayar.kisayol=v==='yok'?'yok':+v;kaydet();tost(v==='yok'?L('Kısayol kapatıldı','Shortcut turned off'):L('Kısayol: ','Shortcut: ')+r.veri)}
+  else tost(String(r.durum).slice(0,120));
+  ayarCiz();
+};
 $('#aCfg').onclick=()=>api('/api/config/open',{});
+$('#aLog').onclick=()=>api('/api/log/open',{});
 $('#aYedek').onclick=async()=>{await kaydetSimdi();api('/api/backups',{})};
 $('#aDis').onclick=async()=>{
   await kaydetSimdi();const r=await api('/api/export',{});
@@ -2326,7 +2355,7 @@ function odakCiz(){
     O.kalan=Math.max(0,Math.round((O.bitis-Date.now())/1000));
     if(!O.kalan){
       const yeni=O.mod==='calisma'?'mola':'calisma';
-      if(O.mod==='calisma'&&S){const g=gunStr(new Date());S.odak[g]=(S.odak[g]||0)+1;kaydet();odakIstat()}
+      if(O.mod==='calisma'&&S){const g=gunStr(new Date());S.odak[g]=(S.odak[g]||0)+1;(S.odakLog??=[]).push(A('odakNe')?{g,dk:dk('calisma'),ne:A('odakNe')}:{g,dk:dk('calisma')});kaydet();odakIstat()}
       const hl=$('.halka');hl.classList.add('bitti');hl.onanimationend=()=>hl.classList.remove('bitti'); // tur bitti: halka parlar
       const n=bekleyen.length;
       api('/api/notify',{baslik:L('Odak','Focus'),metin:odakMetin(yeni),metin2:n?`${L('Odak sırasında ','During focus ')}${n}${L(' bildirim: ',' notifications: ')}`+bekleyenYazi():''});
@@ -2351,7 +2380,14 @@ function odakIstat(){
   for(let d=new Date(),k=0;k<90;k++,d.setDate(d.getDate()-1)){if(S.odak[gunStr(d)])seri++;else if(k)break}
   ekYaz('#odakEk',`${L('<div><div class="ekSat" style="margin:0 0 6px;font-size:12px"><span>Bugün <b>','<div><div class="ekSat" style="margin:0 0 6px;font-size:12px"><span>Today <b>')}${bug}${L(' tur · ',' rounds · ')}${bug*dk('calisma')}${L(' dk</b></span><span>',' min</b></span><span>')}${seri?seri+L(' günlük seri','-day streak'):L('Seri yok','No streak')}</span></div>`
     +`<div class="cizgi"><i style="width:${Math.min(100,bug/hd*100)}${L('%"></i></div><div class="ekSat"><span>Günlük hedef</span><span>','%"></i></div><div class="ekSat"><span>Daily goal</span><span>')}${bug}/${hd}${bug>=hd?' ✓':''}</span></div></div>`
-    +`${L('<div><h3>Son 7 gün</h3>','<div><h3>Last 7 days</h3>')}${bar7(S.odak,L('tur','rounds'))}</div>`);
+    +`${L('<div><h3>Son 7 gün</h3>','<div><h3>Last 7 days</h3>')}${bar7(S.odak,L('tur','rounds'))}</div>`+odakNeEk());
+}
+// This week by "working on" text (when the card is large): minutes of finished work rounds in the last 7 days
+function odakNeEk(){
+  const bas=gunStr(new Date(Date.now()-6*864e5)),t={};
+  for(const x of S.odakLog||[])if(x.g>=bas){const k=x.ne||L('Not yok','No note');t[k]=(t[k]||0)+x.dk}
+  const l=Object.entries(t).sort((a,b)=>b[1]-a[1]).slice(0,4),en=l[0]?.[1]||1;
+  return l.length?`<div class="odNe"><h3>${L('Bu hafta neye çalıştın','This week by task')}</h3>${l.map(([k,v])=>`<div><span title="${esc(k)}">${esc(k)}</span><small>${sureYaz(v*6e4)}</small><i style="width:${v/en*100}%"></i></div>`).join('')}</div>`:'';
 }
 $('#obas').onclick=()=>{O.bitis=O.bitis?0:Date.now()+O.kalan*1000;odakCiz()};
 // Free timer ("10 min tea"): a single timer independent of focus. The end time is in localStorage: it continues after a restart.
@@ -2402,7 +2438,7 @@ const aralikYazi=e=>{const g=gunleri(e),[a,b]=[g[0],g.at(-1)].map(d=>new Date(d+
   return a.getMonth()===b.getMonth()&&a.getFullYear()===b.getFullYear()?a.getDate()+'–'+k(b):k(a)+' – '+k(b)};
 // an ongoing period in the list: days left says more than the date range
 const surecYazi=e=>{const g=gunleri(e),b=g.indexOf(gunStr(new Date()));return b<0?aralikYazi(e):b===g.length-1?L('son gün','last day'):L('bitişe ','to the end ')+(g.length-1-b)+L(' gün',' days')};
-let takvimler=[],eksikIzin=false,yarinEv=[];
+let takvimler=[],eksikIzin=false;
 // If the user has not chosen: while the regional holiday calendar is present, holiday calendars in other languages should not repeat the same days
 // Holiday calendar by language/region (Google's public holiday calendars); other holiday calendars are hidden unless the user picks
 
@@ -2534,9 +2570,10 @@ function detay(i){
     :L('<button class="btn tehb" data-sil="tek">Sil</button>','<button class="btn tehb" data-sil="tek">Delete</button>');
   const d=pencere(`<div class="ic"><div class="dh"><h1>${esc(etkAd(e))}</h1><button class="rb" data-kapat aria-label="${L('Kapat','Close')}" title="${L('Kapat (Esc)','Close (Esc)')}">${SVG(IKON.kapat)}</button></div>
     <p class="m">${esc(ne)}</p>${e.location?`<p class="m">${L('Yer','Place')}: ${esc(e.location)}</p>`:''}${acik.trim()?`<div class="aciklama">${esc(acik.trim())}</div>`:''}
-    <div class="db"><button class="btn" id="eStil"><span class="dot" style="--c:${esc(renk(e))}${L('"></span>Renk ve simge</button>','"></span>Color and icon</button>')}${e.htmlLink?L('<button class="btn" id="eAc">Google Takvim’de aç</button>','<button class="btn" id="eAc">Open in Google Calendar</button>'):''}${sil}</div></div>`);
+    <div class="db">${tb.yaz===false?'':L('<button class="btn" id="eDuz">Düzenle</button>','<button class="btn" id="eDuz">Edit</button>')}<button class="btn" id="eStil"><span class="dot" style="--c:${esc(renk(e))}${L('"></span>Renk ve simge</button>','"></span>Color and icon</button>')}${e.htmlLink?L('<button class="btn" id="eAc">Google Takvim’de aç</button>','<button class="btn" id="eAc">Open in Google Calendar</button>'):''}${sil}</div></div>`);
   d.querySelector('[data-kapat]').focus();
   d.querySelector('#eStil').onclick=()=>evStil(e);
+  d.querySelector('#eDuz')?.addEventListener('click',()=>etkDuzenle(e));
   d.querySelector('#eAc')?.addEventListener('click',()=>api('/api/open',{url:e.htmlLink}));
   d.querySelector('.db').addEventListener('click',async ev=>{
     const b=ev.target.closest('[data-sil]');if(!b)return;
@@ -2546,6 +2583,22 @@ function detay(i){
     if(r.durum!=='ok'){b.disabled=false;return tost(L('Silinemedi: ','Could not delete: ')+String(r.durum).slice(0,120))}
     kapat(d);tost(b.dataset.sil==='seri'?L('Tüm tekrarlar silindi','All repeats deleted'):L('Etkinlik silindi','Event deleted'));takvimYenile();
   });
+}
+// Edit title, date and time. The duration stays the same (all-day: the number of days). A repeating event: "only this" changes the
+// date too; "all repeats" changes the title only (moving a whole series is done in Google Calendar).
+async function etkDuzenle(e){
+  const tum=!e.start.dateTime,z=zaman(e),gun=gunleri(e).length,dk=tum?0:Math.max(15,Math.round(((e.end?.dateTime?new Date(e.end.dateTime):new Date(z.getTime()+36e5))-z)/6e4));
+  const alan=[{ad:L('Başlık','Title'),v:e.summary||'',zorunlu:1},{ad:L('Tarih','Date'),tip:'date',v:gunStr(z),zorunlu:1},{ad:L('Saat (boşsa tüm gün)','Time (empty for all day)'),tip:'time',v:tum?'':saat24(z)}];
+  if(e.recurringEventId)alan.push({ad:L('Değişiklik','Apply to'),secenek:{tek:L('Yalnızca bu','Only this one'),seri:L('Tüm tekrarlar (yalnız başlık)','All repeats (title only)')},v:'tek'});
+  const v=await sor(L('Etkinliği düzenle','Edit event'),alan,L('Kaydet','Save'));if(!v||!v[0])return;
+  const [ad,tarih,st,kapsam]=v,g={takvim:e._t,id:kapsam==='seri'?e.recurringEventId:e.id,summary:ad.slice(0,300)};
+  if(kapsam!=='seri'&&/^\d{4}-\d\d-\d\d$/.test(tarih)){
+    if(st){const [h,m]=st.split(':'),b=new Date(tarih+'T00:00');b.setHours(+h,+m,0,0);g.start={dateTime:offTarih(b),date:null};g.end={dateTime:offTarih(new Date(b.getTime()+(dk||60)*6e4)),date:null}}
+    else{const s=new Date(tarih+'T00:00');s.setDate(s.getDate()+(tum?gun:1));g.start={date:tarih,dateTime:null};g.end={date:gunStr(s),dateTime:null}}
+  }
+  const r=await api('/api/calendar/edit',g);
+  if(r.durum!=='ok')return tost(L('Kaydedilemedi: ','Could not save: ')+String(r.durum).slice(0,120));
+  tost(L('Etkinlik güncellendi','Event updated'));takvimYenile();
 }
 // Birthday, anniversary or important day: added to Google as an all-day event that repeats every year
 async function onemliEkle(gun){
@@ -2571,8 +2624,7 @@ $('#olay').addEventListener('click',async e=>{
   let start,end;
   if(st){
     const [h,m]=st.split(':'),b=new Date(secili);b.setHours(+h,+m,0,0);const s=new Date(b.getTime()+36e5);
-    const off=d=>{const o=-d.getTimezoneOffset(),a=Math.abs(o);return gunStr(d)+'T'+saat24(d)+':00'+(o<0?'-':'+')+iki(a/60|0)+':'+iki(a%60)};
-    start={dateTime:off(b)};end={dateTime:off(s)};
+    start={dateTime:offTarih(b)};end={dateTime:offTarih(s)};
   }else{
     const s=new Date(secili);s.setDate(s.getDate()+1);
     start={date:gunStr(secili)};end={date:gunStr(s)};
@@ -2624,15 +2676,10 @@ function takvimCiz(r,bas,son){
   if(icinde)takvimDenendi=true;
   if(document.activeElement&&el.contains(document.activeElement)&&document.activeElement.tagName==='INPUT')return; // refresh while the form is being typed
   gBagli=r.durum==='ok';
-  if(baglan(el,r,L('Google Takvim','Google Calendar'),'google')){el.insertAdjacentHTML('afterbegin',L('<h2>Etkinlikler</h2>','<h2>Events</h2>'));if(icinde){bugunEv=null;yakin=[];yarinEv=[]}return}
+  if(baglan(el,r,L('Google Takvim','Google Calendar'),'google')){el.insertAdjacentHTML('afterbegin',L('<h2>Etkinlikler</h2>','<h2>Events</h2>'));return}
   takvimler=r.veri.takvimler||[];eksikIzin=!!r.veri.eksik_izin;
   const gizli=gizliT();
   evler=(r.veri.items||[]).filter(e=>e.start&&!gizli.includes(e._t)).sort((a,b)=>zaman(a)-zaman(b));
-  // shortcut: notifications and the summary refresh only while the period containing today is shown (if tomorrow is in another month the "tomorrow" reminder is missed); add a separate "today–tomorrow" request if needed
-  if(icinde){
-    const yarin=new Date(simdi);yarin.setDate(yarin.getDate()+1);
-    yakin=evler.filter(e=>e.start.dateTime);bugunEv=evler.filter(e=>evGunde(e,gunStr(simdi)));yarinEv=evler.filter(e=>tur(e)&&evGun(e)===gunStr(yarin)); // tomorrow: only those that start
-  }
   izgara();
   const g0=new Date();g0.setHours(0,0,0,0);
   const liste=evler.map((e,i)=>[e,i]).filter(([e])=>new Date(gunleri(e).at(-1)+'T00:00')>=g0||bas>g0||son<=g0); // periods that started but have not ended too
@@ -2713,7 +2760,7 @@ async function haber(zorla){
   $('#hYenile').classList.remove('don');
   if(k!==haberK())return; // the category changed in the meantime
   const l=r.durum!=='ok'?null:rssMi(k)?typeof r.veri==='string'&&trtAyir(r.veri,hKaynak(k))
-    :Array.isArray(r.veri)&&r.veri.map(x=>({b:String(x.title||''),l:String(x.link||''),k:String(x.channelName||x.channel_name||''),lg:x.channel_logo_src||'',g:x.imageLink||'',t:x.pubDate||''}));
+    :Array.isArray(r.veri)&&r.veri.map(x=>({b:String(x.title||''),l:String(x.link||''),k:String(x.channelName||x.channel_name||''),lg:x.channel_logo_src||'',g:x.imageLink||'',t:/^\d{4}-\d\d-\d\dT\d\d:\d\d(:\d\d)?$/.test(x.pubDate)?x.pubDate+'Z':x.pubDate||''}));
   haberHata[k]=!l?.length;
   if(l?.length){
     haberT[k]=Date.now();haberV[k]=l.slice(0,30);
@@ -2721,7 +2768,6 @@ async function haber(zorla){
   }else if(!haberV[k])return ekYaz('#haberler',r.durum===AG_YOK?agYok():`${L('<p class="m">Haberler alınamadı. ','<p class="m">Could not load the news. ')}${hKaynak(k)}${L(' akışı değişmiş olabilir.</p>',' feed may have changed.</p>')}`);
   haberCiz();
 }
-// shortcut: pubDate comes without a time zone and is read as local time; if RYOCS runs in a zone other than the source's, "… ago" drifts
 // tr-TR lowercasing: İ→i, I→ı; "MAGAZİN" matches "magazin"
 const trK=s=>String(s).toLocaleLowerCase(LOC);
 const hbKelime=()=>trK(A('haberKelime')||'').split(',').map(x=>x.trim()).filter(Boolean);
@@ -3165,10 +3211,20 @@ async function yukle(){
     yerlesimUygula();ciz();notCiz();linkCiz();uygCiz();ayarUygula();hatirlat();odakCiz();odakIstat();
   }
   // let the splash animation finish (at least ~1.7 s), then it fades while the panel entrance plays
-  setTimeout(()=>{K.classList.add('hazir');$('#acilis').classList.add('bitti');setTimeout(()=>$('#acilis').remove(),600);if(S&&A('ad')===undefined&&!kilitli)adSor();else if(S&&!kilitli)esitleBildir()},Math.max(0,(K.dataset.anim==='off'?300:1700)-(performance.now()-acilisT)));
+  setTimeout(()=>{K.classList.add('hazir');$('#acilis').classList.add('bitti');setTimeout(()=>$('#acilis').remove(),600);if(S&&A('ad')===undefined&&!kilitli)adSor();else if(S&&!kilitli){esitleBildir();turGoster()}},Math.max(0,(K.dataset.anim==='off'?300:1700)-(performance.now()-acilisT)));
 }
 function adKaydet(a){a=String(a||'').trim().slice(0,40);S.ayar.ad=a;try{localStorage.ad=a}catch{};kaydet();tick();profilCiz()}
-async function adSor(){const v=await sor(L('Hoş geldin','Welcome'),[{ad:L('Adın','Your name'),ipucu:L('Sana nasıl hitap edelim?','What should we call you?')}],L('Başla','Start'),L('RYOCS seni adınla selamlasın. Sonradan Ayarlar → Genel’den değiştirebilirsin.','RYOCS will greet you by name. You can change it later in Settings → General.'));adKaydet(v?.[0])}
+// A few tips, once (S.ayar.tur); people updating from an older version see them once too
+function turGoster(){
+  if(!S||A('tur')||kilitli||$('#sor').open)return;S.ayar.tur=1;kaydet();
+  pencere(`<div class="ic"><h1>${L('Birkaç ipucu','A few tips')}</h1><ul class="tur">${[
+    L('Kartları başlıklarından sürükleyip taşı; aralarındaki boşluğu sürükleyerek boyutlarını değiştir.','Drag a card by its title to move it; drag the gap between cards to resize them.'),
+    L('Ctrl+F ile uygulamaları, görevleri, notları, etkinlikleri ve komutları ara.','Press Ctrl+F to search apps, tasks, notes, events and commands.'),
+    L('Bir kartta boş bir yere sağ tıklayınca o kartın ayarları açılır.','Right-click an empty spot on a card to open its settings.'),
+    L('Google Takvim, Gmail ve Spotify için Ayarlar → Hesaplar.','Connect Google Calendar, Gmail and Spotify in Settings → Accounts.')].map(t=>`<li>${t}</li>`).join('')}</ul><div class="db"><button class="btn ana" data-kapat>${L('Anladım','Got it')}</button></div></div>`);
+  $('#sor [data-kapat]').focus();
+}
+async function adSor(){const v=await sor(L('Hoş geldin','Welcome'),[{ad:L('Adın','Your name'),ipucu:L('Sana nasıl hitap edelim?','What should we call you?')}],L('Başla','Start'),L('RYOCS seni adınla selamlasın. Sonradan Ayarlar → Genel’den değiştirebilirsin.','RYOCS will greet you by name. You can change it later in Settings → General.'));adKaydet(v?.[0]);setTimeout(turGoster,animMs(200))}
 // Profile: avatar (photo or initial) and PIN lock.
 // The PIN is stored only as a salted SHA-256 hash; this is a privacy lock, data.json is not encrypted.
 function avatarHtml(){const f=A('foto'),a=(A('ad')||'').trim();
@@ -3200,7 +3256,7 @@ function kilitle(){if(kilitli)return;for(const d of document.querySelectorAll('d
   $('#kilit').showModal();$('#kilitPin').focus()}
 $('#kilit').addEventListener('keydown',e=>e.stopPropagation()); // global shortcuts (Ctrl+N etc.) must not work while locked
 $('#kilit form').onsubmit=async e=>{e.preventDefault();const i=$('#kilitPin');if(i.disabled)return;
-  if(await pinDogru(i.value)){kilitYanlis=0;kilitli=false;$('#kilit').close();if(A('ad')===undefined)adSor();else esitleBildir();return}
+  if(await pinDogru(i.value)){kilitYanlis=0;kilitli=false;$('#kilit').close();if(A('ad')===undefined)adSor();else{esitleBildir();turGoster()}return}
   kilitYanlis++;i.value='';$('#kilitHata').textContent=L('PIN yanlış','Wrong PIN');
   if(kilitYanlis>=5){i.disabled=true;$('#kilitHata').textContent=L('Çok fazla deneme, 30 sn bekle','Too many attempts, wait 30 s');setTimeout(()=>{i.disabled=false;i.focus();$('#kilitHata').textContent=''},30e3)}};
 // Rust calls this when the window is closed (hidden to the tray)

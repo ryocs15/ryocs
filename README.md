@@ -23,16 +23,17 @@ The interface is in **English** and **Turkish**. It follows the Windows display 
 ## Features
 
 - **Clock** with several dial styles, a second clock (about 35 cities), sunrise/sunset and countdowns
-- **Google Calendar**: month and week views, events, birthdays and important dates, regional holidays
+- **Google Calendar**: month and week views, add, edit and delete events, birthdays and important dates, regional holidays
 - **Tasks and habits** with reminders, repeats (daily, weekdays, weekly, monthly or specific days) and streaks
 - **Notes** with checklists
-- **Weather** from Open-Meteo for up to five cities (switch in the card; when several places share a name you pick the right one): hourly and 7-day forecast, morning rain/frost alerts
+- **Weather** from Open-Meteo for up to five cities (switch in the card; when several places share a name you pick the right one): hourly and 7-day forecast, morning rain/frost alerts for the main city
 - **News**: BBC News in English, Bundle and TRT Haber in Turkish; keyword filter and hidden sources
 - **Spotify** now playing, controls and up next
-- **Focus timer** (pomodoro) with daily goal, streak, your own labels, a *what am I working on* note and *do not disturb* (notifications wait until the round ends)
+- **Focus timer** (pomodoro) with daily goal, streak, your own labels, a *what am I working on* note with a weekly breakdown, and *do not disturb* (notifications wait until the round ends)
 - **Gmail** unread mail (read-only)
 - **Currency and gold** (ECB rates in English, TCMB in Turkish), **system** info, **clipboard history**
-- Quick search and command palette (Ctrl+F), app and game launcher, quick links
+- Quick search and command palette (Ctrl+F), app and game launcher, quick links, search in Settings
+- Lives in the tray with a global shortcut you can choose; remembers its window size and position
 - Drag cards to move them, drag the gaps between them to resize; save and restore layouts
 - 12 themes, glass look, animated backgrounds, PIN lock
 - Optional OneDrive sync between two computers, daily backups, JSON export/import
