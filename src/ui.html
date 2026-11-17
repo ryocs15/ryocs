@@ -223,6 +223,13 @@ main [data-kart][hidden]{display:none!important} /* a closed card (the card layo
 .hv7>div{display:grid;grid-template-columns:52px 20px 30px minmax(0,1fr) 30px;align-items:center;gap:8px;padding:3px 0;font-size:12px}
 .hv7 svg{width:18px;height:18px;fill:none;stroke:var(--tx);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
 .hv7 em{font-style:normal;white-space:nowrap}.hv7 em:last-child{text-align:right}.hv7 em:first-of-type{color:var(--mu)} /* lowest on the left, highest on the right: the bar is the range between */
+.hvSehir{display:flex;flex-wrap:wrap;gap:4px;margin:-4px 0 8px}
+.hvSehir button{border:0;background:none;color:var(--mu);font:inherit;font-size:12px;padding:3px 10px;border-radius:999px;cursor:pointer;max-width:12em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hvSehir button[aria-pressed=true]{color:var(--tx);box-shadow:var(--up-s)}
+.hvDiger button{display:grid;grid-template-columns:20px auto minmax(0,1fr) auto;align-items:center;gap:8px;width:100%;border:0;background:none;color:var(--tx);font:inherit;font-size:12px;padding:4px 2px;cursor:pointer;text-align:left;border-radius:8px}
+.hvDiger button:hover{box-shadow:var(--up-s)}
+.hvDiger svg{width:18px;height:18px;fill:none;stroke:var(--tx);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.hvDiger small{color:var(--mu);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 :is(.uyg,.notk,.todo,.haberK){min-height:150px}
 /* Haberler */
 .haberK h2{flex-wrap:wrap;row-gap:6px}
@@ -470,7 +477,9 @@ button.dot:hover{transform:scale(1.3)}
 .halka{width:96px;height:96px;position:relative;flex:none;border-radius:50%;box-shadow:var(--up-s)}
 .halka svg{position:absolute;inset:0;transform:rotate(-90deg)}
 .halka b{position:absolute;inset:0;display:grid;place-items:center;font:200 24px "Segoe UI Variable Display","Segoe UI",sans-serif}
-.halka small{position:absolute;left:0;right:0;top:64%;text-align:center;font-size:11px;color:var(--mu)}
+.halka small{position:absolute;left:0;right:0;top:64%;text-align:center;font-size:11px;color:var(--mu);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 16px}
+.odakNe{display:block;max-width:100%;margin:8px auto 0;border:0;background:none;color:var(--tx);font:inherit;font-size:12px;padding:3px 8px;border-radius:8px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.odakNe.bos{color:var(--mu)}.odakNe:hover{box-shadow:var(--up-s)}
 #ilerleme{transition:stroke-dashoffset 1s linear,stroke .3s}
 .odak .ctl{flex-direction:column;margin:0}
 .spark{display:inline-flex;align-items:flex-end;gap:2px;height:14px;margin-right:6px;vertical-align:-2px}
@@ -843,6 +852,7 @@ function selamYazi(n,d){
             <div class="halka"><svg viewBox="0 0 110 110"><circle cx="55" cy="55" r="46" fill="none" stroke="var(--ln)" stroke-width="6"/><circle id="ilerleme" cx="55" cy="55" r="46" fill="none" stroke="var(--ye)" stroke-width="6" stroke-linecap="round" stroke-dasharray="289" stroke-dashoffset="0"/></svg><b id="sure">25:00</b><small id="mod"></small></div>
             <div class="ctl"><button class="rb" id="obas" aria-label="Başlat" title="Başlat"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4v16l13-8z"/></svg></button><button class="rb" id="osif" aria-label="Sıfırla" title="Sıfırla"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6h12v12H6z"/></svg></button></div>
           </div>
+          <button class="odakNe bos" id="odakNe"></button>
           <div id="serbest"></div>
           <div class="ek" id="odakEk"></div>
       </section>
@@ -902,6 +912,7 @@ function selamYazi(n,d){
   <div class="ar"><span>Göster / gizle<small id="aKisa">her yerden</small></span><kbd id="aKbd">—</kbd></div>
   <div class="ar"><span>Kapat düğmesi<small>RYOCS tepside çalışmaya devam eder; çıkmak için simgeye sağ tıklayın</small></span></div>
   <div class="ar"><span>Sabah özeti<small>günün ilk açılışında görevler, etkinlikler ve hava</small></span><button class="sw" role="switch" id="aOzet" aria-label="Sabah özeti"></button></div>
+  <div class="ar"><span>Güncellemeler<small id="aGunD"></small></span><button class="btn" id="aGunB">Şimdi denetle</button></div>
   <h3>Kısayollar</h3>
   <p class="m">Ctrl+F ara · Ctrl+N yeni öğe · Ctrl+, ayarlar · F5 yenile<br>Göreve çift tık: düzenle · Sağ tık: menü · Alt+↑/↓: görevi taşı<br>Notlarda Ctrl+Enter: yapılacak kutusu ekle / işaretle</p>
   <p class="m" id="surum"></p>
@@ -927,7 +938,7 @@ function selamYazi(n,d){
 
 <script>
 // Static HTML text is written in Turkish; in English it is replaced once at startup (exact text and title/aria-label/placeholder/alt). Dynamic text uses L().
-if(DIL!=='tr'){const T={"Ay":"Month","Hafta":"Week","Bugün":"Today","Uygulamalar ve oyunlar":"Apps and games","Görevler":"Tasks","Alışkanlıklar":"Habits","Ekle":"Add","Haberler":"News","Hava durumu yükleniyor…":"Loading weather…","Odak":"Focus","Döviz ve altın":"Currency and gold","Sistem":"System","Pano":"Clipboard","Temizle":"Clear","Ayarlar":"Settings","Görünüm":"Appearance","Kartlar":"Cards","Takvim":"Calendar","Genel ve bildirimler":"General and notifications","Hesaplar":"Accounts","Veri":"Data","Temel temalar":"Basic themes","Diğer temalar":"Other themes","Otomatik geçiş":"Automatic switch","gündüz ve gece için iki tema arasında kendiliğinden geçer":"switches between two themes for day and night","Kapalı":"Off","Gün ışığı":"Daylight","Gündüz / gece":"Day / night","otomatik geçişte kullanılan temalar":"themes used by the automatic switch","Cam görünüm":"Glass look","yalnızca açık temada: saydam, parlak yüzeyler":"light themes only: translucent, glossy surfaces","Vurgu rengi":"Accent color","düğmeler, çubuklar, anahtarlar ve odak çerçevesi":"buttons, bars, switches and the focus ring","Arka plan":"Background","kartların arkasında hareketli desen":"animated pattern behind the cards","Yok":"None","Işık":"Light","Kabarcık":"Bubbles","Şerit":"Ribbon","Geometri":"Geometry","Dalga":"Wave","Yıldız":"Stars","Animasyonlar":"Animations","Anahtarla kartı aç ya da kapat; kapatılan kart açılınca eski yerine döner. “Ayarlar” kartın kendi ayarlarını açar (kartta boş bir yere sağ tıklayarak da açılır).":"Turn a card on or off with the switch; a closed card returns to its old place when reopened. “Settings” opens the card's own settings (also by right-clicking an empty spot on the card)","Genel":"General","Uygulama simgeleri":"App icons","Küçük":"Small","Orta":"Medium","Büyük":"Large","Kart yerleşimi":"Card layout","kartları başlıklarından sürükleyerek yerlerini, aralarındaki boşluktan sürükleyerek boyutlarını değiştirebilirsin":"drag cards by their titles to move them, and the gaps between them to resize","Varsayılana dön":"Reset to default","Yerleşim yedekleri":"Layout backups","kartların yeri, boyutu ve açık/kapalı durumu; uygulamadan önceki hâl \"Önceki yerleşim\" olarak saklanır":"card places, sizes and open/closed state; the state before applying is kept as \"Previous layout\"","Kaydet":"Save","Uygula":"Apply","Sil":"Delete","Hava durumu şehri":"Weather city","İkinci saat":"Second clock","saat kartında; aynı saat dilimindeysen Türkiye gösterilir":"on the clock card; if you are in the same time zone, Turkey is shown","Çalışma süresi (dk)":"Work time (min)","Mola süresi (dk)":"Break time (min)","Günlük hedef (tur)":"Daily goal (rounds)","kart büyükken ilerlemesi görünür":"progress shows when the card is large","Etkinlik bildirimi":"Event notification","takvim etkinliğinden 10 dakika önce":"10 minutes before a calendar event","Etkinlik görünümü":"Event look","Türe göre renk ve simge. Tek bir etkinliği değiştirmek için etkinliğe tıklayıp “Renk ve simge”yi seç.":"Color and icon by type. To change a single event, click it and choose “Color and icon”.","Gösterilen takvimler":"Calendars shown","Adın":"Your name","selamlarda sana adınla hitap edilir":"greetings use your name","Profil fotoğrafı":"Profile picture","yoksa adının baş harfi gösterilir":"your initial is shown if empty","Seç":"Choose","Kaldır":"Remove","PIN kilidi":"PIN lock","Windows açılınca başlat":"Start with Windows","tepside, pencere açılmadan başlar":"starts in the tray without opening the window","Göster / gizle":"Show / hide","her yerden":"from anywhere","Kapat düğmesi":"Close button","RYOCS tepside çalışmaya devam eder; çıkmak için simgeye sağ tıklayın":"RYOCS keeps running in the tray; right-click the icon to exit","Sabah özeti":"Morning summary","günün ilk açılışında görevler, etkinlikler ve hava":"tasks, events and weather on the first open of the day","Kısayollar":"Shortcuts","Ctrl+F ara · Ctrl+N yeni öğe · Ctrl+, ayarlar · F5 yenile":"Ctrl+F search · Ctrl+N new item · Ctrl+, settings · F5 refresh","Göreve çift tık: düzenle · Sağ tık: menü · Alt+↑/↓: görevi taşı":"Task double-click: edit · Right-click: menu · Alt+↑/↓: move task","Notlarda Ctrl+Enter: yapılacak kutusu ekle / işaretle":"In notes Ctrl+Enter: add / tick a checkbox","Google Takvim":"Google Calendar","Kimlikler":"Credentials","Bağla":"Connect","Gelişmiş":"Advanced","kimlikleri config.json dosyasında elle düzenle":"edit the credentials in config.json by hand","Dosyayı aç":"Open file","Yedekten geri yükle":"Restore from backup","her gün otomatik, son 14 gün":"automatic every day, last 14 days","Yükle":"Load","OneDrive ile eşitle":"Sync with OneDrive","kapalı":"off","Çöz…":"Resolve…","Yedek klasörü":"Backup folder","Klasörü aç":"Open folder","Dışa / içe aktar":"Export / import","tüm veriler tek bir JSON dosyasında":"all data in a single JSON file","Dışa aktar":"Export","İçe aktar":"Import","Simge durumuna küçült":"Minimize","Önceki boyutuna getir":"Restore down","Kapat (tepside çalışmaya devam eder)":"Close (keeps running in the tray)","Yenile":"Refresh","Yenile (F5)":"Refresh (F5)","Profil":"Profile","Hızlı bağlantılar":"Quick links","Ara ya da komut yaz (Ctrl+F)":"Search or type a command (Ctrl+F)","Uygulamalar, görevler, notlar, etkinlikler, bağlantılar ve komutlar":"Apps, tasks, notes, events, links and commands","Ara":"Search","Ayarlar (Ctrl+,)":"Settings (Ctrl+,)","Saat":"Clock","Takvim görünümü":"Calendar view","Bugüne dön":"Back to today","Önceki":"Previous","Sonraki":"Next","Uygulama ekle":"Add app","Uygulama ya da oyun ekle":"Add an app or game","Uygulama ara…  Enter: ilkini aç":"Search apps…  Enter: open the first","Uygulama ara":"Search apps","Yapılacaklar ve alışkanlıklar":"Tasks and habits","Liste":"List","Süzgeci kaldır":"Remove filter","Liste seçenekleri":"List options","Yeni görev (Ctrl+N)":"New task (Ctrl+N)","Yeni görev":"New task","Hatırlatma zamanı ekle":"Add a reminder time","Hatırlatma zamanı":"Reminder time","Notlar":"Notes","Not listesi":"Note list","Aklındakini yaz…  Ctrl+Enter: yapılacak kutusu":"Write what's on your mind…  Ctrl+Enter: checkbox","Not":"Note","Haberleri yenile":"Refresh news","Haber kategorisi":"News category","Hava durumu":"Weather","Ses düzeyi":"Volume","Başlat":"Start","Sıfırla":"Reset","Mailleri yenile":"Refresh mail","Pano geçmişi":"Clipboard history","Geçmişi temizle":"Clear history","Ayar kategorileri":"Settings categories","Kapat":"Close","Kapat (Esc)":"Close (Esc)","Otomatik tema geçişi":"Automatic theme switch","Gündüz teması":"Day theme","Gece teması":"Night theme","Arka plan animasyonu":"Background animation","Uygulama simgelerinin boyutu":"App icon size","Kayıtlı yerleşim":"Saved layout","Etkinlikten 10 dakika önce bildir":"Notify 10 minutes before events","Ad":"Name","Kurulum adımları ve istemci kimliği":"Setup steps and client ID"},c=v=>{const t=v.trim();return T[t]?v.replace(t,T[t]):v};
+if(DIL!=='tr'){const T={"Güncellemeler":"Updates","Şimdi denetle":"Check now","Ay":"Month","Hafta":"Week","Bugün":"Today","Uygulamalar ve oyunlar":"Apps and games","Görevler":"Tasks","Alışkanlıklar":"Habits","Ekle":"Add","Haberler":"News","Hava durumu yükleniyor…":"Loading weather…","Odak":"Focus","Döviz ve altın":"Currency and gold","Sistem":"System","Pano":"Clipboard","Temizle":"Clear","Ayarlar":"Settings","Görünüm":"Appearance","Kartlar":"Cards","Takvim":"Calendar","Genel ve bildirimler":"General and notifications","Hesaplar":"Accounts","Veri":"Data","Temel temalar":"Basic themes","Diğer temalar":"Other themes","Otomatik geçiş":"Automatic switch","gündüz ve gece için iki tema arasında kendiliğinden geçer":"switches between two themes for day and night","Kapalı":"Off","Gün ışığı":"Daylight","Gündüz / gece":"Day / night","otomatik geçişte kullanılan temalar":"themes used by the automatic switch","Cam görünüm":"Glass look","yalnızca açık temada: saydam, parlak yüzeyler":"light themes only: translucent, glossy surfaces","Vurgu rengi":"Accent color","düğmeler, çubuklar, anahtarlar ve odak çerçevesi":"buttons, bars, switches and the focus ring","Arka plan":"Background","kartların arkasında hareketli desen":"animated pattern behind the cards","Yok":"None","Işık":"Light","Kabarcık":"Bubbles","Şerit":"Ribbon","Geometri":"Geometry","Dalga":"Wave","Yıldız":"Stars","Animasyonlar":"Animations","Anahtarla kartı aç ya da kapat; kapatılan kart açılınca eski yerine döner. “Ayarlar” kartın kendi ayarlarını açar (kartta boş bir yere sağ tıklayarak da açılır).":"Turn a card on or off with the switch; a closed card returns to its old place when reopened. “Settings” opens the card's own settings (also by right-clicking an empty spot on the card)","Genel":"General","Uygulama simgeleri":"App icons","Küçük":"Small","Orta":"Medium","Büyük":"Large","Kart yerleşimi":"Card layout","kartları başlıklarından sürükleyerek yerlerini, aralarındaki boşluktan sürükleyerek boyutlarını değiştirebilirsin":"drag cards by their titles to move them, and the gaps between them to resize","Varsayılana dön":"Reset to default","Yerleşim yedekleri":"Layout backups","kartların yeri, boyutu ve açık/kapalı durumu; uygulamadan önceki hâl \"Önceki yerleşim\" olarak saklanır":"card places, sizes and open/closed state; the state before applying is kept as \"Previous layout\"","Kaydet":"Save","Uygula":"Apply","Sil":"Delete","Hava durumu şehri":"Weather city","İkinci saat":"Second clock","saat kartında; aynı saat dilimindeysen Türkiye gösterilir":"on the clock card; if you are in the same time zone, Turkey is shown","Çalışma süresi (dk)":"Work time (min)","Mola süresi (dk)":"Break time (min)","Günlük hedef (tur)":"Daily goal (rounds)","kart büyükken ilerlemesi görünür":"progress shows when the card is large","Etkinlik bildirimi":"Event notification","takvim etkinliğinden 10 dakika önce":"10 minutes before a calendar event","Etkinlik görünümü":"Event look","Türe göre renk ve simge. Tek bir etkinliği değiştirmek için etkinliğe tıklayıp “Renk ve simge”yi seç.":"Color and icon by type. To change a single event, click it and choose “Color and icon”.","Gösterilen takvimler":"Calendars shown","Adın":"Your name","selamlarda sana adınla hitap edilir":"greetings use your name","Profil fotoğrafı":"Profile picture","yoksa adının baş harfi gösterilir":"your initial is shown if empty","Seç":"Choose","Kaldır":"Remove","PIN kilidi":"PIN lock","Windows açılınca başlat":"Start with Windows","tepside, pencere açılmadan başlar":"starts in the tray without opening the window","Göster / gizle":"Show / hide","her yerden":"from anywhere","Kapat düğmesi":"Close button","RYOCS tepside çalışmaya devam eder; çıkmak için simgeye sağ tıklayın":"RYOCS keeps running in the tray; right-click the icon to exit","Sabah özeti":"Morning summary","günün ilk açılışında görevler, etkinlikler ve hava":"tasks, events and weather on the first open of the day","Kısayollar":"Shortcuts","Ctrl+F ara · Ctrl+N yeni öğe · Ctrl+, ayarlar · F5 yenile":"Ctrl+F search · Ctrl+N new item · Ctrl+, settings · F5 refresh","Göreve çift tık: düzenle · Sağ tık: menü · Alt+↑/↓: görevi taşı":"Task double-click: edit · Right-click: menu · Alt+↑/↓: move task","Notlarda Ctrl+Enter: yapılacak kutusu ekle / işaretle":"In notes Ctrl+Enter: add / tick a checkbox","Google Takvim":"Google Calendar","Kimlikler":"Credentials","Bağla":"Connect","Gelişmiş":"Advanced","kimlikleri config.json dosyasında elle düzenle":"edit the credentials in config.json by hand","Dosyayı aç":"Open file","Yedekten geri yükle":"Restore from backup","her gün otomatik, son 14 gün":"automatic every day, last 14 days","Yükle":"Load","OneDrive ile eşitle":"Sync with OneDrive","kapalı":"off","Çöz…":"Resolve…","Yedek klasörü":"Backup folder","Klasörü aç":"Open folder","Dışa / içe aktar":"Export / import","tüm veriler tek bir JSON dosyasında":"all data in a single JSON file","Dışa aktar":"Export","İçe aktar":"Import","Simge durumuna küçült":"Minimize","Önceki boyutuna getir":"Restore down","Kapat (tepside çalışmaya devam eder)":"Close (keeps running in the tray)","Yenile":"Refresh","Yenile (F5)":"Refresh (F5)","Profil":"Profile","Hızlı bağlantılar":"Quick links","Ara ya da komut yaz (Ctrl+F)":"Search or type a command (Ctrl+F)","Uygulamalar, görevler, notlar, etkinlikler, bağlantılar ve komutlar":"Apps, tasks, notes, events, links and commands","Ara":"Search","Ayarlar (Ctrl+,)":"Settings (Ctrl+,)","Saat":"Clock","Takvim görünümü":"Calendar view","Bugüne dön":"Back to today","Önceki":"Previous","Sonraki":"Next","Uygulama ekle":"Add app","Uygulama ya da oyun ekle":"Add an app or game","Uygulama ara…  Enter: ilkini aç":"Search apps…  Enter: open the first","Uygulama ara":"Search apps","Yapılacaklar ve alışkanlıklar":"Tasks and habits","Liste":"List","Süzgeci kaldır":"Remove filter","Liste seçenekleri":"List options","Yeni görev (Ctrl+N)":"New task (Ctrl+N)","Yeni görev":"New task","Hatırlatma zamanı ekle":"Add a reminder time","Hatırlatma zamanı":"Reminder time","Notlar":"Notes","Not listesi":"Note list","Aklındakini yaz…  Ctrl+Enter: yapılacak kutusu":"Write what's on your mind…  Ctrl+Enter: checkbox","Not":"Note","Haberleri yenile":"Refresh news","Haber kategorisi":"News category","Hava durumu":"Weather","Ses düzeyi":"Volume","Başlat":"Start","Sıfırla":"Reset","Mailleri yenile":"Refresh mail","Pano geçmişi":"Clipboard history","Geçmişi temizle":"Clear history","Ayar kategorileri":"Settings categories","Kapat":"Close","Kapat (Esc)":"Close (Esc)","Otomatik tema geçişi":"Automatic theme switch","Gündüz teması":"Day theme","Gece teması":"Night theme","Arka plan animasyonu":"Background animation","Uygulama simgelerinin boyutu":"App icon size","Kayıtlı yerleşim":"Saved layout","Etkinlikten 10 dakika önce bildir":"Notify 10 minutes before events","Ad":"Name","Kurulum adımları ve istemci kimliği":"Setup steps and client ID"},c=v=>{const t=v.trim();return T[t]?v.replace(t,T[t]):v};
   for(const w=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT),_=0;w.nextNode();)if(w.currentNode.nodeValue.trim())w.currentNode.nodeValue=c(w.currentNode.nodeValue);
   for(const e of document.querySelectorAll('[title],[aria-label],[placeholder],[alt]'))for(const k of ['title','aria-label','placeholder','alt'])if(e.hasAttribute(k))e.setAttribute(k,c(e.getAttribute(k)));}
 // the window is shown at once (on hidden start Rust does not show it): the user sees the splash screen in the first frame
@@ -1208,7 +1219,7 @@ async function ileriAl(zorla){
   try{localStorage.ileri=JSON.stringify(ileri)}catch{}
   takvimEk();
 }
-const SAAT2={'':L('Kapalı','Off'),'Europe/Warsaw':L('Varşova','Warsaw'),'Europe/Istanbul':L('Türkiye','Turkey'),'Europe/Berlin':'Berlin','Europe/London':L('Londra','London'),'America/New_York':'New York','Asia/Tokyo':'Tokyo'};
+const SAAT2={'':L('Kapalı','Off'),'America/Los_Angeles':'Los Angeles','America/Denver':'Denver','America/Chicago':L('Şikago','Chicago'),'America/Mexico_City':L('Meksiko','Mexico City'),'America/New_York':'New York','America/Toronto':'Toronto','America/Sao_Paulo':'São Paulo','America/Argentina/Buenos_Aires':'Buenos Aires','UTC':'UTC','Europe/London':L('Londra','London'),'Africa/Lagos':'Lagos','Europe/Paris':'Paris','Europe/Berlin':'Berlin','Europe/Amsterdam':'Amsterdam','Europe/Rome':L('Roma','Rome'),'Europe/Madrid':'Madrid','Europe/Warsaw':L('Varşova','Warsaw'),'Europe/Athens':L('Atina','Athens'),'Africa/Cairo':L('Kahire','Cairo'),'Africa/Johannesburg':'Johannesburg','Europe/Kiev':L('Kiev','Kyiv'),'Europe/Istanbul':L('Türkiye','Turkey'),'Europe/Moscow':L('Moskova','Moscow'),'Asia/Tehran':L('Tahran','Tehran'),'Asia/Dubai':'Dubai','Asia/Baku':L('Bakü','Baku'),'Asia/Karachi':L('Karaçi','Karachi'),'Asia/Kolkata':L('Hindistan','India'),'Asia/Bangkok':'Bangkok','Asia/Singapore':L('Singapur','Singapore'),'Asia/Shanghai':L('Pekin','Beijing'),'Asia/Hong_Kong':'Hong Kong','Asia/Seoul':L('Seul','Seoul'),'Asia/Tokyo':'Tokyo','Australia/Sydney':L('Sidney','Sydney'),'Pacific/Auckland':'Auckland'};
 const dilimSaat=(tz,d)=>d.toLocaleTimeString(LOC,{timeZone:tz,hour:'2-digit',minute:'2-digit'});
 const kalanYazi=dk=>dk<60?dk+L(' dk sonra',' min from now'):dk<180?Math.floor(dk/60)+L(' sa ',' h ')+(dk%60?dk%60+L(' dk ',' min '):'')+L('sonra','from now'):null;
 function ustCiz(){
@@ -1263,9 +1274,27 @@ const HS={gunes:'<circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5
 const havaTur=k=>k===0?'gunes':k<=2?'parcali':k===3?'bulut':k<=48?'sis':k>=95?'firtina':(k>=71&&k<=77)||k===85||k===86?'kar':'yagmur';
 const havaIkon=k=>`<svg class="hi-${havaTur(k)}" viewBox="0 0 24 24" aria-hidden="true">${HS[havaTur(k)]}</svg>`; // class: animates by kind on hover
 let havaSon='',havaV=null,havaDenendi=false;
+// Extra weather cities (S.ayar.sehirler, at most 4): the card switches between them; alerts, sunrise and the summary always use the main city (havaV)
+let havaSehir='',havaC={};
+const sehirler=()=>(Array.isArray(A('sehirler'))?A('sehirler'):[]).filter(s=>typeof s==='string'&&s.trim()).slice(0,4);
+const havaGoster=()=>havaSehir&&havaC[havaSehir]?.v||havaV;
+async function havaDiger(zorla){
+  for(const s of sehirler()){
+    if(!zorla&&havaC[s]&&Date.now()-havaC[s].t<9e5)continue;
+    const r=await api('/api/weather?sehir='+encodeURIComponent(s));if(r.durum==='ok')havaC[s]={t:Date.now(),v:r.veri};
+  }
+  if(!sehirler().includes(havaSehir))havaSehir='';
+  havaCiz();
+}
+async function sehirlerKaydet(v){
+  const g=new Set([katla(havaV?.sehir)]),l=String(v).split(',').map(x=>x.trim().slice(0,80)).filter(x=>x&&!g.has(katla(x))&&g.add(katla(x))).slice(0,4),ok=[],yok=[]; // case-insensitive, and not the main city again
+  for(const s of l){const r=await api('/api/weather?sehir='+encodeURIComponent(s));if(r.durum==='ok'){ok.push(s);havaC[s]={t:Date.now(),v:r.veri}}else yok.push(s)}
+  if(ok.length)S.ayar.sehirler=ok;else delete S.ayar.sehirler;kaydet();havaDiger();
+  if(yok.length)tost(L('Eklenemedi: ','Could not add: ')+yok.join(', '));
+}
 function havaCiz(){
   if(!havaV)return;
-  const w=havaV,c=w.current,d=w.daily,s=w.hourly,T=x=>Math.round(x)+'°',gun=A('havaGun');
+  const w=havaGoster(),c=w.current,d=w.daily,s=w.hourly,T=x=>Math.round(x)+'°',gun=A('havaGun');
   const yagis=d.precipitation_probability_max?.[0]??0;
   let serit='';
   if(gun)serit='<div class="saatlik gunluk">'+[1,2,3].map(i=>`<div title="${esc(WMO[d.weather_code[i]]||'')}"><small>${new Date(d.time[i]+'T00:00').toLocaleDateString(LOC,{weekday:'short'})}</small>${havaIkon(d.weather_code[i])}<b>${T(d.temperature_2m_max[i])}</b> <small style="display:inline">${T(d.temperature_2m_min[i])}</small></div>`).join('')+'</div>';
@@ -1278,7 +1307,8 @@ function havaCiz(){
     }).join('')+'</div>';
   }
   // the title and the Hourly/3 days buttons stay in place (the sliding indicator flickered when redrawn); only the body changes
-  const bas=`<h2>${esc(w.sehir)}${L('<div class="seg k" role="group" aria-label="Tahmin"><button data-hg="">Saatlik</button><button data-hg="1">3 gün</button></div></h2><div class="havaGovde"></div><div class="ek" id="havaEk"></div>','<div class="seg k" role="group" aria-label="Forecast"><button data-hg="">Hourly</button><button data-hg="1">3 days</button></div></h2><div class="havaGovde"></div><div class="ek" id="havaEk"></div>')}`;
+  const sl=sehirler(),cip=sl.length?`<div class="hvSehir" role="group" aria-label="${L('Şehir','City')}">${['',...sl].map(s=>`<button data-hs="${esc(s)}" aria-pressed="${s===havaSehir}">${esc(s?havaC[s]?.v?.sehir||s:havaV.sehir)}</button>`).join('')}</div>`:'';
+  const bas=`<h2>${esc(w.sehir)}${L('<div class="seg k" role="group" aria-label="Tahmin"><button data-hg="">Saatlik</button><button data-hg="1">3 gün</button></div></h2>','<div class="seg k" role="group" aria-label="Forecast"><button data-hg="">Hourly</button><button data-hg="1">3 days</button></div></h2>')}${cip}<div class="havaGovde"></div><div class="ek" id="havaEk"></div>`;
   const govde=`<div class="now"><b>${T(c.temperature_2m)}</b><span class="m">${esc(WMO[c.weather_code]||'')}${L(' · hissedilen ',' · feels like ')}${T(c.apparent_temperature)}${L('<br>rüzgâr ','<br>wind ')}${Math.round(c.wind_speed_10m)}${L(' km/sa',' km/h')}${yagis>=30?L(' · yağış ',' · rain ')+yz(yagis):''}</span></div>`;
   const el=$('#hava');
   if(havaSon!==bas||!el.querySelector('.havaGovde')){el.innerHTML=havaSon=bas;havaSerit=''}
@@ -1314,15 +1344,21 @@ function havaEk(w){
     const hRenk=f=>`color-mix(in oklab,var(--tu) ${Math.round(f*100)}%,var(--ma))`; // colour from the week's coldest (blue) to its warmest (orange)
     h+=L('<div class="hv7"><h3>7 gün</h3>','<div class="hv7"><h3>7 days</h3>')+d.time.slice(0,7).map((g,k)=>`<div title="${esc(WMO[d.weather_code[k]]||'')}${d.precipitation_probability_max?.[k]?L(' · yağış ',' · rain ')+yz(d.precipitation_probability_max[k]):''}"><span>${k?new Date(g+'T00:00').toLocaleDateString(LOC,{weekday:'short',day:'numeric'}):L('Bugün','Today')}</span>${havaIkon(d.weather_code[k])}<em>${T(d.temperature_2m_min[k])}</em><span class="cizgi"><i style="left:${(d.temperature_2m_min[k]-mn)/r*100}%;right:${(mx-d.temperature_2m_max[k])/r*100}%;background:linear-gradient(90deg,${hRenk((d.temperature_2m_min[k]-mn)/r)},${hRenk((d.temperature_2m_max[k]-mn)/r)})"></i></span><em>${T(d.temperature_2m_max[k])}</em></div>`).join('')+'</div>';
   }
+  // other cities (when the card is large): click to switch
+  const l=['',...sehirler()].map(s=>[s,s?havaC[s]?.v:havaV]).filter(([,v])=>v&&v!==w);
+  if(l.length>0&&sehirler().length)h+=L('<div class="hvDiger"><h3>Diğer şehirler</h3>','<div class="hvDiger"><h3>Other cities</h3>')+l.map(([s,v])=>`<button data-hs="${esc(s)}">${havaIkon(v.current.weather_code)}<span>${esc(v.sehir)}</span><small>${esc(WMO[v.current.weather_code]||'')}</small><b>${T(v.current.temperature_2m)}</b></button>`).join('')+'</div>';
   return h;
 }
 let havaSerit='';
-$('#hava').onclick=e=>{const v=e.target.dataset.hg;if(v===undefined||!S)return;S.ayar.havaGun=!!v;kaydet();havaCiz()};
+$('#hava').onclick=async e=>{
+  const hs=e.target.closest('[data-hs]');
+  if(hs){const s=hs.dataset.hs;if(s&&!havaC[s])await havaDiger(true);havaSehir=s&&havaC[s]?s:'';return havaCiz()}
+  const v=e.target.dataset.hg;if(v===undefined||!S)return;S.ayar.havaGun=!!v;kaydet();havaCiz()};
 async function hava(){
   // at startup the last forecast (if newer than 12 h) is drawn without waiting and updated when the network answers
   if(!havaV)try{const o=JSON.parse(localStorage.hava||'null');if(o&&Date.now()-o.t<432e5){havaV=o.v;havaCiz()}}catch{}
   const r=await api('/api/weather');havaDenendi=true;
-  if(r.durum==='ok'){havaV=r.veri;try{localStorage.hava=JSON.stringify({t:Date.now(),v:r.veri})}catch{}return havaCiz()}
+  if(r.durum==='ok'){havaV=r.veri;try{localStorage.hava=JSON.stringify({t:Date.now(),v:r.veri})}catch{}havaCiz();return havaDiger()}
   if(havaV)return; // network error: keep the last known forecast
   const h=`${L('<h2>Hava durumu</h2>','<h2>Weather</h2>')}${r.durum===AG_YOK?agYok():`<p class="m">${esc(r.durum).slice(0,200)}</p>`}`;havaSerit='';
   if(h!==havaSon)$('#hava').innerHTML=havaSon=h;
@@ -1933,7 +1969,7 @@ async function ayarCiz(){
   if(document.activeElement!==$('#aSehir'))$('#aSehir').value=c.veri.sehir;
   $('#aKbd').textContent=c.veri.kisayol||'—';
   $('#aKisa').textContent=c.veri.kisayol?L('her yerden','anywhere'):L('kullanılamıyor: denenen kısayolların hepsi başka uygulamalarda','unavailable: every shortcut tried is used by other apps');
-  $('#surum').textContent='RYOCS '+c.veri.surum;
+  $('#surum').textContent='RYOCS '+c.veri.surum;gunYaz();
   for(const p of ['google','spotify']){
     const d=c.veri[p],btn=$('#b_'+p);
     $('#h_'+p).textContent=HESAP[d];
@@ -2015,14 +2051,14 @@ const KART_AYAR={
     gizle:[['ek',L('İlerleme halkası ve 7 gün grafiği (kart büyükken)','Progress ring and 7-day chart (when the card is large)'),'#gorevEk']]},
   notlar:{ayar:[['notYazi',L('Yazı boyutu','Font size'),'seg',BOYUT,'']],
     gizle:[['liste',L('Geniş kartta not listesi','Note list on wide card'),null],['ek',L('Kelime ve karakter sayısı','Word and character count'),'#notEk']]},
-  hava:{ayar:[['sehir',L('Şehir','City'),'metin',0,''],['havaGun',L('Varsayılan tahmin','Default forecast'),'seg',{'':L('Saatlik','Hourly'),gun:L('3 gün','3 days')},''],['havaUyari',L('Sabah yağmur ve don uyarısı','Morning rain and frost alert'),'sw',0,true]], // no numeric keys: they would move to the front of the object
-    gizle:[['det',L('Nem, basınç, UV, rüzgâr (kart büyükken)','Humidity, pressure, UV, wind (when the card is large)'),'.hvDet'],['egri',L('24 saatlik eğri (kart büyükken)','24-hour curve (when the card is large)'),'.hvEgri'],['yedi',L('7 günlük tahmin (kart büyükken)','7-day forecast (when the card is large)'),'.hv7']]},
+  hava:{ayar:[['sehir',L('Ana şehir','Main city'),'metin',0,''],['sehirler',L('Diğer şehirler (virgülle, en fazla 4)','Other cities (comma separated, up to 4)'),'metin',0,''],['havaGun',L('Varsayılan tahmin','Default forecast'),'seg',{'':L('Saatlik','Hourly'),gun:L('3 gün','3 days')},''],['havaUyari',L('Sabah yağmur ve don uyarısı','Morning rain and frost alert'),'sw',0,true]], // no numeric keys: they would move to the front of the object
+    gizle:[['det',L('Nem, basınç, UV, rüzgâr (kart büyükken)','Humidity, pressure, UV, wind (when the card is large)'),'.hvDet'],['egri',L('24 saatlik eğri (kart büyükken)','24-hour curve (when the card is large)'),'.hvEgri'],['yedi',L('7 günlük tahmin (kart büyükken)','7-day forecast (when the card is large)'),'.hv7'],['diger',L('Diğer şehirler (kart büyükken)','Other cities (when the card is large)'),'.hvDiger']]},
   haber:{ayar:[['haberKat',L('Kategori','Category'),'seg',HKAT,'gundem'],['haberKelime',L('Gizlenecek kelimeler (virgülle ayır)','Words to hide (comma separated)'),'metin',0,'']],
     gizle:[['kat',L('Kategori düğmeleri','Category buttons'),'#hKat'],['logo',L('Kaynak logoları','Source logos'),'.hbLogo'],['gorsel',L('Haber görselleri (geniş kartta)','News images (wide card)'),'.hbGorsel'],...Object.entries(HKAT).map(([v,ad])=>['k'+v,ad+L(' sekmesi',' tab'),`#hKat [data-v=${v}]`])]},
   spotify:{ayar:[],gizle:[['ses',L('Ses kaydırıcısı','Volume slider'),'#ses'],['kapak',L('Büyük kapak (kart uzunken)','Large cover (when the card is tall)'),null],['sira',L('Sıradaki şarkılar (kart büyükken)','Up next (when the card is large)'),'#spEk']]},
   kur:{ayar:[],gizle:[]},sistem:{ayar:[],gizle:[]},pano:{ayar:[],gizle:[]},mail:{ayar:[],gizle:[]},
-  odak:{ayar:[['calisma',L('Çalışma süresi (dk)','Work time (min)'),'sayi',[1,180],25],['mola',L('Mola süresi (dk)','Break time (min)'),'sayi',[1,180],5],['hedef',L('Günlük hedef (tur)','Daily goal (rounds)'),'sayi',[1,20],4],['odakOto',L('Tur bitince sonrakini kendiliğinden başlat','Start the next round automatically'),'sw',0,false],['rahatsiz',L('Çalışırken bildirimleri biriktir, tur bitince tek bildirimle göster','Hold notifications while working, show them in one notification when the round ends'),'sw',0,true]],
-    gizle:[['sayac',L('Serbest sayaç','Free timer'),'#serbest'],['spark',L('Başlıkta 7 günlük mini grafik','7-day mini chart in the title'),'#odakIst .spark'],['ek',L('Bugün, seri, hedef ve grafik (kart büyükken)','Today, streak, goal and chart (when the card is large)'),'#odakEk']]}};
+  odak:{ayar:[['calisma',L('Çalışma süresi (dk)','Work time (min)'),'sayi',[1,180],25],['mola',L('Mola süresi (dk)','Break time (min)'),'sayi',[1,180],5],['hedef',L('Günlük hedef (tur)','Daily goal (rounds)'),'sayi',[1,20],4],['calismaAd',L('Çalışma adı (boşsa “Çalışma”)','Work label (empty: “Work”)'),'metin',0,''],['molaAd',L('Mola adı (boşsa “Mola”)','Break label (empty: “Break”)'),'metin',0,''],['odakOto',L('Tur bitince sonrakini kendiliğinden başlat','Start the next round automatically'),'sw',0,false],['rahatsiz',L('Çalışırken bildirimleri biriktir, tur bitince tek bildirimle göster','Hold notifications while working, show them in one notification when the round ends'),'sw',0,true]],
+    gizle:[['ne',L('Üzerinde çalışılan iş','What you are working on'),'#odakNe'],['sayac',L('Serbest sayaç','Free timer'),'#serbest'],['spark',L('Başlıkta 7 günlük mini grafik','7-day mini chart in the title'),'#odakIst .spark'],['ek',L('Bugün, seri, hedef ve grafik (kart büyükken)','Today, streak, goal and chart (when the card is large)'),'#odakEk']]}};
 document.head.insertAdjacentHTML('beforeend','<style>'+Object.entries(KART_AYAR).flatMap(([k,a])=>a.gizle.filter(g=>g[2]).map(([id,,sel])=>`[data-kart=${k}][data-gizle~=${id}] ${sel}{display:none!important}`)).join('')+'</style>');
 $('#aKartlar').onclick=e=>{const b=e.target.closest('[data-ka],[data-kg]');if(!b)return;if(b.dataset.ka)return kartAyar(b.dataset.ka);kartAc(b.dataset.kg,b.getAttribute('aria-checked')!=='true')};
 const kartGizli=(el,id)=>(el.dataset.gizle||'').split(' ').includes(id);
@@ -2050,7 +2086,7 @@ const KART_SONRA={saatModel:()=>{saatYuz();tick()},saniye:()=>saatYuz(),saat2:()
   uygBoyut:()=>ayarUygula(),bitenGizle:()=>ciz(),notYazi:()=>kartAyarUygula(),havaGun:()=>havaCiz(),hedef:()=>odakIstat(),haberKat:()=>{$('#haberler').scrollTop=0;haber()},haberKelime:()=>haberCiz(),
   calisma:()=>{if(!O.bitis)O={mod:'calisma',kalan:sure('calisma'),bitis:0};odakCiz()},mola:()=>{if(!O.bitis)O={mod:'calisma',kalan:sure('calisma'),bitis:0};odakCiz()}};
 function kartAyar(k){
-  const a=KART_AYAR[k],gz=A('kartGizle')?.[k]||[],deger=(key,vars)=>key==='sehir'?havaV?.sehir||'':A(key)??vars;
+  const a=KART_AYAR[k],gz=A('kartGizle')?.[k]||[],deger=(key,vars)=>key==='sehir'?havaV?.sehir||'':key==='sehirler'?sehirler().join(', '):A(key)??vars;
   const sat=([key,ad,tur,sec,vars])=>{const v=deger(key,vars),s=v===true?'gun':v===false?'':String(v); /* single logical seg: havaGun */return `<div class="ar"><span>${ad}</span>`+(
     tur==='sw'?`<button class="sw" role="switch" data-a="${key}" aria-checked="${!!v}" aria-label="${ad}"></button>`
     :tur==='sec'?`<select class="in" data-a="${key}" aria-label="${ad}">${Object.entries(sec).map(([o,t])=>`<option value="${o}"${s===o?' selected':''}>${t}</option>`).join('')}</select>`
@@ -2075,6 +2111,7 @@ function kartAyar(k){
   d.onchange=e=>{
     const x=e.target,key=x.dataset.a;if(!key)return;
     if(key==='sehir')return sehirKaydet(x.value.trim());
+    if(key==='sehirler')return sehirlerKaydet(x.value);
     if(x.type==='number'){const [lo,hi]=x.min?[+x.min,+x.max]:[1,180],n=Math.min(hi,Math.max(lo,Math.round(+x.value)||+x.defaultValue));x.value=n;return yaz(key,n)}
     yaz(key,x.value);
   };
@@ -2222,6 +2259,10 @@ $('#aDosya').onchange=async e=>{
 const VARS={calisma:25,mola:5},dk=m=>A(m)||VARS[m],sure=m=>dk(m)*60;
 let O={mod:'calisma',kalan:sure('calisma'),bitis:0};
 function odakSessiz(){return A('rahatsiz')!==false&&O.mod==='calisma'&&O.bitis>Date.now()}
+// mode names: the user's own (card settings) or Work / Break
+const modAd=m=>String(A(m==='calisma'?'calismaAd':'molaAd')||'').trim().slice(0,20)||(m==='calisma'?L('Çalışma','Work'):L('Mola','Break'));
+// notification when a round ends, with the "what I'm working on" text
+const odakMetin=yeni=>{const ne=A('odakNe')?` (${A('odakNe')})`:'';return yeni==='mola'?`${modAd('calisma')}${L(' bitti',' done')}${ne}. ${modAd('mola')}: ${dk('mola')}${L(' dakika.',' min.')}`:`${modAd('mola')}${L(' bitti. Sıradaki: ',' over. Next: ')}${modAd('calisma')}${ne}.`};
 function odakCiz(){
   if(O.bitis){
     O.kalan=Math.max(0,Math.round((O.bitis-Date.now())/1000));
@@ -2230,7 +2271,7 @@ function odakCiz(){
       if(O.mod==='calisma'&&S){const g=gunStr(new Date());S.odak[g]=(S.odak[g]||0)+1;kaydet();odakIstat()}
       const hl=$('.halka');hl.classList.add('bitti');hl.onanimationend=()=>hl.classList.remove('bitti'); // tur bitti: halka parlar
       const n=bekleyen.length;
-      api('/api/notify',{baslik:L('Odak','Focus'),metin:yeni==='mola'?`${L('Çalışma bitti. ','Work done. ')}${dk('mola')}${L(' dakika mola!',' minute break!')}`:L('Mola bitti. Yeni çalışma zamanı.','Break over. Time to work.'),metin2:n?`${L('Odak sırasında ','During focus ')}${n}${L(' bildirim: ',' notifications: ')}`+bekleyenYazi():''});
+      api('/api/notify',{baslik:L('Odak','Focus'),metin:odakMetin(yeni),metin2:n?`${L('Odak sırasında ','During focus ')}${n}${L(' bildirim: ',' notifications: ')}`+bekleyenYazi():''});
       O={mod:yeni,kalan:sure(yeni),bitis:A('odakOto')?Date.now()+sure(yeni)*1000:0}; // card setting: the next round starts by itself
     }
   }
@@ -2238,7 +2279,7 @@ function odakCiz(){
   $('#sure').textContent=iki(O.kalan/60|0)+':'+iki(O.kalan%60);
   $('#ilerleme').style.strokeDashoffset=289*(1-Math.min(1,O.kalan/sure(O.mod)));
   $('#ilerleme').style.stroke=O.mod==='calisma'?'var(--ye)':'#e9a25b';
-  $('#mod').textContent=O.mod==='calisma'?L('Çalışma','Work'):L('Mola','Break');$('.halka').title=(O.mod==='calisma'?L('Çalışma','Work'):L('Mola','Break'))+' · '+dk(O.mod)+L(' dakika',' min');
+  $('#mod').textContent=modAd(O.mod);$('.halka').title=modAd(O.mod)+' · '+dk(O.mod)+L(' dakika',' min');odakNeCiz();
   const et=O.bitis?L('Duraklat','Pause'):O.kalan<sure(O.mod)?L('Devam et','Resume'):L('Başlat','Start'),ob=$('#obas');
   if(ob.title!==et){ob.title=et;ob.setAttribute('aria-label',et);ob.innerHTML=SVG(O.bitis?IK.pause:IK.play)}
 }
@@ -2274,6 +2315,11 @@ $('#serbest').onclick=async e=>{
   SY={ad:v[0].slice(0,40),bitis:Date.now()+dk*6e4};sySakla();try{localStorage.sayacAd=SY.ad;localStorage.sayacDk=dk}catch{}serbestCiz();
 };
 $('#osif').onclick=()=>{O={mod:'calisma',kalan:sure('calisma'),bitis:0};odakCiz()};
+// "What are you working on?": stays until changed (several rounds on the same thing are common)
+function odakNeCiz(){const b=$('#odakNe'),t=A('odakNe')||'',y=t||L('+ Ne üzerinde çalışıyorsun?','+ What are you working on?');if(b.textContent!==y){b.textContent=y;b.classList.toggle('bos',!t);b.title=t?L('Değiştirmek için tıkla','Click to change'):''}}
+$('#odakNe').onclick=async()=>{if(!S)return;
+  const v=await sor(L('Üzerinde çalıştığın iş','What you are working on'),[{ad:L('Ne üzerinde çalışıyorsun?','What are you working on?'),v:A('odakNe')||'',ipucu:L('ör. Matematik ödevi','e.g. Math homework')}],L('Kaydet','Save'),L('Kartta ve tur bitince gelen bildirimde görünür. Boş bırakırsan kaldırılır.','Shows on the card and in the notification when a round ends. Leave it empty to remove it.'));
+  if(!v)return;if(v[0])S.ayar.odakNe=v[0].slice(0,60);else delete S.ayar.odakNe;kaydet();odakNeCiz()};
 
 // Calendar (month / week view)
 const GUN=[L('Pzt','Mon'),L('Sal','Tue'),L('Çar','Wed'),L('Per','Thu'),L('Cum','Fri'),L('Cmt','Sat'),L('Paz','Sun')];
@@ -3119,7 +3165,19 @@ addEventListener('keydown',e=>{
 addEventListener('focus',()=>{takvim();spotify();if($('#ayarlar').open)ayarCiz()}); // cards refresh after returning from the OAuth consent in the browser
 addEventListener('pagehide',kaydetSimdi);
 try{const s=JSON.parse(localStorage.sp||'null');if(s?.veri){s.veri.is_playing=false;spCiz(s)}}catch{} // at startup the last track shows without waiting
-tick();setInterval(tick,1000);yukle().then(hepsi);
+// Update check: once a day (also while running in the tray for days) and from Settings → General. Only a notice; the user installs it.
+let gunV=null;
+const gunYaz=m=>{$('#aGunD').textContent=m||(gunV?gunV.yeni?L('yeni sürüm var: ','new version available: ')+gunV.son:L('güncel · ','up to date · ')+gunV.surum:'');$('#aGunB').textContent=gunV?.yeni?L('İndir','Download'):L('Şimdi denetle','Check now')};
+async function guncelle(elle){
+  const r=await api('/api/guncelleme');
+  if(r.durum!=='ok'){if(elle)gunYaz(L('denetlenemedi: ','could not check: ')+String(r.durum).slice(0,80));return}
+  gunV=r.veri;let once='';try{localStorage.gunT=Date.now();once=localStorage.gunGoster||''}catch{}gunYaz();
+  if(gunV.yeni&&(elle||once!==gunV.son)){try{localStorage.gunGoster=gunV.son}catch{}tost(L('Yeni sürüm var: RYOCS ','A new version is available: RYOCS ')+gunV.son,L('İndir','Download'),()=>api('/api/open',{url:gunV.url}))} // the toast once per new version
+  else if(elle&&!gunV.yeni)tost(L('RYOCS güncel','RYOCS is up to date'));
+}
+const gunDenetle=()=>{let t=0;try{t=+localStorage.gunT||0}catch{}if(Date.now()-t>864e5)guncelle()};
+$('#aGunB').onclick=()=>gunV?.yeni?api('/api/open',{url:gunV.url}):guncelle(true);
+tick();setInterval(tick,1000);yukle().then(hepsi).then(gunDenetle);setInterval(gunDenetle,36e5);
 addEventListener('online',hepsi);setInterval(()=>{if($('#hava .ag,#olay .ag'))hepsi()},3e4);
 setInterval(sistem,3000);setInterval(()=>mail(),6e4);setInterval(pano,2000);setInterval(kur,18e5);setInterval(spotify,5000);setInterval(hava,9e5);setInterval(()=>haber(),18e4);setInterval(()=>{takvim(true);ileriAl()},6e5);addEventListener('offline',()=>ustSon='');setInterval(hatirlat,15e3);
 </script>

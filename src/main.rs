@@ -177,27 +177,31 @@ fn metin(u: &str) -> Result<String, String> {
 const AG_YOK: &str = "No internet connection";
 
 /// A city's coordinates do not change: do not look them up on every weather request (saves a round trip on a slow network).
-static KONUM: Mutex<Option<(String, Value)>> = Mutex::new(None);
+static KONUM: LazyLock<Mutex<HashMap<String, Value>>> = LazyLock::new(Default::default);
 
 fn konum(city: &str) -> Result<Value, String> {
-    let (dil, city) = (l("tr", "en"), &format!("{}:{city}", l("tr", "en")));
-    if let Some((c, v)) = kilit(&KONUM).as_ref() {
-        if c == city {
-            return Ok(v.clone());
-        }
+    let dil = l("tr", "en"); // the city name comes back in the UI language
+    let anahtar = format!("{dil}:{city}");
+    if let Some(v) = kilit(&KONUM).get(&anahtar) {
+        return Ok(v.clone());
     }
     let g = body(
         AGENT.get("https://geocoding-api.open-meteo.com/v1/search")
-            .query("name", &city[3..]).query("count", "1").query("language", dil).call(),
+            .query("name", city).query("count", "1").query("language", dil).call(),
     )?;
-    let v = g["results"].get(0).cloned().ok_or(format!("{} {}", l("Şehir bulunamadı:", "City not found:"), &city[3..]))?;
-    *kilit(&KONUM) = Some((city.clone(), v.clone()));
+    let v = g["results"].get(0).cloned().ok_or(format!("{} {city}", l("Şehir bulunamadı:", "City not found:")))?;
+    kilit(&KONUM).insert(anahtar, v.clone());
     Ok(v)
 }
 
-fn weather() -> Result<Value, String> {
-    let cfg = read_json("config.json");
-    let loc = konum(cfg["sehir"].as_str().unwrap_or("Istanbul"))?;
+/// sehir: an extra city of the weather card; None: the main city in config.json.
+fn weather(sehir: Option<&str>) -> Result<Value, String> {
+    let ana = read_json("config.json")["sehir"].as_str().unwrap_or("Istanbul").to_string();
+    let city = sehir.map_or(ana.as_str(), str::trim);
+    if city.is_empty() || city.chars().count() > 80 {
+        return Err(l("Şehir adı gerekli", "City name is required").into());
+    }
+    let loc = konum(city)?;
     let mut w = body(
         AGENT.get("https://api.open-meteo.com/v1/forecast")
             .query("latitude", &loc["latitude"].to_string())
@@ -241,6 +245,25 @@ fn haber(b: &str) -> Result<Value, String> {
         AGENT.get("https://www.bundle.app/api/main/get-feed")
             .query("locale", "tr").query("page", &format!("/{}", haber_kat(b))).call(),
     )
+}
+
+/// "x.y.z" (optionally with a leading v) as numbers; anything else (pre-release tags etc.) is None.
+fn surum_sayi(s: &str) -> Option<(u32, u32, u32)> {
+    let mut p = s.trim_start_matches('v').split('.').map(|x| x.parse::<u32>().ok());
+    let r = (p.next()??, p.next()??, p.next()??);
+    p.next().is_none().then_some(r)
+}
+
+/// Update check: the latest GitHub release against this version. The link is built here, not taken from the response.
+fn guncelleme() -> Result<Value, String> {
+    let r = body(AGENT.get("https://api.github.com/repos/ryocs15/ryocs/releases/latest").set("Accept", "application/vnd.github+json").call())?;
+    let son = r["tag_name"].as_str().and_then(surum_sayi).ok_or(l("Sürüm bilgisi okunamadı", "Could not read the version info"))?;
+    let s = format!("{}.{}.{}", son.0, son.1, son.2);
+    Ok(json!({
+        "surum": env!("CARGO_PKG_VERSION"), "son": s,
+        "yeni": Some(son) > surum_sayi(env!("CARGO_PKG_VERSION")),
+        "url": format!("https://github.com/ryocs15/ryocs/releases/tag/v{s}"),
+    }))
 }
 
 /// English currency card: ECB daily reference rates (raw XML, parsed in the UI) + gold-api.com gold ounce (USD).
@@ -1145,7 +1168,10 @@ fn handle(mut req: Request) {
     } else if path == "/api/autostart" {
         autostart(post.then(|| serde_json::from_str::<Value>(&b).ok()?["on"].as_bool()).flatten())
     } else if !post && path == "/api/weather" {
-        weather()
+        url::Url::parse(&format!("{ORIGIN}{url}")).map_err(|e| e.to_string())
+            .and_then(|u| weather(u.query_pairs().find(|(k, _)| k == "sehir").map(|(_, v)| v.into_owned()).as_deref()))
+    } else if !post && path == "/api/guncelleme" {
+        guncelleme()
     } else if !post && path == "/api/mail" {
         mail()
     } else if !post && path == "/api/kur_ecb" {
@@ -1600,6 +1626,16 @@ mod tests {
         assert!(uygulama_gecerli("notepad.exe").is_err()); // relative path
         assert!(uygulama_gecerli("C:/Windows/notepad.exe").is_ok());
         assert!(uygulama_gecerli("C:/yok/yok.exe").is_err());
+    }
+
+    #[test]
+    fn surum_karsilastirma() {
+        assert_eq!(surum_sayi("v0.3.10"), Some((0, 3, 10)));
+        assert!(surum_sayi("v0.3.10") > surum_sayi("0.3.9"));
+        assert!(surum_sayi("v1.0.0") > surum_sayi("0.9.9"));
+        assert_eq!(surum_sayi("v1.2"), None);
+        assert_eq!(surum_sayi("v1.2.3.4"), None);
+        assert_eq!(surum_sayi("v1.2.0-beta"), None);
     }
 
     #[test]
