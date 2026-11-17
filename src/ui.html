@@ -1274,21 +1274,45 @@ const HS={gunes:'<circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5
 const havaTur=k=>k===0?'gunes':k<=2?'parcali':k===3?'bulut':k<=48?'sis':k>=95?'firtina':(k>=71&&k<=77)||k===85||k===86?'kar':'yagmur';
 const havaIkon=k=>`<svg class="hi-${havaTur(k)}" viewBox="0 0 24 24" aria-hidden="true">${HS[havaTur(k)]}</svg>`; // class: animates by kind on hover
 let havaSon='',havaV=null,havaDenendi=false;
-// Extra weather cities (S.ayar.sehirler, at most 4): the card switches between them; alerts, sunrise and the summary always use the main city (havaV)
+// Extra weather cities (S.ayar.sehirler, at most 4: {ad,bolge,lat,lon}; older saves: a name string). The card switches between them;
+// alerts, sunrise and the summary always use the main city (havaV). havaSehir / havaC are keyed by yerAnahtar.
 let havaSehir='',havaC={};
-const sehirler=()=>(Array.isArray(A('sehirler'))?A('sehirler'):[]).filter(s=>typeof s==='string'&&s.trim()).slice(0,4);
+const sehirler=()=>(Array.isArray(A('sehirler'))?A('sehirler'):[]).map(s=>typeof s==='string'?{ad:s}:s).filter(y=>y&&typeof y.ad==='string'&&y.ad.trim()).slice(0,4);
+const yerAnahtar=y=>y.lat!=null?y.lat+','+y.lon:y.ad;
+const yerSorgu=y=>y.lat!=null?`lat=${y.lat}&lon=${y.lon}&ad=${encodeURIComponent(y.ad)}&bolge=${encodeURIComponent(y.bolge||'')}`:'sehir='+encodeURIComponent(y.ad);
+const yerEtiket=y=>y.ad+(y.bolge?` (${y.bolge.replaceAll(', ',' / ')})`:''); // "Yeşilova (Tufanbeyli / Adana)": no comma, the city list is comma separated
 const havaGoster=()=>havaSehir&&havaC[havaSehir]?.v||havaV;
 async function havaDiger(zorla){
-  for(const s of sehirler()){
-    if(!zorla&&havaC[s]&&Date.now()-havaC[s].t<9e5)continue;
-    const r=await api('/api/weather?sehir='+encodeURIComponent(s));if(r.durum==='ok')havaC[s]={t:Date.now(),v:r.veri};
+  for(const y of sehirler()){
+    const k=yerAnahtar(y);if(!zorla&&havaC[k]&&Date.now()-havaC[k].t<9e5)continue;
+    const r=await api('/api/weather?'+yerSorgu(y));if(r.durum==='ok')havaC[k]={t:Date.now(),v:r.veri};
   }
-  if(!sehirler().includes(havaSehir))havaSehir='';
+  if(!sehirler().some(y=>yerAnahtar(y)===havaSehir))havaSehir='';
   havaCiz();
 }
+// Place picker: several towns share a name (Köyceğiz, Yeşilova…). One result is taken as is; with more the user chooses.
+// "Name (region)" narrows the search. Returns {ad,bolge,lat,lon} | {hata} | null (cancelled).
+async function yerSec(metin){
+  const m=String(metin).trim().match(/^(.*?)\s*(?:\((.*)\))?$/),ad=m[1].trim(),ip=(m[2]||'').split('/').map(x=>katla(x.trim())).filter(Boolean);
+  if(!ad)return null;
+  const r=await api('/api/sehir_ara?q='+encodeURIComponent(ad));
+  if(r.durum!=='ok')return{hata:String(r.durum)};
+  let l=Array.isArray(r.veri)?r.veri:[];if(!l.length)return{hata:L('Bulunamadı: ','Not found: ')+ad};
+  if(ip.length){const f=l.filter(y=>ip.every(i=>katla(y.bolge+', '+y.ulke).includes(i)));if(f.length)l=f}
+  if(l.length===1)return l[0];
+  const v=await sor(`${esc(ad)}${L(': hangisi?',': which one?')}`,[{ad:L('Yer','Place'),secenek:Object.fromEntries(l.map((y,i)=>[i,[y.ad,y.bolge,y.ulke].filter(Boolean).join(', ')])),v:'0'}],L('Seç','Choose'),L('Bu adla birden fazla yer var. Doğru olanı seç.','There is more than one place with this name. Choose the right one.'));
+  return v?l[+v[0]]:null;
+}
 async function sehirlerKaydet(v){
-  const g=new Set([katla(havaV?.sehir)]),l=String(v).split(',').map(x=>x.trim().slice(0,80)).filter(x=>x&&!g.has(katla(x))&&g.add(katla(x))).slice(0,4),ok=[],yok=[]; // case-insensitive, and not the main city again
-  for(const s of l){const r=await api('/api/weather?sehir='+encodeURIComponent(s));if(r.durum==='ok'){ok.push(s);havaC[s]={t:Date.now(),v:r.veri}}else yok.push(s)}
+  const eski=sehirler(),ok=[],yok=[],g=new Set([katla(havaV?.sehir+'|'+(havaV?.bolge||''))]); // the main city and duplicates are skipped
+  for(const t of String(v).split(',').map(x=>x.trim().slice(0,120)).filter(Boolean)){
+    if(ok.length>=4)break;
+    const y=eski.find(y=>katla(yerEtiket(y))===katla(t))||await yerSec(t); // an unchanged entry is kept without asking again
+    if(!y)continue;if(y.hata){yok.push(t);continue}
+    const k=katla(y.ad+'|'+(y.bolge||''));if(g.has(k))continue;g.add(k);
+    const r=await api('/api/weather?'+yerSorgu(y));
+    if(r.durum==='ok'){const s=y.lat!=null?{ad:y.ad,bolge:y.bolge||'',lat:y.lat,lon:y.lon}:y.ad;ok.push(s);havaC[yerAnahtar(y)]={t:Date.now(),v:r.veri}}else yok.push(t);
+  }
   if(ok.length)S.ayar.sehirler=ok;else delete S.ayar.sehirler;kaydet();havaDiger();
   if(yok.length)tost(L('Eklenemedi: ','Could not add: ')+yok.join(', '));
 }
@@ -1307,7 +1331,7 @@ function havaCiz(){
     }).join('')+'</div>';
   }
   // the title and the Hourly/3 days buttons stay in place (the sliding indicator flickered when redrawn); only the body changes
-  const sl=sehirler(),cip=sl.length?`<div class="hvSehir" role="group" aria-label="${L('Şehir','City')}">${['',...sl].map(s=>`<button data-hs="${esc(s)}" aria-pressed="${s===havaSehir}">${esc(s?havaC[s]?.v?.sehir||s:havaV.sehir)}</button>`).join('')}</div>`:'';
+  const sl=sehirler(),anaY={ad:havaV.sehir,bolge:havaV.bolge},cip=sl.length?`<div class="hvSehir" role="group" aria-label="${L('Şehir','City')}">${[null,...sl].map(y=>{const k=y?yerAnahtar(y):'';return `<button data-hs="${esc(k)}" aria-pressed="${k===havaSehir}" title="${esc(yerEtiket(y||anaY))}">${esc(y?havaC[k]?.v?.sehir||y.ad:havaV.sehir)}</button>`}).join('')}</div>`:'';
   const bas=`<h2>${esc(w.sehir)}${L('<div class="seg k" role="group" aria-label="Tahmin"><button data-hg="">Saatlik</button><button data-hg="1">3 gün</button></div></h2>','<div class="seg k" role="group" aria-label="Forecast"><button data-hg="">Hourly</button><button data-hg="1">3 days</button></div></h2>')}${cip}<div class="havaGovde"></div><div class="ek" id="havaEk"></div>`;
   const govde=`<div class="now"><b>${T(c.temperature_2m)}</b><span class="m">${esc(WMO[c.weather_code]||'')}${L(' · hissedilen ',' · feels like ')}${T(c.apparent_temperature)}${L('<br>rüzgâr ','<br>wind ')}${Math.round(c.wind_speed_10m)}${L(' km/sa',' km/h')}${yagis>=30?L(' · yağış ',' · rain ')+yz(yagis):''}</span></div>`;
   const el=$('#hava');
@@ -1345,7 +1369,7 @@ function havaEk(w){
     h+=L('<div class="hv7"><h3>7 gün</h3>','<div class="hv7"><h3>7 days</h3>')+d.time.slice(0,7).map((g,k)=>`<div title="${esc(WMO[d.weather_code[k]]||'')}${d.precipitation_probability_max?.[k]?L(' · yağış ',' · rain ')+yz(d.precipitation_probability_max[k]):''}"><span>${k?new Date(g+'T00:00').toLocaleDateString(LOC,{weekday:'short',day:'numeric'}):L('Bugün','Today')}</span>${havaIkon(d.weather_code[k])}<em>${T(d.temperature_2m_min[k])}</em><span class="cizgi"><i style="left:${(d.temperature_2m_min[k]-mn)/r*100}%;right:${(mx-d.temperature_2m_max[k])/r*100}%;background:linear-gradient(90deg,${hRenk((d.temperature_2m_min[k]-mn)/r)},${hRenk((d.temperature_2m_max[k]-mn)/r)})"></i></span><em>${T(d.temperature_2m_max[k])}</em></div>`).join('')+'</div>';
   }
   // other cities (when the card is large): click to switch
-  const l=['',...sehirler()].map(s=>[s,s?havaC[s]?.v:havaV]).filter(([,v])=>v&&v!==w);
+  const l=['',...sehirler().map(yerAnahtar)].map(s=>[s,s?havaC[s]?.v:havaV]).filter(([,v])=>v&&v!==w);
   if(l.length>0&&sehirler().length)h+=L('<div class="hvDiger"><h3>Diğer şehirler</h3>','<div class="hvDiger"><h3>Other cities</h3>')+l.map(([s,v])=>`<button data-hs="${esc(s)}">${havaIkon(v.current.weather_code)}<span>${esc(v.sehir)}</span><small>${esc(WMO[v.current.weather_code]||'')}</small><b>${T(v.current.temperature_2m)}</b></button>`).join('')+'</div>';
   return h;
 }
@@ -2078,15 +2102,16 @@ function kartListeCiz(){
   $('#aKartlar').innerHTML=Object.entries(KART_AD).map(([k,ad])=>`<div class="ar"><span>${ad}</span><div class="grp"><button class="btn" data-ka="${k}${L('">Ayarlar</button><button class="sw" role="switch" data-kg="','">Settings</button><button class="sw" role="switch" data-kg="')}${k}" aria-checked="${kartAcik(k)}" aria-label="${ad}${L(' kartını göster"></button></div></div>',' card"></button></div></div>')}`).join('');
 }
 async function sehirKaydet(sehir){
-  if(!sehir)return;const r=await api('/api/config',{sehir});
-  tost(r.durum==='ok'?L('Hava durumu şehri: ','Weather city: ')+r.veri:String(r.durum).slice(0,120));if(r.durum==='ok')hava();
+  if(!sehir)return;const y=await yerSec(sehir);if(!y)return;if(y.hata)return tost(y.hata.slice(0,120));
+  const r=await api('/api/config',{konum:y});
+  tost(r.durum==='ok'?L('Hava durumu şehri: ','Weather city: ')+yerEtiket(y):String(r.durum).slice(0,120));if(r.durum==='ok')hava();
 }
 // the card updates itself when a value changes
 const KART_SONRA={saatModel:()=>{saatYuz();tick()},saniye:()=>saatYuz(),saat2:()=>{ustSon='';ustCiz()},gorunum:v=>{gorunum=v;secili=null;takvim()},
   uygBoyut:()=>ayarUygula(),bitenGizle:()=>ciz(),notYazi:()=>kartAyarUygula(),havaGun:()=>havaCiz(),hedef:()=>odakIstat(),haberKat:()=>{$('#haberler').scrollTop=0;haber()},haberKelime:()=>haberCiz(),
   calisma:()=>{if(!O.bitis)O={mod:'calisma',kalan:sure('calisma'),bitis:0};odakCiz()},mola:()=>{if(!O.bitis)O={mod:'calisma',kalan:sure('calisma'),bitis:0};odakCiz()}};
 function kartAyar(k){
-  const a=KART_AYAR[k],gz=A('kartGizle')?.[k]||[],deger=(key,vars)=>key==='sehir'?havaV?.sehir||'':key==='sehirler'?sehirler().join(', '):A(key)??vars;
+  const a=KART_AYAR[k],gz=A('kartGizle')?.[k]||[],deger=(key,vars)=>key==='sehir'?havaV?yerEtiket({ad:havaV.sehir,bolge:havaV.bolge}):'':key==='sehirler'?sehirler().map(yerEtiket).join(', '):A(key)??vars;
   const sat=([key,ad,tur,sec,vars])=>{const v=deger(key,vars),s=v===true?'gun':v===false?'':String(v); /* single logical seg: havaGun */return `<div class="ar"><span>${ad}</span>`+(
     tur==='sw'?`<button class="sw" role="switch" data-a="${key}" aria-checked="${!!v}" aria-label="${ad}"></button>`
     :tur==='sec'?`<select class="in" data-a="${key}" aria-label="${ad}">${Object.entries(sec).map(([o,t])=>`<option value="${o}"${s===o?' selected':''}>${t}</option>`).join('')}</select>`
@@ -2110,8 +2135,7 @@ function kartAyar(k){
   };
   d.onchange=e=>{
     const x=e.target,key=x.dataset.a;if(!key)return;
-    if(key==='sehir')return sehirKaydet(x.value.trim());
-    if(key==='sehirler')return sehirlerKaydet(x.value);
+    if(key==='sehir'||key==='sehirler')return (key==='sehir'?sehirKaydet(x.value.trim()):sehirlerKaydet(x.value)).then(()=>{if(!$('#sor').open)kartAyar(k)});
     if(x.type==='number'){const [lo,hi]=x.min?[+x.min,+x.max]:[1,180],n=Math.min(hi,Math.max(lo,Math.round(+x.value)||+x.defaultValue));x.value=n;return yaz(key,n)}
     yaz(key,x.value);
   };

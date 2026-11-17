@@ -179,39 +179,78 @@ const AG_YOK: &str = "No internet connection";
 /// A city's coordinates do not change: do not look them up on every weather request (saves a round trip on a slow network).
 static KONUM: LazyLock<Mutex<HashMap<String, Value>>> = LazyLock::new(Default::default);
 
+const GEO: &str = "https://geocoding-api.open-meteo.com/v1/search";
+
 fn konum(city: &str) -> Result<Value, String> {
     let dil = l("tr", "en"); // the city name comes back in the UI language
     let anahtar = format!("{dil}:{city}");
     if let Some(v) = kilit(&KONUM).get(&anahtar) {
         return Ok(v.clone());
     }
-    let g = body(
-        AGENT.get("https://geocoding-api.open-meteo.com/v1/search")
-            .query("name", city).query("count", "1").query("language", dil).call(),
-    )?;
-    let v = g["results"].get(0).cloned().ok_or(format!("{} {city}", l("Şehir bulunamadı:", "City not found:")))?;
+    let g = body(AGENT.get(GEO).query("name", city).query("count", "1").query("language", dil).call())?;
+    let v = g["results"].get(0).map(yer).ok_or(format!("{} {city}", l("Şehir bulunamadı:", "City not found:")))?;
     kilit(&KONUM).insert(anahtar, v.clone());
     Ok(v)
 }
 
-/// sehir: an extra city of the weather card; None: the main city in config.json.
-fn weather(sehir: Option<&str>) -> Result<Value, String> {
-    let ana = read_json("config.json")["sehir"].as_str().unwrap_or("Istanbul").to_string();
-    let city = sehir.map_or(ana.as_str(), str::trim);
-    if city.is_empty() || city.chars().count() > 80 {
-        return Err(l("Şehir adı gerekli", "City name is required").into());
+/// A place in the short form the UI uses: name, region (district, province / state), country, coordinates.
+fn yer(r: &Value) -> Value {
+    let ad = r["name"].as_str().unwrap_or("");
+    let mut b: Vec<&str> = vec![];
+    for k in ["admin2", "admin1"] {
+        if let Some(s) = r[k].as_str().map(|s| s.trim_end_matches(" İlçesi").trim_end_matches(" District")) {
+            if !s.is_empty() && s != ad && !b.contains(&s) {
+                b.push(s);
+            }
+        }
     }
-    let loc = konum(city)?;
+    json!({ "ad": ad, "bolge": b.join(", "), "ulke": r["country"], "lat": r["latitude"], "lon": r["longitude"] })
+}
+
+/// A place sent by the UI (picker result, saved extra city): coordinates in range, short texts only.
+fn yer_dogrula(v: &Value) -> Result<Value, String> {
+    let k = |s: &str, n: usize| v[s].as_str().map(|x| x.trim().chars().take(n).collect::<String>()).unwrap_or_default();
+    let ad = k("ad", 80);
+    match (v["lat"].as_f64().filter(|x| x.abs() <= 90.0), v["lon"].as_f64().filter(|x| x.abs() <= 180.0)) {
+        (Some(lat), Some(lon)) if !ad.is_empty() => Ok(json!({ "ad": ad, "bolge": k("bolge", 120), "lat": lat, "lon": lon })),
+        _ => Err(l("Geçersiz konum", "Invalid location").into()),
+    }
+}
+
+fn sehir_adi(s: &str) -> Result<&str, String> {
+    Some(s.trim()).filter(|s| !s.is_empty() && s.chars().count() <= 80).ok_or(l("Şehir adı gerekli", "City name is required").into())
+}
+
+/// City search for the picker: several towns share a name (Köyceğiz, Yeşilova…), so up to 8 places with their region.
+fn sehir_ara(q: &str) -> Result<Value, String> {
+    let g = body(AGENT.get(GEO).query("name", sehir_adi(q)?).query("count", "8").query("language", l("tr", "en")).call())?;
+    Ok(json!(g["results"].as_array().into_iter().flatten().map(yer).collect::<Vec<_>>()))
+}
+
+/// Weather of a place: ?lat=&lon=&ad=&bolge= (chosen in the picker), ?sehir= (a name, older saves), else the main city in config.json.
+fn weather(q: &HashMap<String, String>) -> Result<Value, String> {
+    let cfg = read_json("config.json");
+    let s = |k: &str| q.get(k).cloned().unwrap_or_default();
+    let loc = if q.contains_key("lat") {
+        yer_dogrula(&json!({ "ad": s("ad"), "bolge": s("bolge"), "lat": s("lat").parse::<f64>().ok(), "lon": s("lon").parse::<f64>().ok() }))?
+    } else if let Some(c) = q.get("sehir") {
+        konum(sehir_adi(c)?)?
+    } else if cfg["konum"].is_object() {
+        yer_dogrula(&cfg["konum"])?
+    } else {
+        konum(sehir_adi(cfg["sehir"].as_str().unwrap_or("Istanbul"))?)?
+    };
     let mut w = body(
         AGENT.get("https://api.open-meteo.com/v1/forecast")
-            .query("latitude", &loc["latitude"].to_string())
-            .query("longitude", &loc["longitude"].to_string())
+            .query("latitude", &loc["lat"].to_string())
+            .query("longitude", &loc["lon"].to_string())
             .query("current", "temperature_2m,apparent_temperature,weather_code,wind_speed_10m,wind_direction_10m,relative_humidity_2m,pressure_msl,precipitation")
             .query("hourly", "temperature_2m,precipitation_probability,weather_code")
             .query("daily", "weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,sunrise,sunset,uv_index_max")
             .query("timezone", "auto").query("forecast_days", "7").call(),
     )?;
-    w["sehir"] = loc["name"].clone();
+    w["sehir"] = loc["ad"].clone();
+    w["bolge"] = loc["bolge"].clone();
     Ok(w)
 }
 
@@ -581,12 +620,13 @@ fn config_get() -> Value {
 /// Validates the city and writes it to config.json; returns the city name found.
 fn config_set(b: &str) -> Result<Value, String> {
     let r: Value = serde_json::from_str(b).map_err(|e| e.to_string())?;
-    let sehir = r["sehir"].as_str().map(str::trim).filter(|s| !s.is_empty() && s.chars().count() <= 80).ok_or(l("Şehir adı gerekli", "City name is required"))?;
-    let ad = konum(sehir)?["name"].clone();
+    // a place chosen in the picker is saved with its coordinates: the name alone can mean several towns
+    let y = if r["konum"].is_object() { yer_dogrula(&r["konum"])? } else { konum(sehir_adi(r["sehir"].as_str().unwrap_or(""))?)? };
     let mut c = config_oku()?;
-    c["sehir"] = json!(sehir);
+    c["sehir"] = y["ad"].clone();
+    c["konum"] = y.clone();
     config_yaz(&c)?;
-    Ok(ad)
+    Ok(y["ad"].clone())
 }
 
 fn disconnect(p: &Provider) -> Result<Value, String> {
@@ -1169,7 +1209,10 @@ fn handle(mut req: Request) {
         autostart(post.then(|| serde_json::from_str::<Value>(&b).ok()?["on"].as_bool()).flatten())
     } else if !post && path == "/api/weather" {
         url::Url::parse(&format!("{ORIGIN}{url}")).map_err(|e| e.to_string())
-            .and_then(|u| weather(u.query_pairs().find(|(k, _)| k == "sehir").map(|(_, v)| v.into_owned()).as_deref()))
+            .and_then(|u| weather(&u.query_pairs().into_owned().collect()))
+    } else if !post && path == "/api/sehir_ara" {
+        url::Url::parse(&format!("{ORIGIN}{url}")).map_err(|e| e.to_string())
+            .and_then(|u| sehir_ara(&u.query_pairs().find(|(k, _)| k == "q").map(|(_, v)| v.into_owned()).unwrap_or_default()))
     } else if !post && path == "/api/guncelleme" {
         guncelleme()
     } else if !post && path == "/api/mail" {
@@ -1626,6 +1669,19 @@ mod tests {
         assert!(uygulama_gecerli("notepad.exe").is_err()); // relative path
         assert!(uygulama_gecerli("C:/Windows/notepad.exe").is_ok());
         assert!(uygulama_gecerli("C:/yok/yok.exe").is_err());
+    }
+
+    #[test]
+    fn yer_bicimi_ve_dogrulama() {
+        let y = yer(&json!({"name": "Yeşilova", "admin1": "Burdur", "admin2": "Yeşilova İlçesi", "country": "Türkiye", "latitude": 37.5, "longitude": 29.75}));
+        assert_eq!((y["ad"].as_str(), y["bolge"].as_str()), (Some("Yeşilova"), Some("Burdur")));
+        let y = yer(&json!({"name": "Yeşilova", "admin1": "Adana", "admin2": "Tufanbeyli İlçesi", "latitude": 38.2, "longitude": 36.2}));
+        assert_eq!(y["bolge"], "Tufanbeyli, Adana");
+        assert!(yer_dogrula(&json!({"ad": "X", "lat": 91.0, "lon": 0.0})).is_err());
+        assert!(yer_dogrula(&json!({"ad": " ", "lat": 1.0, "lon": 1.0})).is_err());
+        assert!(yer_dogrula(&json!({"ad": "X", "lat": "1", "lon": 1.0})).is_err());
+        assert_eq!(yer_dogrula(&json!({"ad": " X ", "bolge": "B", "lat": 1.5, "lon": -2.0, "fazla": 1})).unwrap(), json!({"ad": "X", "bolge": "B", "lat": 1.5, "lon": -2.0}));
+        assert!(sehir_ara("  ").is_err());
     }
 
     #[test]
