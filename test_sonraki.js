@@ -1,7 +1,7 @@
 // Self-check for the "next time" calculation of repeating tasks. Run: node test_sonraki.js
 // The functions are taken from src/ui.html (no separate module), so the tested code is the same as in the app.
 const fs = require('fs'), assert = require('assert');
-const s = fs.readFileSync(__dirname + '/src/ui.html', 'utf8');
+const s = fs.readFileSync(__dirname + '/src/ui.html', 'utf8').replace(/\r\n/g, '\n'); // a Windows checkout may have CRLF
 const al = (bas, son) => { const i = s.indexOf(bas); assert(i >= 0, bas); return s.slice(i, s.indexOf(son, i) + son.length); };
 const kur = dil => new Function(`const DIL='${dil}',L=(tr,en)=>DIL==='tr'?tr:en,LOC=DIL==='tr'?'tr-TR':'en-US',iki=n=>String(n).padStart(2,'0');` + al('const gunStr=', '\n') + al('const saat=d=>', '\n') + al('const yerel=', '\n')
   + al("const GUNK=", '\n') + al('const tekGun=', '\n') + al('const tekAd=', '\n') + al('const tekCoz=', '\n') + al('function sonraki(', '\n}\n')
