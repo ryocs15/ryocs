@@ -1,0 +1,9 @@
+{
+  "tema": "",
+  "todos": [{"t": "Old task", "d": false, "due": "2026-01-05T09:00"}, {"t": "Done task", "d": true}],
+  "links": [{"a": "Mail", "u": "https://mail.google.com"}],
+  "notes": "single old note\n- [ ] item",
+  "ayar": {"cam": true},
+  "odak": {"2020-01-01": 3},
+  "biten": {"2020-01-01": 1}
+}

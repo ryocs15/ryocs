@@ -1406,14 +1406,21 @@ const kaydet=()=>{clearTimeout(kt);kt=setTimeout(kaydetSimdi,300)};
 const A=k=>S?.ayar?.[k];
 const ara=()=>$('#ara').value.trim().toLocaleLowerCase(LOC);
 const eslesir=s=>{const q=katla(ara());return!q||katla(s).includes(q)}; // accent-insensitive (see fold below)
+// data.json format version. When the format changes: bump it and add a step to normal() (old saves must keep opening).
+const VERI_SURUM=1;
 function normal(v){
   const o=v&&typeof v==='object'&&!Array.isArray(v)?v:{},dizi=x=>Array.isArray(x)?x:[],nesne=x=>x&&typeof x==='object'&&!Array.isArray(x)?x:{};
   const n={...o,todos:dizi(o.todos),links:dizi(o.links),uygulamalar:dizi(o.uygulamalar),aliskanlik:dizi(o.aliskanlik),ayar:nesne(o.ayar),odak:nesne(o.odak),biten:nesne(o.biten),
     notlar:dizi(o.notlar).length?o.notlar:[{ad:L('Not','Note'),metin:typeof o.notes==='string'?o.notes:''}]}; // the old single-note format is migrated
   delete n.notes;
+  // Format steps, oldest first; each runs once for saves older than its number (a save without "surum" is format 0)
+  const s=+o.surum||0;
+  if(s<1){
+    // the second clock used to default to Warsaw: existing saves keep it, new installs start with it off
+    if(n.ayar.saat2===undefined&&Object.keys(n.ayar).length)n.ayar.saat2='Europe/Warsaw';
+  }
+  n.surum=Math.max(s,VERI_SURUM); // a save from a newer RYOCS keeps its number
   // a new card unknown to an old save is marked "closed" once; if the user opens it, it stays open
-  // the second clock used to default to Warsaw: existing saves keep it, new installs start with it off
-  if(n.ayar.saat2===undefined&&Object.keys(n.ayar).length)n.ayar.saat2='Europe/Warsaw';
   const bl=dizi(n.ayar.kartBilinen),yk=['kur','sistem','pano','mail'].filter(k=>!bl.includes(k));
   if(yk.length){n.ayar.kartKapali=[...new Set([...dizi(n.ayar.kartKapali),...yk])];n.ayar.kartBilinen=[...bl,...yk]}
   n.aktifNot=Math.min(Math.max(0,+o.aktifNot||0),n.notlar.length-1);

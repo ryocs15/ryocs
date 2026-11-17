@@ -1,0 +1,7 @@
+{
+  "todos": [],
+  "notlar": [{"ad": "Note", "metin": ""}],
+  "ayar": {"saat2": "Asia/Tokyo", "odakNe": "Thesis", "calismaAd": "Study",
+           "kartBilinen": ["kur", "sistem", "pano", "mail"], "kartKapali": [],
+           "sehirler": ["Ankara", {"ad": "Yeşilova", "bolge": "Burdur", "lat": 37.5, "lon": 29.75}, 5, null, {"ad": ""}]}
+}

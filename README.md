@@ -131,13 +131,23 @@ cargo build --release
 "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" kurulum\ryocs.iss
 ```
 
-The app is `target\release\ryocs.exe`; the installer is written to `target\kurulum\`. The whole UI is a single file, `src/ui.html`, served by the app on `127.0.0.1:8765`. A self-check for the repeat logic runs with `node test_sonraki.js`.
+The app is `target\release\ryocs.exe`; the installer is written to `target\kurulum\`. The whole UI is a single file, `src/ui.html`, served by the app on `127.0.0.1:8765`.
+
+Tests (they also run on every push):
+
+```bash
+cargo test --release
+node test_sonraki.js
+python tests/ui/calis.py
+```
+
+`tests/ui/calis.py` opens the UI in headless Microsoft Edge with demo data and runs the `tests/ui/*.test.js` files; `tests/fixtures/` holds saves from older versions that must keep opening. The data files are described in [docs/DATA.md](docs/DATA.md).
 
 Pushing a tag such as `v0.3.0` builds the installer on GitHub Actions and attaches it to a release.
 
 ## Privacy
 
-- Data, credentials and tokens are stored only in `%APPDATA%\RYOCS`.
+- Data, credentials and tokens are stored only in `%APPDATA%\RYOCS` ([what is in each file](docs/DATA.md)).
 - The local server answers only requests from its own page.
 - Clipboard history is kept in memory only and skips content that password managers mark as private.
 - The PIN lock is a privacy screen; `data.json` itself is not encrypted.

@@ -1,0 +1,29 @@
+# Every push and pull request to main: lint, Rust tests, the repeat-logic self-check and the headless UI tests.
+name: check
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Clippy
+        run: cargo clippy --release --locked -- -D warnings
+
+      - name: Rust tests
+        run: cargo test --release --locked
+
+      - name: Repeat logic
+        run: node test_sonraki.js
+
+      - name: UI tests (headless Edge)
+        run: python tests/ui/calis.py

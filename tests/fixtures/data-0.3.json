@@ -1,0 +1,12 @@
+{
+  "tema": "dark",
+  "todos": [{"t": "Weekly report", "d": false, "due": "2026-11-20T09:00", "tek": "g:1,3,5"}],
+  "links": [],
+  "notlar": [{"ad": "Note", "metin": "first"}, {"ad": "Ideas", "metin": "second", "t": 1763000000000}],
+  "aktifNot": 5,
+  "aliskanlik": [{"ad": "Water", "g": {}}],
+  "uygulamalar": [{"ad": "Notepad", "yol": "C:/Windows/notepad.exe", "simge": ""}],
+  "ayar": {"saat2": "", "dil": "en", "kartBilinen": ["kur", "sistem", "pano"], "kartKapali": ["pano"],
+           "yerlesim": {"sol": ["saat", "takvim"], "orta": ["gorevler", "notlar"], "sag": ["hava", "odak"]}},
+  "gelecekAlan": "kept as is"
+}
