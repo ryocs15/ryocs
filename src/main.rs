@@ -1610,6 +1610,7 @@ fn main() {
             window.set_visible(true);
             window.set_minimized(false);
             window.set_focus();
+            webview.evaluate_script("window.gizlendi&&gizlendi(false)").ok(); // the page redraws and polls again
         };
         match event {
             // Close button: hides to the tray; reminders and the focus timer keep running.
@@ -1639,6 +1640,7 @@ fn main() {
                 if window.is_visible() && window.is_focused() && !window.is_minimized() {
                     hata_kaydet("info: hidden by the shortcut");
                     window.set_visible(false);
+                    webview.evaluate_script("window.gizlendi&&gizlendi(true)").ok();
                 } else {
                     goster();
                 }

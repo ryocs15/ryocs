@@ -51,6 +51,7 @@ const ara=v=>{q('#ayAra').value=v;q('#ayAra').dispatchEvent(new Event('input'))}
 const gorunen=()=>[...document.querySelectorAll('.ayBol:not([hidden]) .ar:not(.araGizli)')].map(r=>r.textContent.trim().slice(0,19));
 ara('backup');
 esit('search: matching rows from every category',[q('#ayBas').textContent,gorunen()],['Search results',['Layout backupscard ','Restore from backup','Backup folderOpen f']]);
+RT.dogru('search: section headings give way to category names',[...document.querySelectorAll('.ayBol.ayBulundu>h3')].every(h=>!h.offsetParent)&&getComputedStyle(q('.ayBol.ayBulundu:not([hidden])'),'::before').content.includes('Cards'));
 ara('zzqx');esit('search: nothing found',[q('#ayBas').textContent,gorunen()],['No results',[]]);
 q('.ayNav [data-b="genel"]').click();await bek(50);
 esit('category click ends the search',[q('#ayAra').value,!!document.querySelector('#ayarlar .araGizli'),q('#ayBas').textContent.trim()],['',false,'General and notifications']);
