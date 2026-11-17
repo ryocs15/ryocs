@@ -1,6 +1,6 @@
 // dil: en
 // sure: 25000
-// Accessibility: contrast in all 12 themes, and every button / field has a name a screen reader can read
+// Accessibility: contrast in all 16 themes, and every button / field has a name a screen reader can read
 const {esit,q,bek}=RT;
 const lum=h=>{const c=[1,3,5].map(i=>parseInt(h.slice(i,i+2),16)/255).map(x=>x<=.03928?x/12.92:((x+.055)/1.055)**2.4);return .2126*c[0]+.7152*c[1]+.0722*c[2]};
 const kar=(a,b)=>{const x=lum(a),y=lum(b);return (Math.max(x,y)+.05)/(Math.min(x,y)+.05)};

@@ -4,7 +4,7 @@ A personal dashboard for Windows: clock, calendar, tasks, notes, weather, news, 
 
 RYOCS is a small native app (Rust + WebView2). Your data stays on your computer in `%APPDATA%\RYOCS`; nothing is sent anywhere except the services you connect yourself.
 
-The interface is in **English** and **Turkish**. It follows the Windows display language and can be changed in Settings → General → Language. Time format (12/24 h), the first day of the week, weather units (°C/°F) and public holidays follow your region and can be changed in each card's settings.
+The interface is in **English** and **Turkish**. It follows the Windows display language and can be changed in Settings → Language and region. Time format (12/24 h), the first day of the week, weather units (°C/°F) and public holidays follow your region and can be changed in each card's settings.
 
 **[Project page](https://ryocs15.github.io/ryocs/)** · **[Download](https://github.com/ryocs15/ryocs/releases/latest)** · [What's new](CHANGELOG.md)
 
@@ -35,7 +35,7 @@ The interface is in **English** and **Turkish**. It follows the Windows display 
 - Quick search and command palette (Ctrl+F), app and game launcher, quick links, search in Settings
 - Lives in the tray with a global shortcut you can choose; remembers its window size and position
 - Drag cards to move them, drag the gaps between them to resize; save and restore layouts
-- 12 themes, glass look, animated backgrounds, PIN lock
+- 16 themes, glass look, 11 animated backgrounds (lava lamp, snow, fireflies, aurora…), PIN lock
 - Optional OneDrive sync between two computers, daily backups, JSON export/import
 - Update check: a notice with a download link when a new version is on GitHub (nothing is installed by itself)
 

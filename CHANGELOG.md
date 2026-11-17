@@ -2,6 +2,15 @@
 
 All releases: [GitHub Releases](https://github.com/ryocs15/ryocs/releases). Your data (`%APPDATA%\RYOCS`) is kept by every update.
 
+## 1.0.0 (2026-11-17)
+
+**New**
+- Four themes: Mint, Peach (light), Ocean, Plum (dark). 16 in all.
+- Three animated backgrounds: Lava lamp, Snow and Fireflies.
+- Settings in clearer groups: Appearance, Cards, Language and region, Calendar, Focus, Profile, App, Accounts, Data.
+
+Your data and settings from any 0.x version are kept.
+
 ## 0.9.0 (2026-11-17)
 
 Everything from the 0.7 and 0.8 work, plus polish before 1.0.
