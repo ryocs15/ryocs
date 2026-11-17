@@ -2,7 +2,7 @@
 
 All releases: [GitHub Releases](https://github.com/ryocs15/ryocs/releases). Your data (`%APPDATA%\RYOCS`) is kept by every update.
 
-## 0.9.0 (not released yet)
+## 0.9.0 (2026-11-17)
 
 Everything from the 0.7 and 0.8 work, plus polish before 1.0.
 
