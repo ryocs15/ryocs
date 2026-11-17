@@ -68,7 +68,7 @@ def sayfa(test, dil):
     fix = {os.path.basename(p)[:-5]: json.load(open(p, encoding='utf-8')) for p in glob.glob(os.path.join(KOK, 'tests', 'fixtures', '*.json'))}
     on = ("<script>window.HATA=[];addEventListener('error',e=>HATA.push(e.message+' @'+e.lineno));"
           f"try{{localStorage.dil='{dil}'}}catch{{}}"
-          "window.fetch=async p=>({json:async()=>p==='/api/state'?{durum:'ok',veri:%s}:p==='/api/weather'?{durum:'ok',veri:%s}:p.startsWith('/api/calendar')?{durum:'ok',veri:{items:%s,takvimler:[{id:'primary',ad:'Ana',renk:'#8fb996',yaz:true}]}}:p==='/api/kisayollar'?{durum:'ok',veri:%s}:p==='/api/simgeler'?{durum:'ok',veri:{}}:p==='/api/haber'?{durum:'ok',veri:%s}:p==='/api/uygulama'?{durum:'ok'}:{durum:'kimlik_yok'}});"
+          "window.fetch=async p=>({json:async()=>p==='/api/state'?{durum:'ok',veri:%s}:p.split('?')[0]==='/api/weather'?{durum:'ok',veri:%s}:p.startsWith('/api/calendar')?{durum:'ok',veri:{items:%s,takvimler:[{id:'primary',ad:'Ana',renk:'#8fb996',yaz:true}]}}:p==='/api/kisayollar'?{durum:'ok',veri:%s}:p==='/api/simgeler'?{durum:'ok',veri:{}}:p==='/api/haber'?{durum:'ok',veri:%s}:p==='/api/uygulama'?{durum:'ok'}:{durum:'kimlik_yok'}});"
           "window.RT={ok:0,fail:[],FIX:%s,"
           "esit(a,g,b){const x=JSON.stringify(g),y=JSON.stringify(b);if(x===y)this.ok++;else this.fail.push(a+': '+x+' != '+y)},"
           "dogru(a,v){if(v)this.ok++;else this.fail.push(a)},bek:ms=>new Promise(r=>setTimeout(r,ms)),q:s=>document.querySelector(s)};"

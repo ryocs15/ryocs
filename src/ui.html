@@ -991,8 +991,15 @@ addEventListener('error',e=>hataGonder(`${e.message} @ ${e.lineno}:${e.colno}`))
 addEventListener('unhandledrejection',e=>hataGonder('promise: '+(e.reason?.stack||e.reason)));
 const animMs=ms=>K.dataset.anim==='off'?0:ms;
 const gunStr=d=>d.getFullYear()+'-'+iki(d.getMonth()+1)+'-'+iki(d.getDate());
-const saat=d=>iki(d.getHours())+':'+iki(d.getMinutes());
-const yerel=d=>gunStr(d)+'T'+saat(d); // datetime-local format
+const saat24=d=>iki(d.getHours())+':'+iki(d.getMinutes()); // machine format (datetime-local, API times)
+const yerel=d=>gunStr(d)+'T'+saat24(d); // datetime-local format
+// Shown times: 24 or 12 hours (S.ayar.saatBicim 'h24' | 'h12'; missing: the locale's habit, e.g. 12 h for en-US)
+const OTO12=(()=>{try{return/^h1[12]$/.test(new Intl.DateTimeFormat(LOC,{hour:'numeric'}).resolvedOptions().hourCycle)}catch{return false}})();
+const SAAT12=()=>{const b=A('saatBicim');return b==='h12'||(!b&&OTO12)};
+const ampm=h=>h<12?L('ÖÖ','AM'):L('ÖS','PM');
+const saatHM=(h,m)=>SAAT12()?`${h%12||12}:${iki(m)} ${ampm(h)}`:iki(h)+':'+iki(m);
+const saat=d=>saatHM(d.getHours(),d.getMinutes());
+const saatS=s=>saatHM(+s.slice(0,2),+s.slice(3,5)); // "HH:MM" text (weather times are in the city's own zone)
 const kisaTarih=d=>d.toLocaleDateString(LOC,{day:'numeric',month:'short'})+' '+saat(d);
 // UI icons (all on the same 24-unit grid, not text characters)
 const SVG=d=>`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${d}"/></svg>`;
@@ -1091,7 +1098,7 @@ function tick(){
   $('#gun').textContent=d.toLocaleDateString(LOC,{weekday:'long'});
   $('#tarih').textContent=iki(d.getDate())+'/'+iki(d.getMonth()+1);
   $('#saat').textContent=saat(d);
-  if($('.dial').dataset.m==='dijital')$('#dijital').innerHTML=saat(d)+'<small>'+iki(d.getSeconds())+'</small>';
+  if($('.dial').dataset.m==='dijital')$('#dijital').innerHTML=(SAAT12()?(d.getHours()%12||12)+':'+iki(d.getMinutes()):saat24(d))+'<small>'+iki(d.getSeconds())+(SAAT12()?' '+ampm(d.getHours()):'')+'</small>';
   const sa=d.getHours();
   $('#selam').textContent=selamAd(selamYazi(d,havaV?.daily),A('ad'));
   if(gunStr(d)!==sonGun){sonGun=gunStr(d);if(S){ciz();odakIstat()}takvim()} // midnight: refresh everything tied to "today"
@@ -1189,7 +1196,7 @@ function saatEk(){
   if(gd&&gunStr(gd)===gunStr(n)){
     const p=Math.min(1,Math.max(0,(n-gd)/(gb-gd))),ys=d.sunrise[1]&&new Date(d.sunrise[1]);
     const yazi=n<gd?L('Gün doğumuna ','Sunrise in ')+sureYaz(gd-n):n<gb?L('Gün batımına ','Sunset in ')+sureYaz(gb-n):ys>n?L('Gün doğumuna ','Sunrise in ')+sureYaz(ys-n):L('Gün battı','The sun has set');
-    h+=`${L('<div class="gIsik"><h3>Gün ışığı · ','<div class="gIsik"><h3>Daylight · ')}${sureYaz(gb-gd)}</h3><div class="cizgi" style="--p:${p*100}%"><i></i></div><div class="ekSat"><span>${d.sunrise[0].slice(11,16)}</span><span>${yazi}</span><span>${d.sunset[0].slice(11,16)}</span></div></div>`;
+    h+=`${L('<div class="gIsik"><h3>Gün ışığı · ','<div class="gIsik"><h3>Daylight · ')}${sureYaz(gb-gd)}</h3><div class="cizgi" style="--p:${p*100}%"><i></i></div><div class="ekSat"><span>${saatS(d.sunrise[0].slice(11,16))}</span><span>${yazi}</span><span>${saatS(d.sunset[0].slice(11,16))}</span></div></div>`;
   }
   const y0=new Date(n.getFullYear(),0,1),yg=Math.floor((n-y0)/864e5)+1,yt=Math.round((new Date(n.getFullYear()+1,0,1)-y0)/864e5),yp=Math.floor((n-y0)/(yt*864e5)*100);
   h+=`<div class="gTarih"><b>${n.toLocaleDateString(LOC,{day:'numeric',month:'long',year:'numeric',weekday:'long'})}</b><small>${haftaNo(n)}${L('. hafta · yılın ',' · week ')}${yg}${L('. günü · ',' of the year · ')}${yt-yg}${L(' gün kaldı</small><div class="cizgi"><i style="width:',' days left</small><div class="cizgi"><i style="width:')}${yp}${L('%"></i></div><div class="ekSat"><span>Yıl</span><span>%','%"></i></div><div class="ekSat"><span>Year</span><span>')}${yp}${L(' tamamlandı</span></div></div>','% complete</span></div></div>')}`;
@@ -1215,14 +1222,14 @@ try{const o=JSON.parse(localStorage.ileri||'null');if(o)ileri=o}catch{}
 async function ileriAl(zorla){
   if(!zorla&&Date.now()-ileriT<6e5)return;
   const b=new Date();b.setHours(0,0,0,0);const s=new Date(b);s.setDate(s.getDate()+183);
-  const r=await api('/api/calendar',{min:b.toISOString(),max:s.toISOString(),tatil:TATIL});
+  const r=await api('/api/calendar',{min:b.toISOString(),max:s.toISOString(),tatil:tatilId()});
   if(r.durum!=='ok'){if(r.durum==='kimlik_yok'||r.durum==='bagli_degil')ileri=[];return}
   ileriT=Date.now();ileri=r.veri.items||[];
   try{localStorage.ileri=JSON.stringify(ileri)}catch{}
   takvimEk();
 }
 const SAAT2={'':L('Kapalı','Off'),'America/Los_Angeles':'Los Angeles','America/Denver':'Denver','America/Chicago':L('Şikago','Chicago'),'America/Mexico_City':L('Meksiko','Mexico City'),'America/New_York':'New York','America/Toronto':'Toronto','America/Sao_Paulo':'São Paulo','America/Argentina/Buenos_Aires':'Buenos Aires','UTC':'UTC','Europe/London':L('Londra','London'),'Africa/Lagos':'Lagos','Europe/Paris':'Paris','Europe/Berlin':'Berlin','Europe/Amsterdam':'Amsterdam','Europe/Rome':L('Roma','Rome'),'Europe/Madrid':'Madrid','Europe/Warsaw':L('Varşova','Warsaw'),'Europe/Athens':L('Atina','Athens'),'Africa/Cairo':L('Kahire','Cairo'),'Africa/Johannesburg':'Johannesburg','Europe/Kiev':L('Kiev','Kyiv'),'Europe/Istanbul':L('Türkiye','Turkey'),'Europe/Moscow':L('Moskova','Moscow'),'Asia/Tehran':L('Tahran','Tehran'),'Asia/Dubai':'Dubai','Asia/Baku':L('Bakü','Baku'),'Asia/Karachi':L('Karaçi','Karachi'),'Asia/Kolkata':L('Hindistan','India'),'Asia/Bangkok':'Bangkok','Asia/Singapore':L('Singapur','Singapore'),'Asia/Shanghai':L('Pekin','Beijing'),'Asia/Hong_Kong':'Hong Kong','Asia/Seoul':L('Seul','Seoul'),'Asia/Tokyo':'Tokyo','Australia/Sydney':L('Sidney','Sydney'),'Pacific/Auckland':'Auckland'};
-const dilimSaat=(tz,d)=>d.toLocaleTimeString(LOC,{timeZone:tz,hour:'2-digit',minute:'2-digit'});
+const dilimSaat=(tz,d,mak)=>d.toLocaleTimeString(mak?'en-GB':LOC,{timeZone:tz,hour:'2-digit',minute:'2-digit',hourCycle:mak||!SAAT12()?'h23':'h12'}); // mak: 24 h for comparing
 const kalanYazi=dk=>dk<60?dk+L(' dk sonra',' min from now'):dk<180?Math.floor(dk/60)+L(' sa ',' h ')+(dk%60?dk%60+L(' dk ',' min '):'')+L('sonra','from now'):null;
 function ustCiz(){
   const n=new Date(),bugun=gunStr(n),yarin=gunStr(new Date(n.getFullYear(),n.getMonth(),n.getDate()+1)),gizli=gizliT();
@@ -1234,7 +1241,7 @@ function ustCiz(){
   else{const y=ev.find(e=>tur(e)&&evGun(e)===yarin);if(y){cip=L('Yarın: ','Tomorrow: ')+etkAd(y);cipE=y}}
   // summary of the day: today's timed events and special days, tasks due today, current weather
   const bugunE=ev.filter(e=>evGunde(e,bugun)&&(e.start.dateTime||tur(e))),gb=S?S.todos.filter(t=>!t.d&&t.due&&t.due.slice(0,10)<=bugun).length:0;
-  const oz=[bugunE.length?bugunE.length+L(' etkinlik',' events'):'',gb?gb+L(' görev',' tasks'):'',havaV?Math.round(havaV.current.temperature_2m)+'° '+(WMO[havaV.current.weather_code]||'').toLocaleLowerCase(LOC):''].filter(Boolean).join(' · ');
+  const oz=[bugunE.length?bugunE.length+L(' etkinlik',bugunE.length>1?' events':' event'):'',gb?gb+L(' görev',gb>1?' tasks':' task'):'',havaV?Math.round(havaV.current.temperature_2m)+'° '+(WMO[havaV.current.weather_code]||'').toLocaleLowerCase(LOC):''].filter(Boolean).join(' · ');
   // countdown: the nearest ⭐ important date (otherwise another special day); for an ongoing period, which day it is
   const g=ev.find(e=>tur(e)==='onemli'&&gunleri(e).at(-1)>=bugun)||ev.find(e=>tur(e)&&evGun(e)>bugun);
   let gs='',gsB=g?etkAd(g)+' · '+aralikYazi(g):'';
@@ -1246,8 +1253,8 @@ function ustCiz(){
   if(yl&&(!g||yl.t<(gunleri(g)[0]>bugun?gunleri(g)[0]:bugun))){gs=`<b>${sayimYazi(yl.t,bugun)}</b> · ${esc(yl.ad)}`;gsB=yl.ad+' · '+new Date(yl.t+'T00:00').toLocaleDateString(LOC,{day:'numeric',month:'long',year:'numeric'})}
   // second clock: Turkey if we are in the same zone
   let tz=A('saat2')??'',ad=SAAT2[tz];
-  if(tz&&dilimSaat(tz,n)===saat(n)){tz=tz==='Europe/Istanbul'?'':'Europe/Istanbul';ad=L('Türkiye','Turkey')}
-  const d=havaV?.daily,gunes=d?.sunrise?.[0]?`<span title="${L('Gün doğumu','Sunrise')}"><svg viewBox="0 0 24 24"><path d="M3 19h18M6.5 19a5.5 5.5 0 0 1 11 0M12 3.5v6M9 6.5l3-3 3 3"/></svg>${d.sunrise[0].slice(11,16)}</span><span title="${L('Gün batımı','Sunset')}"><svg viewBox="0 0 24 24"><path d="M3 19h18M6.5 19a5.5 5.5 0 0 1 11 0M12 3.5v6M9 6.5l3 3 3-3"/></svg>${d.sunset[0].slice(11,16)}</span>`:'';
+  if(tz&&dilimSaat(tz,n,1)===saat24(n)){tz=tz==='Europe/Istanbul'?'':'Europe/Istanbul';ad=L('Türkiye','Turkey')}
+  const d=havaV?.daily,gunes=d?.sunrise?.[0]?`<span title="${L('Gün doğumu','Sunrise')}"><svg viewBox="0 0 24 24"><path d="M3 19h18M6.5 19a5.5 5.5 0 0 1 11 0M12 3.5v6M9 6.5l3-3 3 3"/></svg>${saatS(d.sunrise[0].slice(11,16))}</span><span title="${L('Gün batımı','Sunset')}"><svg viewBox="0 0 24 24"><path d="M3 19h18M6.5 19a5.5 5.5 0 0 1 11 0M12 3.5v6M9 6.5l3 3 3-3"/></svg>${saatS(d.sunset[0].slice(11,16))}</span>`:'';
   const cevrim=!navigator.onLine||takvimUyarildi||!!document.querySelector('#hava .ag,#olay .ag');
   if(sonGuncel){const dk=Math.floor((Date.now()-sonGuncel)/6e4);$('#yenile').title=(cevrim?L('Çevrimdışı: son bilinen veriler gösteriliyor. ','Offline: showing the last known data. '):'')+L('Son güncelleme: ','Last updated: ')+(dk<1?L('az önce','just now'):dk+L(' dk önce',' min ago'))+L(' · Yenile (F5)',' · Refresh (F5)')}
   const yeni=JSON.stringify([cip,oz,gs,tz&&ad+' '+dilimSaat(tz,n),gunes,cevrim]);
@@ -1279,6 +1286,10 @@ let havaSon='',havaV=null,havaDenendi=false;
 // Extra weather cities (S.ayar.sehirler, at most 4: {ad,bolge,lat,lon}; older saves: a name string). The card switches between them;
 // alerts, sunrise and the summary always use the main city (havaV). havaSehir / havaC are keyed by yerAnahtar.
 let havaSehir='',havaC={},havaYuk=false;
+// Units: S.ayar.birim 'c' | 'f'; missing: °F for the US. The labels follow the data's own unit (w.birim from the server).
+const FAH=()=>{const b=A('birim');return b==='f'||(!b&&/-(US|LR|MM)$/i.test(LOC))};
+const birimQ=ilk=>FAH()?(ilk?'?':'&')+'birim=f':'';
+const hizB=w=>w.birim==='f'?' mph':L(' km/sa',' km/h'),yagisB=w=>w.birim==='f'?' in':' mm';
 const sehirler=()=>(Array.isArray(A('sehirler'))?A('sehirler'):[]).map(s=>typeof s==='string'?{ad:s}:s).filter(y=>y&&typeof y.ad==='string'&&y.ad.trim()).slice(0,4);
 const yerAnahtar=y=>y.lat!=null?y.lat+','+y.lon:y.ad;
 const yerSorgu=y=>y.lat!=null?`lat=${y.lat}&lon=${y.lon}&ad=${encodeURIComponent(y.ad)}&bolge=${encodeURIComponent(y.bolge||'')}`:'sehir='+encodeURIComponent(y.ad);
@@ -1287,7 +1298,7 @@ const havaGoster=()=>havaSehir&&havaC[havaSehir]?.v||havaV;
 async function havaDiger(zorla){
   for(const y of sehirler()){
     const k=yerAnahtar(y);if(!zorla&&havaC[k]&&Date.now()-havaC[k].t<9e5)continue;
-    const r=await api('/api/weather?'+yerSorgu(y));if(r.durum==='ok')havaC[k]={t:Date.now(),v:r.veri};
+    const r=await api('/api/weather?'+yerSorgu(y)+birimQ());if(r.durum==='ok')havaC[k]={t:Date.now(),v:r.veri};
   }
   if(!sehirler().some(y=>yerAnahtar(y)===havaSehir))havaSehir='';
   havaCiz();
@@ -1312,7 +1323,7 @@ async function sehirlerKaydet(v){
     const y=eski.find(y=>katla(yerEtiket(y))===katla(t))||await yerSec(t); // an unchanged entry is kept without asking again
     if(!y)continue;if(y.hata){yok.push(t);continue}
     const k=katla(y.ad+'|'+(y.bolge||''));if(g.has(k))continue;g.add(k);
-    const r=await api('/api/weather?'+yerSorgu(y));
+    const r=await api('/api/weather?'+yerSorgu(y)+birimQ());
     if(r.durum==='ok'){const s=y.lat!=null?{ad:y.ad,bolge:y.bolge||'',lat:y.lat,lon:y.lon}:y.ad;ok.push(s);havaC[yerAnahtar(y)]={t:Date.now(),v:r.veri}}else yok.push(t);
   }
   if(ok.length)S.ayar.sehirler=ok;else delete S.ayar.sehirler;kaydet();havaDiger();
@@ -1329,13 +1340,13 @@ function havaCiz(){
     const i=s?s.time.findIndex(t=>t.slice(0,13)>=bas):-1;
     if(i>=0)serit='<div class="saatlik">'+[0,2,4,6,8,10].filter(k=>s.time[i+k]).map(k=>{
       const y=s.precipitation_probability[i+k]??0;
-      return `<div title="${esc(WMO[s.weather_code[i+k]]||'')}${y?L(' · yağış ',' · rain ')+yz(y):''}"><small>${k?s.time[i+k].slice(11,13):L('Şimdi','Now')}</small>${havaIkon(s.weather_code[i+k])}<b>${T(s.temperature_2m[i+k])}</b><small class="${y>=50?'yag':''}">${y>=20?yz(y):' '}</small></div>`;
+      return `<div title="${esc(WMO[s.weather_code[i+k]]||'')}${y?L(' · yağış ',' · rain ')+yz(y):''}"><small>${k?(SAAT12()?(+s.time[i+k].slice(11,13)%12||12)+ampm(+s.time[i+k].slice(11,13)):s.time[i+k].slice(11,13)):L('Şimdi','Now')}</small>${havaIkon(s.weather_code[i+k])}<b>${T(s.temperature_2m[i+k])}</b><small class="${y>=50?'yag':''}">${y>=20?yz(y):' '}</small></div>`;
     }).join('')+'</div>';
   }
   // the title and the Hourly/3 days buttons stay in place (the sliding indicator flickered when redrawn); only the body changes
   const sl=sehirler(),anaY={ad:havaV.sehir,bolge:havaV.bolge},cip=sl.length?`<div class="hvSehir" role="group" aria-label="${L('Şehir','City')}">${[null,...sl].map(y=>{const k=y?yerAnahtar(y):'';return `<button data-hs="${esc(k)}" title="${esc(yerEtiket(y||anaY))}">${esc(y?havaC[k]?.v?.sehir||y.ad:havaV.sehir)}</button>`}).join('')}</div>`:'';
   const bas=`<h2><span class="hvAd"></span>${L('<div class="seg k" role="group" aria-label="Tahmin"><button data-hg="">Saatlik</button><button data-hg="1">3 gün</button></div></h2>','<div class="seg k" role="group" aria-label="Forecast"><button data-hg="">Hourly</button><button data-hg="1">3 days</button></div></h2>')}${cip}<div class="havaGovde"></div><div class="ek" id="havaEk"></div>`;
-  const govde=`<div class="now"><b>${T(c.temperature_2m)}</b><span class="m">${esc(WMO[c.weather_code]||'')}${L(' · hissedilen ',' · feels like ')}${T(c.apparent_temperature)}${L('<br>rüzgâr ','<br>wind ')}${Math.round(c.wind_speed_10m)}${L(' km/sa',' km/h')}${yagis>=30?L(' · yağış ',' · rain ')+yz(yagis):''}</span></div>`;
+  const govde=`<div class="now"><b>${T(c.temperature_2m)}</b><span class="m">${esc(WMO[c.weather_code]||'')}${L(' · hissedilen ',' · feels like ')}${T(c.apparent_temperature)}${L('<br>rüzgâr ','<br>wind ')}${Math.round(c.wind_speed_10m)}${hizB(w)}${yagis>=30?L(' · yağış ',' · rain ')+yz(yagis):''}</span></div>`;
   const el=$('#hava');
   if(havaSon!==bas||!el.querySelector('.havaGovde')){el.innerHTML=havaSon=bas;havaSerit=''}
   for(const b of el.querySelectorAll('[data-hg]'))b.setAttribute('aria-pressed',!!b.dataset.hg===!!gun);
@@ -1360,7 +1371,7 @@ function havaEk(w){
     const yon=(DIL==='tr'?['K','KD','D','GD','G','GB','B','KB']:['N','NE','E','SE','S','SW','W','NW'])[Math.round(c.wind_direction_10m/45)%8],uv=d.uv_index_max?.[0];
     h+=`<div class="hvDet"><span><small>${L('Nem','Humidity')}</small><b>${yz(Math.round(c.relative_humidity_2m))}</b></span>${c.pressure_msl!=null?`${L('<span title="Deniz seviyesine göre"><small>Basınç</small><b>','<span title="Relative to sea level"><small>Pressure</small><b>')}${Math.round(c.pressure_msl)} hPa</b></span>`:''}`
       +(uv!=null?`${L('<span title="Bugünkü en yüksek UV: ','<span title="Today\'s maximum UV: ')}${uv<3?L('düşük','low'):uv<6?L('orta','moderate'):uv<8?L('yüksek','high'):L('çok yüksek','very high')}"><small>UV</small><b>${Math.round(uv*10)/10}</b></span>`:'')
-      +`${L('<span title="Rüzgâr ','<span title="Wind from the ')}${yon}${L(' yönünden esiyor"><small>Rüzgâr</small><b><svg viewBox="0 0 24 24" aria-hidden="true" style="transform:rotate(','"><small>Wind</small><b><svg viewBox="0 0 24 24" aria-hidden="true" style="transform:rotate(')}${c.wind_direction_10m+180}deg)"><path d="M12 20V4M6 10l6-6 6 6"/></svg>${yon} ${Math.round(c.wind_speed_10m)}${L('</b></span><span><small>Yağış</small><b>','</b></span><span><small>Rain</small><b>')}${c.precipitation} mm</b></span></div>`;
+      +`${L('<span title="Rüzgâr ','<span title="Wind from the ')}${yon}${L(' yönünden esiyor"><small>Rüzgâr</small><b><svg viewBox="0 0 24 24" aria-hidden="true" style="transform:rotate(','"><small>Wind</small><b><svg viewBox="0 0 24 24" aria-hidden="true" style="transform:rotate(')}${c.wind_direction_10m+180}deg)"><path d="M12 20V4M6 10l6-6 6 6"/></svg>${yon} ${Math.round(c.wind_speed_10m)}${L('</b></span><span><small>Yağış</small><b>','</b></span><span><small>Rain</small><b>')}${c.precipitation}${yagisB(w)}</b></span></div>`;
   }
   const n=new Date(),su=gunStr(n)+'T'+iki(n.getHours()),i=s?s.time.findIndex(t=>t.slice(0,13)>=su):-1;
   if(i>=0&&s.time.length>=i+24){
@@ -1385,14 +1396,14 @@ $('#hava').onclick=async e=>{
   const hs=e.target.closest('[data-hs]');
   if(hs){const s=hs.dataset.hs;if(s===havaSehir||havaYuk)return;
     if(s&&!havaC[s]){const y=sehirler().find(y=>yerAnahtar(y)===s);if(!y)return;
-      havaYuk=true;hs.classList.add('yuk');const r=await api('/api/weather?'+yerSorgu(y));havaYuk=false;hs.classList.remove('yuk');
+      havaYuk=true;hs.classList.add('yuk');const r=await api('/api/weather?'+yerSorgu(y)+birimQ());havaYuk=false;hs.classList.remove('yuk');
       if(r.durum!=='ok')return tost(L('Hava durumu alınamadı: ','Could not load the weather: ')+y.ad);havaC[s]={t:Date.now(),v:r.veri}}
     havaSehir=s;return havaCiz()}
   const v=e.target.dataset.hg;if(v===undefined||!S)return;S.ayar.havaGun=!!v;kaydet();havaCiz()};
 async function hava(){
   // at startup the last forecast (if newer than 12 h) is drawn without waiting and updated when the network answers
-  if(!havaV)try{const o=JSON.parse(localStorage.hava||'null');if(o&&Date.now()-o.t<432e5){havaV=o.v;havaCiz()}}catch{}
-  const r=await api('/api/weather');havaDenendi=true;
+  if(!havaV)try{const o=JSON.parse(localStorage.hava||'null');if(o&&Date.now()-o.t<432e5&&(o.v?.birim==='f')===FAH()){havaV=o.v;havaCiz()}}catch{} // a cache in the other unit is not drawn
+  const r=await api('/api/weather'+birimQ(1));havaDenendi=true;
   if(r.durum==='ok'){havaV=r.veri;try{localStorage.hava=JSON.stringify({t:Date.now(),v:r.veri})}catch{}havaCiz();return havaDiger()}
   if(havaV)return; // network error: keep the last known forecast
   const h=`${L('<h2>Hava durumu</h2>','<h2>Weather</h2>')}${r.durum===AG_YOK?agYok():`<p class="m">${esc(r.durum).slice(0,200)}</p>`}`;havaSerit='';
@@ -1691,7 +1702,7 @@ function havaUyar(){
   const n=new Date(),g=gunStr(n),d=havaV?.daily;
   if(!S||A('havaUyari')===false||S.havaUyari===g||n.getHours()<5||n.getHours()>=12||d?.time?.[0]!==g)return; // wait if the data is not for today (old cache)
   const y=d.precipitation_probability_max?.[0],mn=d.temperature_2m_min?.[0],u=[];
-  if(y>=60)u.push(L('yağış olasılığı ','rain chance ')+yz(y));if(typeof mn==='number'&&mn<=0)u.push(`${L('don bekleniyor (en düşük ','frost expected (low ')}${Math.round(mn)}°)`);
+  if(y>=60)u.push(L('yağış olasılığı ','rain chance ')+yz(y));if(typeof mn==='number'&&mn<=(havaV.birim==='f'?32:0))u.push(`${L('don bekleniyor (en düşük ','frost expected (low ')}${Math.round(mn)}°)`);
   S.havaUyari=g;kaydet();if(u.length)bildir(L('Hava uyarısı','Weather alert'),L('Bugün ','Today ')+u.join(', ')+'.');
 }
 // Morning summary: once on the first open of the day (after 05:00)
@@ -2082,10 +2093,14 @@ const KART_AD={saat:L('Saat','Clock'),takvim:L('Takvim','Calendar'),uygulamalar:
 const BOYUT={kucuk:L('Küçük','Small'),'':L('Orta','Medium'),buyuk:L('Büyük','Large')};
 const HKAT=DIL==='tr'?{sondakika:'Son dakika',gundem:'Gündem',bilim:'Bilim',finans:'Finans',spor:'Spor',yasam:'Yaşam'}
   :{en_top:'Top stories',en_world:'World',en_business:'Business',en_tech:'Technology',en_science:'Science',en_sport:'Sport'}; // English: BBC News RSS // sondakika: TRT Haber RSS, the others Bundle (same as the Rust allow list)
+// Public holidays: Google's holiday calendar of a country (S.ayar.tatil: a key below or 'yok'; missing: by the system's region)
+const TATIL_YER={turkish:L('Türkiye','Turkey'),usa:L('ABD','United States'),uk:L('Birleşik Krallık','United Kingdom'),canadian:L('Kanada','Canada'),australian:L('Avustralya','Australia'),irish:L('İrlanda','Ireland'),new_zealand:L('Yeni Zelanda','New Zealand'),indian:L('Hindistan','India'),german:L('Almanya','Germany'),french:L('Fransa','France'),spain:L('İspanya','Spain'),italian:L('İtalya','Italy'),dutch:L('Hollanda','Netherlands'),polish:L('Polonya','Poland'),swedish:L('İsveç','Sweden'),japanese:L('Japonya','Japan'),brazilian:L('Brezilya','Brazil')};
+const OTO_TATIL=DIL==='tr'?'turkish':({TR:'turkish',US:'usa',GB:'uk',CA:'canadian',AU:'australian',IE:'irish',NZ:'new_zealand',IN:'indian',DE:'german',FR:'french',ES:'spain',IT:'italian',NL:'dutch',PL:'polish',SE:'swedish',JP:'japanese',BR:'brazilian'}[(navigator.language.split('-')[1]||'').toUpperCase()]||'usa');
+const tatilId=()=>{const v=TATIL_YER[A('tatil')]?A('tatil'):A('tatil')==='yok'?'yok':OTO_TATIL;return v==='yok'?'yok':(v==='turkish'&&DIL==='tr'?'tr.':'en.')+v+'#holiday@group.v.calendar.google.com'};
 const KART_AYAR={
-  saat:{ayar:[['saatModel',L('Saat modeli','Clock style'),'sec',SAAT_MOD,'sade'],['saniye',L('Saniye kolu','Second hand'),'sw',0,true],['saat2',L('İkinci saat','Second clock'),'sec',SAAT2,'']],
+  saat:{ayar:[['saatModel',L('Saat modeli','Clock style'),'sec',SAAT_MOD,'sade'],['saatBicim',L('Saat biçimi','Time format'),'seg',{'':L('Otomatik','Auto'),h24:L('24 saat','24 h'),h12:L('12 saat','12 h')},''],['saniye',L('Saniye kolu','Second hand'),'sw',0,true],['saat2',L('İkinci saat','Second clock'),'sec',SAAT2,'']],
     gizle:[['alt',L('Geri sayım ve güneş saatleri','Countdown and sun times'),'.saatalt'],['ek',L('Gün ışığı ve uzun tarih (kart büyükken)','Daylight and long date (when the card is large)'),'#saatEk']]},
-  takvim:{ayar:[['gorunum',L('Açılış görünümü','Opening view'),'seg',{ay:L('Ay','Month'),hafta:L('Hafta','Week')},'ay'],['etk',L('Etkinlikten 10 dk önce bildir','Notify 10 min before events'),'sw',0,true]],
+  takvim:{ayar:[['haftaBasi',L('Hafta başı','Week starts on'),'seg',{'':L('Otomatik','Auto'),pzt:L('Pazartesi','Monday'),paz:L('Pazar','Sunday')},''],['tatil',L('Resmî tatiller','Public holidays'),'sec',{'':L('Otomatik','Auto'),yok:L('Gösterme','Off'),...TATIL_YER},''],['gorunum',L('Açılış görünümü','Opening view'),'seg',{ay:L('Ay','Month'),hafta:L('Hafta','Week')},'ay'],['etk',L('Etkinlikten 10 dk önce bildir','Notify 10 min before events'),'sw',0,true]],
     gizle:[['yedi',L('Önümüzdeki 7 gün','Next 7 days'),'#takvimEk'],['ad',L('Hücrede etkinlik adı (geniş kartta)','Event names in cells (wide card)'),'.grid em'],['hf',L('Hafta numaraları (geniş kartta)','Week numbers (wide card)'),'.grid button[data-hf]::after']]},
   uygulamalar:{ayar:[['uygBoyut',L('Simge boyutu','Icon size'),'seg',BOYUT,'']],
     gizle:[['ara',L('Arama kutusu (kart büyükken)','Search box (when the card is large)'),'#uygAra'],['son',L('Son açılanlar','Recently opened'),'.uygBol>div:first-child'],['cok',L('En çok açılanlar','Most opened'),'.uygBol>div:nth-child(2)']]},
@@ -2093,7 +2108,7 @@ const KART_AYAR={
     gizle:[['ek',L('İlerleme halkası ve 7 gün grafiği (kart büyükken)','Progress ring and 7-day chart (when the card is large)'),'#gorevEk']]},
   notlar:{ayar:[['notYazi',L('Yazı boyutu','Font size'),'seg',BOYUT,'']],
     gizle:[['liste',L('Geniş kartta not listesi','Note list on wide card'),null],['ek',L('Kelime ve karakter sayısı','Word and character count'),'#notEk']]},
-  hava:{ayar:[['sehir',L('Ana şehir','Main city'),'metin',0,''],['sehirler',L('Diğer şehirler (virgülle, en fazla 4)','Other cities (comma separated, up to 4)'),'metin',0,''],['havaGun',L('Varsayılan tahmin','Default forecast'),'seg',{'':L('Saatlik','Hourly'),gun:L('3 gün','3 days')},''],['havaUyari',L('Sabah yağmur ve don uyarısı','Morning rain and frost alert'),'sw',0,true]], // no numeric keys: they would move to the front of the object
+  hava:{ayar:[['sehir',L('Ana şehir','Main city'),'metin',0,''],['birim',L('Birimler','Units'),'seg',{'':L('Otomatik','Auto'),c:'°C · km/h',f:'°F · mph'},''],['sehirler',L('Diğer şehirler (virgülle, en fazla 4)','Other cities (comma separated, up to 4)'),'metin',0,''],['havaGun',L('Varsayılan tahmin','Default forecast'),'seg',{'':L('Saatlik','Hourly'),gun:L('3 gün','3 days')},''],['havaUyari',L('Sabah yağmur ve don uyarısı','Morning rain and frost alert'),'sw',0,true]], // no numeric keys: they would move to the front of the object
     gizle:[['det',L('Nem, basınç, UV, rüzgâr (kart büyükken)','Humidity, pressure, UV, wind (when the card is large)'),'.hvDet'],['egri',L('24 saatlik eğri (kart büyükken)','24-hour curve (when the card is large)'),'.hvEgri'],['yedi',L('7 günlük tahmin (kart büyükken)','7-day forecast (when the card is large)'),'.hv7'],['diger',L('Diğer şehirler (kart büyükken)','Other cities (when the card is large)'),'.hvDiger']]},
   haber:{ayar:[['haberKat',L('Kategori','Category'),'seg',HKAT,'gundem'],['haberKelime',L('Gizlenecek kelimeler (virgülle ayır)','Words to hide (comma separated)'),'metin',0,'']],
     gizle:[['kat',L('Kategori düğmeleri','Category buttons'),'#hKat'],['logo',L('Kaynak logoları','Source logos'),'.hbLogo'],['gorsel',L('Haber görselleri (geniş kartta)','News images (wide card)'),'.hbGorsel'],...Object.entries(HKAT).map(([v,ad])=>['k'+v,ad+L(' sekmesi',' tab'),`#hKat [data-v=${v}]`])]},
@@ -2125,7 +2140,8 @@ async function sehirKaydet(sehir){
   tost(r.durum==='ok'?L('Hava durumu şehri: ','Weather city: ')+yerEtiket(y):String(r.durum).slice(0,120));if(r.durum==='ok')await hava();
 }
 // the card updates itself when a value changes
-const KART_SONRA={saatModel:()=>{saatYuz();tick()},saniye:()=>saatYuz(),saat2:()=>{ustSon='';ustCiz()},gorunum:v=>{gorunum=v;secili=null;takvim()},
+const KART_SONRA={saatBicim:()=>{ustSon='';tick();ciz();havaSerit='';havaCiz();$('#grid').dataset.ay='';takvim()},haftaBasi:()=>{secili=null;$('#grid').dataset.ay='';takvim()},
+  birim:()=>{havaC={};try{localStorage.removeItem('hava')}catch{}hava()},tatil:()=>takvimYenile(),saatModel:()=>{saatYuz();tick()},saniye:()=>saatYuz(),saat2:()=>{ustSon='';ustCiz()},gorunum:v=>{gorunum=v;secili=null;takvim()},
   uygBoyut:()=>ayarUygula(),bitenGizle:()=>ciz(),notYazi:()=>kartAyarUygula(),havaGun:()=>havaCiz(),hedef:()=>odakIstat(),haberKat:()=>{$('#haberler').scrollTop=0;haber()},haberKelime:()=>haberCiz(),
   calisma:()=>{if(!O.bitis)O={mod:'calisma',kalan:sure('calisma'),bitis:0};odakCiz()},mola:()=>{if(!O.bitis)O={mod:'calisma',kalan:sure('calisma'),bitis:0};odakCiz()}};
 function kartAyar(k){
@@ -2364,7 +2380,11 @@ $('#odakNe').onclick=async()=>{if(!S)return;
   if(!v)return;if(v[0])S.ayar.odakNe=v[0].slice(0,60);else delete S.ayar.odakNe;kaydet();odakNeCiz()};
 
 // Calendar (month / week view)
-const GUN=[L('Pzt','Mon'),L('Sal','Tue'),L('Çar','Wed'),L('Per','Thu'),L('Cum','Fri'),L('Cmt','Sat'),L('Paz','Sun')];
+// First day of the week: S.ayar.haftaBasi 'pzt' | 'paz'; missing: the locale's habit (Sunday for en-US). 1 = Monday, 0 = Sunday.
+const OTO_HB=(()=>{try{const l=new Intl.Locale(LOC),w=l.getWeekInfo?.()||l.weekInfo;return w?.firstDay===7?0:1}catch{return 1}})();
+const HB=()=>{const v=A('haftaBasi');return v==='paz'?0:v==='pzt'?1:OTO_HB};
+const GUN=()=>[...Array(7)].map((_,i)=>GUNK[(i+HB())%7]); // column titles, in week order
+const sutun=d=>(d.getDay()-HB()+7)%7; // column of a day in a week row
 let ref=new Date();ref.setHours(0,0,0,0);
 let gorunum='ay',evler=[],secili=null,gBagli=false;
 const zaman=e=>new Date(e.start.dateTime||e.start.date+'T00:00'),evGun=e=>gunStr(zaman(e));
@@ -2385,8 +2405,8 @@ const surecYazi=e=>{const g=gunleri(e),b=g.indexOf(gunStr(new Date()));return b<
 let takvimler=[],eksikIzin=false,yarinEv=[];
 // If the user has not chosen: while the regional holiday calendar is present, holiday calendars in other languages should not repeat the same days
 // Holiday calendar by language/region (Google's public holiday calendars); other holiday calendars are hidden unless the user picks
-const TATIL=(DIL==='tr'?'tr.turkish':'en.'+({US:'usa',GB:'uk',CA:'canadian',AU:'australian',IE:'irish',NZ:'new_zealand',IN:'indian',DE:'german',FR:'french',ES:'spain',IT:'italian',NL:'dutch',PL:'polish',SE:'swedish',JP:'japanese',BR:'brazilian'}[(navigator.language.split('-')[1]||'').toUpperCase()]||'usa'))+'#holiday@group.v.calendar.google.com';
-const gizliT=()=>A('gizliTakvim')||(takvimler.some(t=>t.id===TATIL)?takvimler.filter(t=>t.id.includes('#holiday')&&t.id!==TATIL).map(t=>t.id):[]);
+
+const gizliT=()=>{if(A('gizliTakvim'))return A('gizliTakvim');const t=tatilId();return takvimler.some(x=>x.id===t)?takvimler.filter(x=>x.id.includes('#holiday')&&x.id!==t).map(x=>x.id):[]};
 const TUR={dogum:'🎂',yildonumu:'💐',onemli:'⭐',tatil:'🎉'};
 const tur=e=>e.extendedProperties?.private?.ryocs||(e.eventType==='birthday'||String(e._t).startsWith('addressbook#')?'dogum':String(e._t).includes('#holiday')?'tatil':'');
 const tBilgi=e=>takvimler.find(t=>t.id===e._t)||{};
@@ -2447,7 +2467,7 @@ function etkAd(e){
 }
 function aralik(r=ref){
   if(gorunum==='ay'){const bas=new Date(r.getFullYear(),r.getMonth(),1);return{bas,son:new Date(r.getFullYear(),r.getMonth()+1,1),baslik:bas.toLocaleDateString(LOC,{month:'long',year:'numeric'})}}
-  const bas=new Date(r);bas.setDate(bas.getDate()-(bas.getDay()+6)%7);
+  const bas=new Date(r);bas.setDate(bas.getDate()-sutun(bas));
   const son=new Date(bas);son.setDate(son.getDate()+7);
   const sg=new Date(son);sg.setDate(sg.getDate()-1);
   const ay=d=>d.toLocaleDateString(LOC,{month:'long'});
@@ -2459,16 +2479,16 @@ function izgara(){
   for(const b of $('#gor').children)b.setAttribute('aria-pressed',b.dataset.v===gorunum);
   g.classList.toggle('hafta',gorunum==='hafta');
   if(gorunum==='hafta'){
-    g.innerHTML=GUN.map((ad,k)=>{
+    g.innerHTML=GUN().map((ad,k)=>{
       const d=new Date(bas);d.setDate(d.getDate()+k);const t=gunStr(d);
       return `<div class="hg"><button data-t="${t}" class="${t===bugun?'today ':''}${t===sec?'sec':''}" aria-label="${d.toLocaleDateString(LOC,{weekday:'long',day:'numeric',month:'long'})}"><i>${ad}</i><b>${d.getDate()}</b></button>`
         +evler.map((e,i)=>!evGunde(e,t)?'':`<button class="ec" data-e="${i}" style="--c:${esc(renk(e,i))}" title="${esc(etkAd(e))}">${e.start.dateTime?saat(zaman(e))+' ':''}${esc(etkAd(e))}</button>`).join('')+'</div>';
     }).join('');
     return;
   }
-  const y=bas.getFullYear(),m=bas.getMonth(),bos=(bas.getDay()+6)%7,gun=new Date(y,m+1,0).getDate(),gunEv={};
+  const y=bas.getFullYear(),m=bas.getMonth(),bos=sutun(bas),gun=new Date(y,m+1,0).getDate(),gunEv={};
   evler.forEach((e,i)=>{for(const g of gunleri(e))(gunEv[g]??=[]).push([e,i])});
-  let h=GUN.map(g=>`<i>${g}</i>`).join('')+'<span></span>'.repeat(bos);
+  let h=GUN().map(g=>`<i>${g}</i>`).join('')+'<span></span>'.repeat(bos);
   for(let k=1;k<=gun;k++){
     const t=gunStr(new Date(y,m,k)),ev=gunEv[t]||[],sut=(bos+k-1)%7;
     const tekler=ev.filter(([e])=>gunleri(e).length===1),bant=ev.find(([e])=>gunleri(e).length>1)?.[0];
@@ -2481,7 +2501,7 @@ function izgara(){
       if(!tekler.length&&(bb||bs)&&g.length>1){sinif+=' et';etiket=bb?L('<b data-k="baş">başlar</b>','<b data-k="start">starts</b>'):L('<b data-k="son">biter</b>','<b data-k="end">ends</b>')} // ends of the period
     }
     // on a wide card: week number at the start of a row, the first event's name in the cell (shown via CSS)
-    const hf=sut===0||k===1?` data-hf="${haftaNo(new Date(y,m,k))}"`:'',ad=tekler[0]&&!etiket?`<em>${esc(etkAd(tekler[0][0]))}${tekler.length>1?' +'+(tekler.length-1):''}</em>`:'';
+    const hf=sut===0||k===1?` data-hf="${haftaNo(new Date(y,m,k+(sut===0&&!HB())))}"`:'',ad=tekler[0]&&!etiket?`<em>${esc(etkAd(tekler[0][0]))}${tekler.length>1?' +'+(tekler.length-1):''}</em>`:'';
     h+=`<button data-t="${t}"${hf} class="${sinif.trim()}"${stil}${ev.length?` title="${esc(ev.map(([e])=>etkAd(e)+(gunleri(e).length>1?' ('+aralikYazi(e)+')':'')).join('\n'))}"`:''} aria-label="${k} ${$('#ayad').textContent}${ev.length?', '+ev.length+L(' etkinlik',' events'):''}">${k}${ad}${nk}${etiket}</button>`;
   }
   g.innerHTML=h;
@@ -2551,7 +2571,7 @@ $('#olay').addEventListener('click',async e=>{
   let start,end;
   if(st){
     const [h,m]=st.split(':'),b=new Date(secili);b.setHours(+h,+m,0,0);const s=new Date(b.getTime()+36e5);
-    const off=d=>{const o=-d.getTimezoneOffset(),a=Math.abs(o);return gunStr(d)+'T'+saat(d)+':00'+(o<0?'-':'+')+iki(a/60|0)+':'+iki(a%60)};
+    const off=d=>{const o=-d.getTimezoneOffset(),a=Math.abs(o);return gunStr(d)+'T'+saat24(d)+':00'+(o<0?'-':'+')+iki(a/60|0)+':'+iki(a%60)};
     start={dateTime:off(b)};end={dateTime:off(s)};
   }else{
     const s=new Date(secili);s.setDate(s.getDate()+1);
@@ -2575,7 +2595,7 @@ const tSakla=()=>{try{localStorage.tCache=JSON.stringify([...tCache].slice(-6).m
 async function takvimAl(bas,son,zorla){
   const k=tAnahtar(bas,son),c=tCache.get(k);
   if(c&&!zorla&&Date.now()-c.t<6e4)return c.r;
-  const r=await api('/api/calendar',{min:bas.toISOString(),max:son.toISOString(),tatil:TATIL});
+  const r=await api('/api/calendar',{min:bas.toISOString(),max:son.toISOString(),tatil:tatilId()});
   if(r.durum==='ok'){tCache.delete(k);tCache.set(k,{t:Date.now(),r});tSakla()}
   else if(r.durum==='kimlik_yok'||r.durum==='bagli_degil'){tCache.clear();tSakla()}
   else if(c)return {...c.r,eski:true}; // network error: keep showing the last known data

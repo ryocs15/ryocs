@@ -46,10 +46,10 @@ Missing keys mean the default.
 | `kartBoy`, `kartMin`, `sutunEn`, `yanOran` | Card size weights, minimum heights (px), side column widths (px), side-by-side ratios. |
 | `kartKapali`, `kartBilinen`, `kartGizle` | Closed cards, cards the save already knows (a newer card starts closed), hidden parts per card. |
 | `yerYedek` | Saved layouts `[{ad, t, v}]`, at most 10. |
-| `saatModel`, `saniye`, `saat2` | Clock dial, second hand, second clock time zone (`""` = off). |
-| `gorunum`, `etk`, `gizliTakvim`, `stil` | Calendar view (`ay` / `hafta`), event notifications, hidden calendars, colour and icon per event type or event. |
+| `saatModel`, `saniye`, `saat2`, `saatBicim` | Clock dial, second hand, second clock time zone (`""` = off), time format `h24` / `h12` (missing = the system's habit). |
+| `gorunum`, `etk`, `gizliTakvim`, `stil`, `haftaBasi`, `tatil` | Calendar view (`ay` / `hafta`), event notifications, hidden calendars, colour and icon per event type or event, first day of the week (`pzt` / `paz`), public holidays (country key such as `turkish`, `usa`, or `yok` = off). |
 | `bitenGizle` | Hide completed tasks. |
-| `havaGun`, `havaUyari`, `sehirler` | Weather: 3-day view, morning alert, extra cities `[{ad, bolge, lat, lon}]` (older saves: plain names). |
+| `havaGun`, `havaUyari`, `sehirler`, `birim` | Weather: 3-day view, morning alert, extra cities `[{ad, bolge, lat, lon}]` (older saves: plain names), units `c` / `f` (missing = °F in the US). |
 | `haberKat`, `haberKelime`, `haberGizli` | News category, hidden words, hidden sources. |
 | `calisma`, `mola`, `hedef`, `odakOto`, `rahatsiz`, `calismaAd`, `molaAd`, `odakNe` | Focus: work and break minutes, daily goal, auto start, do not disturb, own labels, "working on" note. |
 | `ozet`, `tepsiBilgi` | Morning summary on/off, "running in the tray" notice already shown. |

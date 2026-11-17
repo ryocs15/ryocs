@@ -240,6 +240,7 @@ fn weather(q: &HashMap<String, String>) -> Result<Value, String> {
     } else {
         konum(sehir_adi(cfg["sehir"].as_str().unwrap_or("Istanbul"))?)?
     };
+    let f = q.get("birim").is_some_and(|b| b == "f"); // °F, mph, inch; anything else is metric
     let mut w = body(
         AGENT.get("https://api.open-meteo.com/v1/forecast")
             .query("latitude", &loc["lat"].to_string())
@@ -247,8 +248,12 @@ fn weather(q: &HashMap<String, String>) -> Result<Value, String> {
             .query("current", "temperature_2m,apparent_temperature,weather_code,wind_speed_10m,wind_direction_10m,relative_humidity_2m,pressure_msl,precipitation")
             .query("hourly", "temperature_2m,precipitation_probability,weather_code")
             .query("daily", "weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,sunrise,sunset,uv_index_max")
+            .query("temperature_unit", if f { "fahrenheit" } else { "celsius" })
+            .query("wind_speed_unit", if f { "mph" } else { "kmh" })
+            .query("precipitation_unit", if f { "inch" } else { "mm" })
             .query("timezone", "auto").query("forecast_days", "7").call(),
     )?;
+    w["birim"] = json!(if f { "f" } else { "c" });
     w["sehir"] = loc["ad"].clone();
     w["bolge"] = loc["bolge"].clone();
     Ok(w)
@@ -984,8 +989,9 @@ fn calendar(req_body: &str) -> Result<Value, String> {
     if takvimler.is_empty() {
         takvimler.push(json!({ "id": "primary", "ad": l("Takvim", "Calendar"), "renk": "#8fb996", "yaz": true }));
     }
+    // "yok": the user turned public holidays off
     let tatil = r["tatil"].as_str().filter(|t| takvim_id(t) && t.ends_with("#holiday@group.v.calendar.google.com")).unwrap_or(TR_TATIL);
-    if !takvimler.iter().any(|c| c["id"] == tatil) {
+    if r["tatil"] != "yok" && !takvimler.iter().any(|c| c["id"] == tatil) {
         let ad = if tatil == TR_TATIL { l("Türkiye'deki tatiller", "Holidays in Turkey") } else { l("Tatiller", "Holidays") };
         takvimler.push(json!({ "id": tatil, "ad": ad, "renk": "#e9a25b", "yaz": false }));
     }

@@ -8,7 +8,7 @@ window.fetch=async(p,a)=>{
   if(p.startsWith('/api/sehir_ara?q=')){istek.push(p);const ad=decodeURIComponent(p.split('=')[1]);
     const k=ad.toLocaleLowerCase('tr');
     return{json:async()=>({durum:'ok',veri:k==='yeşilova'?Y:k==='ankara'?[{ad:'Ankara',bolge:'',ulke:'Türkiye',lat:39.9,lon:32.8}]:k==='köyceğiz'?[{ad:'Köyceğiz',bolge:'Muğla',ulke:'Türkiye',lat:36.97,lon:28.68}]:[]})}}
-  if(p.startsWith('/api/weather?')){istek.push(p);await bek(120);const u=new URLSearchParams(p.split('?')[1]);
+  if(p.startsWith('/api/weather?')&&/[?&](lat|sehir)=/.test(p)){istek.push(p);await bek(120);const u=new URLSearchParams(p.split('?')[1]);
     const r=await (await f0('/api/weather')).json();r.veri=JSON.parse(JSON.stringify(r.veri));
     r.veri.sehir=u.get('ad')||u.get('sehir');r.veri.bolge=u.get('bolge')||'';r.veri.current.temperature_2m=+u.get('lat')||3;return{json:async()=>r}}
   if(p==='/api/config'&&a?.method==='POST'){cfg=JSON.parse(a.body);return{json:async()=>({durum:'ok',veri:cfg.konum?.ad})}}
