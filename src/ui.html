@@ -225,9 +225,10 @@ main [data-kart][hidden]{display:none!important} /* a closed card (the card layo
 .hv7 em{font-style:normal;white-space:nowrap}.hv7 em:last-child{text-align:right}.hv7 em:first-of-type{color:var(--mu)} /* lowest on the left, highest on the right: the bar is the range between */
 .hvSehir{display:flex;flex-wrap:wrap;gap:4px;margin:-4px 0 8px}
 .hvSehir button{border:0;background:none;color:var(--mu);font:inherit;font-size:12px;padding:3px 10px;border-radius:999px;cursor:pointer;max-width:12em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.hvSehir button[aria-pressed=true]{color:var(--tx);box-shadow:var(--up-s)}
+.hvSehir button{transition:box-shadow .2s,color .2s}.hvSehir button[aria-pressed=true]{color:var(--tx);box-shadow:var(--up-s)}
+.hvSehir button.yuk{animation:hvYuk 1s ease-in-out infinite}@keyframes hvYuk{50%{opacity:.4}}
 .hvDiger button{display:grid;grid-template-columns:20px auto minmax(0,1fr) auto;align-items:center;gap:8px;width:100%;border:0;background:none;color:var(--tx);font:inherit;font-size:12px;padding:4px 2px;cursor:pointer;text-align:left;border-radius:8px}
-.hvDiger button:hover{box-shadow:var(--up-s)}
+.hvDiger button{transition:box-shadow .2s}.hvDiger button:hover{box-shadow:var(--up-s)}
 .hvDiger svg{width:18px;height:18px;fill:none;stroke:var(--tx);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
 .hvDiger small{color:var(--mu);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 :is(.uyg,.notk,.todo,.haberK){min-height:150px}
@@ -479,7 +480,7 @@ button.dot:hover{transform:scale(1.3)}
 .halka b{position:absolute;inset:0;display:grid;place-items:center;font:200 24px "Segoe UI Variable Display","Segoe UI",sans-serif}
 .halka small{position:absolute;left:0;right:0;top:64%;text-align:center;font-size:11px;color:var(--mu);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 16px}
 .odakNe{display:block;max-width:100%;margin:8px auto 0;border:0;background:none;color:var(--tx);font:inherit;font-size:12px;padding:3px 8px;border-radius:8px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.odakNe.bos{color:var(--mu)}.odakNe:hover{box-shadow:var(--up-s)}
+.odakNe.bos{color:var(--mu)}.odakNe:hover{box-shadow:var(--up-s)}.odakNe{transition:box-shadow .2s,color .2s}
 #ilerleme{transition:stroke-dashoffset 1s linear,stroke .3s}
 .odak .ctl{flex-direction:column;margin:0}
 .spark{display:inline-flex;align-items:flex-end;gap:2px;height:14px;margin-right:6px;vertical-align:-2px}
@@ -554,9 +555,9 @@ dialog h3{font-weight:400;font-size:11px;letter-spacing:1.5px;text-transform:upp
 .sw::after{content:"";position:absolute;top:4px;left:4px;width:18px;height:18px;border-radius:50%;background:var(--mu);transition:transform .22s cubic-bezier(.3,1.5,.6,1),background-color .22s}
 .sw[aria-checked=true]::after{transform:translateX(20px);background:var(--ye)}
 kbd{font:12px Consolas,monospace;padding:2px 6px;border-radius:6px;box-shadow:var(--up-s)}
-#sor{width:min(420px,calc(100vw - 48px))}
-#sor label{display:grid;gap:6px;margin-top:14px;color:var(--mu);font-size:13px}
-#sor .in{color:var(--tx);font-size:14px}
+#sor,#sor2{width:min(420px,calc(100vw - 48px))}
+:is(#sor,#sor2) label{display:grid;gap:6px;margin-top:14px;color:var(--mu);font-size:13px}
+:is(#sor,#sor2) .in{color:var(--tx);font-size:14px}
 .aciklama{white-space:pre-wrap;font-size:13px;line-height:1.5;max-height:240px;overflow:auto;margin:12px 0 0;padding:12px 14px;border-radius:14px;box-shadow:var(--in);user-select:text}
 .db{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:10px;margin-top:22px}
 #sor.genis{width:min(580px,calc(100vw - 48px))}
@@ -931,6 +932,7 @@ function selamYazi(n,d){
   </div>
 </div></dialog>
 <dialog id="sor"></dialog>
+<dialog id="sor2"></dialog>
 <dialog id="kilit" aria-labelledby="kilitB"><form class="ic"><div class="avatar" aria-hidden="true"></div><h1 id="kilitB"></h1><input class="in" id="kilitPin" type="password" inputmode="numeric" maxlength="8" autocomplete="off" aria-label="PIN" placeholder="PIN"><p class="m" id="kilitHata" aria-live="polite"></p></form></dialog>
 <div id="menu" class="menu" popover role="menu"></div>
 <div id="araSonuc" class="araSonuc" role="listbox" hidden></div>
@@ -1064,14 +1066,14 @@ for(const d of document.querySelectorAll('dialog')){
   d.addEventListener('mousedown',e=>{if(e.target===d)kapat(d)}); // mousedown: a drag that leaves the dialog while selecting text must not close it
   d.addEventListener('click',e=>{if(e.target.closest('[data-kapat]'))kapat(d)});
 }
-function pencere(html,genis){const d=$('#sor');d.bitti=null;clearInterval(d.yokla);d.classList.toggle('genis',!!genis);d.innerHTML=html;ac(d);return d}
+function pencere(html,genis,d=$('#sor')){d.bitti=null;clearInterval(d.yokla);d.classList.toggle('genis',!!genis);d.innerHTML=html;ac(d);return d}
 // Small form dialog; returns an array of values or (if cancelled) null. With no fields it is a confirm dialog.
-function sor(baslik,alanlar,tamam=L('Kaydet','Save'),metin='',tehlike=false){
+function sor(baslik,alanlar,tamam=L('Kaydet','Save'),metin='',tehlike=false,dlg){
   const d=pencere(`<form class="ic"><h1>${baslik}</h1>${metin?`<p class="m">${esc(metin)}</p>`:''}`
     +alanlar.map((a,i)=>`<label>${a.ad}${a.secenek
       ?`<select class="in" name="a${i}">${Object.entries(a.secenek).map(([k,v])=>`<option value="${k}"${k===String(a.v??'')?' selected':''}>${esc(v)}</option>`).join('')}</select>`
       :`<input class="in" name="a${i}" type="${a.tip==='pin'?'password':a.tip||'text'}" value="${esc(a.v)}" placeholder="${a.ipucu||''}"${a.zorunlu?' required':''}${a.tip==='pin'?' inputmode="numeric" maxlength="8" autocomplete="off"':' maxlength="300"'}>`}</label>`).join('')
-    +`${L('<div class="db"><button class="btn" type="button" data-kapat>Vazgeç</button><button class="btn ','<div class="db"><button class="btn" type="button" data-kapat>Cancel</button><button class="btn ')}${tehlike?'tehb':'ana'}">${tamam}</button></div></form>`);
+    +`${L('<div class="db"><button class="btn" type="button" data-kapat>Vazgeç</button><button class="btn ','<div class="db"><button class="btn" type="button" data-kapat>Cancel</button><button class="btn ')}${tehlike?'tehb':'ana'}">${tamam}</button></div></form>`,false,dlg);
   d.firstChild.onsubmit=e=>{e.preventDefault();kapat(d,'ok')};
   const ilk=d.querySelector('input,select');if(ilk){ilk.focus();ilk.select?.()}else d.querySelector('.db button:last-child').focus();
   return new Promise(c=>d.bitti=v=>c(v==='ok'?alanlar.map((_,i)=>d.querySelector(`[name=a${i}]`).value.trim()):null));
@@ -1276,7 +1278,7 @@ const havaIkon=k=>`<svg class="hi-${havaTur(k)}" viewBox="0 0 24 24" aria-hidden
 let havaSon='',havaV=null,havaDenendi=false;
 // Extra weather cities (S.ayar.sehirler, at most 4: {ad,bolge,lat,lon}; older saves: a name string). The card switches between them;
 // alerts, sunrise and the summary always use the main city (havaV). havaSehir / havaC are keyed by yerAnahtar.
-let havaSehir='',havaC={};
+let havaSehir='',havaC={},havaYuk=false;
 const sehirler=()=>(Array.isArray(A('sehirler'))?A('sehirler'):[]).map(s=>typeof s==='string'?{ad:s}:s).filter(y=>y&&typeof y.ad==='string'&&y.ad.trim()).slice(0,4);
 const yerAnahtar=y=>y.lat!=null?y.lat+','+y.lon:y.ad;
 const yerSorgu=y=>y.lat!=null?`lat=${y.lat}&lon=${y.lon}&ad=${encodeURIComponent(y.ad)}&bolge=${encodeURIComponent(y.bolge||'')}`:'sehir='+encodeURIComponent(y.ad);
@@ -1300,7 +1302,7 @@ async function yerSec(metin){
   let l=Array.isArray(r.veri)?r.veri:[];if(!l.length)return{hata:L('Bulunamadı: ','Not found: ')+ad};
   if(ip.length){const f=l.filter(y=>ip.every(i=>katla(y.bolge+', '+y.ulke).includes(i)));if(f.length)l=f}
   if(l.length===1)return l[0];
-  const v=await sor(`${esc(ad)}${L(': hangisi?',': which one?')}`,[{ad:L('Yer','Place'),secenek:Object.fromEntries(l.map((y,i)=>[i,[y.ad,y.bolge,y.ulke].filter(Boolean).join(', ')])),v:'0'}],L('Seç','Choose'),L('Bu adla birden fazla yer var. Doğru olanı seç.','There is more than one place with this name. Choose the right one.'));
+  const v=await sor(`${esc(ad)}${L(': hangisi?',': which one?')}`,[{ad:L('Yer','Place'),secenek:Object.fromEntries(l.map((y,i)=>[i,[y.ad,y.bolge,y.ulke].filter(Boolean).join(', ')])),v:'0'}],L('Seç','Choose'),L('Bu adla birden fazla yer var. Doğru olanı seç.','There is more than one place with this name. Choose the right one.'),false,$('#sor2'));
   return v?l[+v[0]]:null;
 }
 async function sehirlerKaydet(v){
@@ -1331,20 +1333,25 @@ function havaCiz(){
     }).join('')+'</div>';
   }
   // the title and the Hourly/3 days buttons stay in place (the sliding indicator flickered when redrawn); only the body changes
-  const sl=sehirler(),anaY={ad:havaV.sehir,bolge:havaV.bolge},cip=sl.length?`<div class="hvSehir" role="group" aria-label="${L('Şehir','City')}">${[null,...sl].map(y=>{const k=y?yerAnahtar(y):'';return `<button data-hs="${esc(k)}" aria-pressed="${k===havaSehir}" title="${esc(yerEtiket(y||anaY))}">${esc(y?havaC[k]?.v?.sehir||y.ad:havaV.sehir)}</button>`}).join('')}</div>`:'';
-  const bas=`<h2>${esc(w.sehir)}${L('<div class="seg k" role="group" aria-label="Tahmin"><button data-hg="">Saatlik</button><button data-hg="1">3 gün</button></div></h2>','<div class="seg k" role="group" aria-label="Forecast"><button data-hg="">Hourly</button><button data-hg="1">3 days</button></div></h2>')}${cip}<div class="havaGovde"></div><div class="ek" id="havaEk"></div>`;
+  const sl=sehirler(),anaY={ad:havaV.sehir,bolge:havaV.bolge},cip=sl.length?`<div class="hvSehir" role="group" aria-label="${L('Şehir','City')}">${[null,...sl].map(y=>{const k=y?yerAnahtar(y):'';return `<button data-hs="${esc(k)}" title="${esc(yerEtiket(y||anaY))}">${esc(y?havaC[k]?.v?.sehir||y.ad:havaV.sehir)}</button>`}).join('')}</div>`:'';
+  const bas=`<h2><span class="hvAd"></span>${L('<div class="seg k" role="group" aria-label="Tahmin"><button data-hg="">Saatlik</button><button data-hg="1">3 gün</button></div></h2>','<div class="seg k" role="group" aria-label="Forecast"><button data-hg="">Hourly</button><button data-hg="1">3 days</button></div></h2>')}${cip}<div class="havaGovde"></div><div class="ek" id="havaEk"></div>`;
   const govde=`<div class="now"><b>${T(c.temperature_2m)}</b><span class="m">${esc(WMO[c.weather_code]||'')}${L(' · hissedilen ',' · feels like ')}${T(c.apparent_temperature)}${L('<br>rüzgâr ','<br>wind ')}${Math.round(c.wind_speed_10m)}${L(' km/sa',' km/h')}${yagis>=30?L(' · yağış ',' · rain ')+yz(yagis):''}</span></div>`;
   const el=$('#hava');
   if(havaSon!==bas||!el.querySelector('.havaGovde')){el.innerHTML=havaSon=bas;havaSerit=''}
   for(const b of el.querySelectorAll('[data-hg]'))b.setAttribute('aria-pressed',!!b.dataset.hg===!!gun);
+  for(const b of el.querySelectorAll('.hvSehir [data-hs]'))b.setAttribute('aria-pressed',b.dataset.hs===havaSehir);
+  // another city: the whole body slides in once (no number pop, no separate strip fade on top of it)
+  const sira=['',...sl.map(yerAnahtar)],gecis=havaCiz.k!==undefined&&havaCiz.k!==havaSehir,yon=Math.sign(sira.indexOf(havaSehir)-sira.indexOf(havaCiz.k))||1;havaCiz.k=havaSehir;
+  const ad=el.querySelector('.hvAd'),adY=String(w.sehir||'');if(ad.textContent!==adY)ad.textContent=adY;
   const g=el.querySelector('.havaGovde');
   if(g.dataset.now!==govde){g.dataset.now=govde;g.querySelector('.now')?.remove();g.insertAdjacentHTML('afterbegin',govde)
-    const t=Math.round(c.temperature_2m);if(havaCiz.t!==undefined&&havaCiz.t!==t)sayiPop(g.querySelector('.now b'));havaCiz.t=t}
+    const t=Math.round(c.temperature_2m);if(!gecis&&havaCiz.t!==undefined&&havaCiz.t!==t)sayiPop(g.querySelector('.now b'));havaCiz.t=t}
   if(serit!==havaSerit){ // fade in softly when the strip changes
     const eski=havaSerit;havaSerit=serit;g.querySelector('.saatlik')?.remove();g.insertAdjacentHTML('beforeend',serit);
-    if(eski)g.querySelector('.saatlik')?.classList.add('degisti');
+    if(eski&&!gecis)g.querySelector('.saatlik')?.classList.add('degisti');
   }
   ekYaz('#havaEk',havaEk(w));saatEk();
+  if(gecis&&K.dataset.anim!=='off')for(const x of [ad,g,el.querySelector('#havaEk')])x?.animate([{opacity:0,transform:`translateX(${yon*14}px)`},{opacity:1,transform:'none'}],{duration:280,easing:'cubic-bezier(.2,.7,.3,1)'});
 }
 // Weather extra (when the card is large): details, 24-hour curve, 7-day forecast. A block is skipped if an old cache lacks its fields.
 function havaEk(w){
@@ -1376,7 +1383,11 @@ function havaEk(w){
 let havaSerit='';
 $('#hava').onclick=async e=>{
   const hs=e.target.closest('[data-hs]');
-  if(hs){const s=hs.dataset.hs;if(s&&!havaC[s])await havaDiger(true);havaSehir=s&&havaC[s]?s:'';return havaCiz()}
+  if(hs){const s=hs.dataset.hs;if(s===havaSehir||havaYuk)return;
+    if(s&&!havaC[s]){const y=sehirler().find(y=>yerAnahtar(y)===s);if(!y)return;
+      havaYuk=true;hs.classList.add('yuk');const r=await api('/api/weather?'+yerSorgu(y));havaYuk=false;hs.classList.remove('yuk');
+      if(r.durum!=='ok')return tost(L('Hava durumu alınamadı: ','Could not load the weather: ')+y.ad);havaC[s]={t:Date.now(),v:r.veri}}
+    havaSehir=s;return havaCiz()}
   const v=e.target.dataset.hg;if(v===undefined||!S)return;S.ayar.havaGun=!!v;kaydet();havaCiz()};
 async function hava(){
   // at startup the last forecast (if newer than 12 h) is drawn without waiting and updated when the network answers
@@ -2104,7 +2115,7 @@ function kartListeCiz(){
 async function sehirKaydet(sehir){
   if(!sehir)return;const y=await yerSec(sehir);if(!y)return;if(y.hata)return tost(y.hata.slice(0,120));
   const r=await api('/api/config',{konum:y});
-  tost(r.durum==='ok'?L('Hava durumu şehri: ','Weather city: ')+yerEtiket(y):String(r.durum).slice(0,120));if(r.durum==='ok')hava();
+  tost(r.durum==='ok'?L('Hava durumu şehri: ','Weather city: ')+yerEtiket(y):String(r.durum).slice(0,120));if(r.durum==='ok')await hava();
 }
 // the card updates itself when a value changes
 const KART_SONRA={saatModel:()=>{saatYuz();tick()},saniye:()=>saatYuz(),saat2:()=>{ustSon='';ustCiz()},gorunum:v=>{gorunum=v;secili=null;takvim()},
@@ -2135,7 +2146,7 @@ function kartAyar(k){
   };
   d.onchange=e=>{
     const x=e.target,key=x.dataset.a;if(!key)return;
-    if(key==='sehir'||key==='sehirler')return (key==='sehir'?sehirKaydet(x.value.trim()):sehirlerKaydet(x.value)).then(()=>{if(!$('#sor').open)kartAyar(k)});
+    if(key==='sehir'||key==='sehirler')return (key==='sehir'?sehirKaydet(x.value.trim()):sehirlerKaydet(x.value)).then(()=>{x.value=deger(key,'')});
     if(x.type==='number'){const [lo,hi]=x.min?[+x.min,+x.max]:[1,180],n=Math.min(hi,Math.max(lo,Math.round(+x.value)||+x.defaultValue));x.value=n;return yaz(key,n)}
     yaz(key,x.value);
   };
