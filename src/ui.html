@@ -1425,7 +1425,7 @@ function isaretle(i){
   t.d=!t.d;bitenSay(t.d?1:-1);gorevEk();
   if(r){
     r.classList.toggle('done',t.d);r.classList.remove('bitti');if(t.d){void r.offsetWidth;r.classList.add('bitti')} // ✓ and dot bounce
-    r.firstChild.setAttribute('aria-label',(t.d?L('Geri al','Undo'):'Tamamla')+': '+t.t);
+    r.firstChild.setAttribute('aria-label',(t.d?L('Geri al','Undo'):L('Tamamla','Complete'))+': '+t.t);
     r.querySelector('small')?.classList.toggle('gec',!t.d&&new Date(t.due)<new Date());
   }
   if(suz!=='tumu')setTimeout(ciz,animMs(400));
@@ -1458,7 +1458,7 @@ async function duzenle(i){
 }
 const gorevMenu=(x,y,i)=>{
   const t=S.todos[i],oncelik=k=>()=>{if(k)t.p=k;else delete t.p;ciz();kaydet()};
-  menu(x,y,[[t.d?L('Geri al','Undo'):t.tek?L('Tamamla (sonrakine geç)','Complete (move to next)'):'Tamamla',()=>isaretle(i)],[L('Düzenle…','Edit…'),()=>duzenle(i)],null,
+  menu(x,y,[[t.d?L('Geri al','Undo'):t.tek?L('Tamamla (sonrakine geç)','Complete (move to next)'):L('Tamamla','Complete'),()=>isaretle(i)],[L('Düzenle…','Edit…'),()=>duzenle(i)],null,
     ...P.map((p,k)=>[p.ad,oncelik(k),(t.p||0)===k?'sec':'']),null,
     i>0?[L('Yukarı taşı','Move up'),()=>tasi(i,i-1)]:0,i<S.todos.length-1?[L('Aşağı taşı','Move down'),()=>tasi(i,i+1)]:0,
     t.due?[L('Hatırlatıcıyı kaldır','Remove reminder'),()=>{delete t.due;delete t.n;delete t.tek;ciz();kaydet()}]:0,null,[L('Sil','Delete'),()=>sil(i),'teh']]);
@@ -1475,7 +1475,7 @@ function aliskanlikCiz(){
   const html=S.aliskanlik.map((h,i)=>!eslesir(h.ad)?'':`<div class="row" data-h="${i}"><span class="dot" style="--c:${C[i%4]}"></span><span title="${esc(h.ad)}">${esc(h.ad)}</span><span class="hafta7">${gunler.map(d=>{
     const g=gunStr(d),on=!!h.g?.[g];
     return `<button class="gn${on?' on':''}" data-h="${i}" data-gun="${g}" aria-pressed="${on}" aria-label="${esc(h.ad)}, ${d.toLocaleDateString(LOC,{weekday:'long',day:'numeric',month:'long'})}" title="${d.toLocaleDateString(LOC,{weekday:'short',day:'numeric',month:'short'})}"></button>`;
-  }).join('')}</span><small title="Üst üste gün">${seri(h)}${L(' gün</small></div>',' days</small></div>')}`).join('');
+  }).join('')}</span><small title="${L('Üst üste gün','Days in a row')}">${seri(h)}${L(' gün</small></div>',' days</small></div>')}`).join('');
   $('#todos').innerHTML=html||`<p class="m">${ara()?L('Eşleşen alışkanlık yok.','No matching habits.'):L('Su içmek, yürüyüş, kitap… Her gün işaretlemek istediğin şeyleri aşağıdan ekle.','Drinking water, a walk, reading… Add the things you want to tick off every day below.')}</p>`;
   sayac();
 }
@@ -1543,7 +1543,7 @@ $('#tform').onsubmit=e=>{
 // Notlar: sekmeler, yapılacak kutuları
 function notCiz(){
   $('#nsek').innerHTML=S.notlar.map((n,i)=>`<button class="sek" data-n="${i}" aria-pressed="${i===S.aktifNot}" title="${esc(n.ad)}${L(' (çift tık: yeniden adlandır)">',' (double-click: rename)">')}${esc(n.ad)}</button>`).join('')
-    +`<button class="sek" data-n="+" aria-label="Yeni not" title="Yeni not">${SVG(IKON.arti)}</button>`;
+    +`<button class="sek" data-n="+" aria-label="${L('Yeni not','New note')}" title="${L('Yeni not','New note')}">${SVG(IKON.arti)}</button>`;
   $('#not').value=S.notlar[S.aktifNot].metin;notSay();notListe();
 }
 // On a wide card a note list on the left (name + first line) instead of tabs
@@ -1628,12 +1628,12 @@ function ozet(){
     const ilk=olagan.filter(e=>e.start.dateTime&&new Date(e.start.dateTime)>n).sort((a,b)=>new Date(a.start.dateTime)-new Date(b.start.dateTime))[0];
     if(ilk)c.push(`${L('ilk etkinlik','first event')} ${saat(new Date(ilk.start.dateTime))} ${etkAd(ilk)}`);
     if(ozel.length)p.unshift(L('Bugün: ','Today: ')+ozel.map(etkAd).join(', '));
-    p.push(olagan.length?`${olagan.length} etkinlik${ilk?L(', sıradaki ',', next ')+saat(new Date(ilk.start.dateTime)):''}`:L('etkinlik yok','no events'));
+    p.push(olagan.length?`${olagan.length}${L(' etkinlik',' events')}${ilk?L(', sıradaki ',', next ')+saat(new Date(ilk.start.dateTime)):''}`:L('etkinlik yok','no events'));
     if(yarinEv.length)p.push(L('Yarın: ','Tomorrow: ')+yarinEv.map(etkAd).join(', '));
   }
   if(havaV){const d=havaV.daily,y=d.precipitation_probability_max?.[0]??0;p.push(`${Math.round(d.temperature_2m_max[0])}° / ${Math.round(d.temperature_2m_min[0])}°${y>=40?L(', yağış ',', rain ')+yz(y):''}`)}
   // one sentence: first event, weather, waiting tasks; missing parts are skipped
-  if(havaV?.current)c.push(`hava ${trK(WMO[havaV.current.weather_code]||'')} ${Math.round(havaV.current.temperature_2m)}°`.replace('  ',' '));
+  if(havaV?.current)c.push(`${L('hava','weather')} ${trK(WMO[havaV.current.weather_code]||'')} ${Math.round(havaV.current.temperature_2m)}°`.replace('  ',' '));
   const acik=S.todos.filter(t=>!t.d).length;if(acik)c.push(acik+L(' görev bekliyor',' tasks waiting'));
   const cumle=c.join(', ');
   bildir(n.getHours()<12?selamAd(L('Günaydın','Good morning'),A('ad')):L('Günün özeti','Today\'s summary'),p.join(' · '),cumle&&cumle[0].toLocaleUpperCase(LOC)+cumle.slice(1)+'.');
@@ -1658,7 +1658,7 @@ function komutlar(){
   return [
     [L('Yeni görev','New task'),L('görev ekle yapılacak','add task todo'),()=>{if(sekme!=='gorev')$('#sekme [data-v=gorev]').click();$('#yeni').focus()}],
     [L('Yeni not','New note'),L('not ekle','add note'),()=>$('#nsek [data-n="+"]').click()],
-    [L('Etkinlik ekle','Add event'),'takvim etkinlik',()=>gBagli?ayGit(0).then(()=>{secili=new Date();secili.setHours(0,0,0,0);izgara();formCiz();$('#etkAd')?.focus()}):tost(L('Önce Google Takvim’i bağlayın','Connect Google Calendar first'))],
+    [L('Etkinlik ekle','Add event'),L('takvim etkinlik','calendar event'),()=>gBagli?ayGit(0).then(()=>{secili=new Date();secili.setHours(0,0,0,0);izgara();formCiz();$('#etkAd')?.focus()}):tost(L('Önce Google Takvim’i bağlayın','Connect Google Calendar first'))],
     [L('Önemli tarih ekle','Add important date'),L('doğum günü yıldönümü','birthday anniversary'),()=>gBagli?onemliEkle():tost(L('Önce Google Takvim’i bağlayın','Connect Google Calendar first'))],
     [L('Uygulama ekle','Add app'),L('oyun kısayol','game shortcut'),()=>uygEkle()],
     [L('Bugüne git','Go to today'),L('takvim bugün','calendar today'),()=>ayGit(0)],
@@ -1844,7 +1844,7 @@ $('#linkler').onclick=e=>{
   const k=e.target.closest('button').getBoundingClientRect();
   menu(k.left,k.bottom+6,[
     [L('Görev ekle','Add task'),()=>{if(sekme!=='gorev')$('#sekme [data-v=gorev]').click();$('#yeni').focus()}],
-    ['Etkinlik ekle',async()=>{if(!gBagli)return tost(L('Etkinlik eklemek için önce Google Takvim’i bağlayın','Connect Google Calendar first to add events'));await ayGit(0);secili=new Date();secili.setHours(0,0,0,0);izgara();formCiz();$('#etkAd')?.focus()}],
+    [L('Etkinlik ekle','Add event'),async()=>{if(!gBagli)return tost(L('Etkinlik eklemek için önce Google Takvim’i bağlayın','Connect Google Calendar first to add events'));await ayGit(0);secili=new Date();secili.setHours(0,0,0,0);izgara();formCiz();$('#etkAd')?.focus()}],
     [L('Önemli tarih ekle','Add important date'),()=>gBagli?onemliEkle():tost(L('Önce Google Takvim’i bağlayın','Connect Google Calendar first'))],
     [L('Yeni not','New note'),()=>$('#nsek [data-n="+"]').click()],
     null,[L('Hızlı bağlantı ekle…','Add quick link…'),()=>linkDuzenle(-1)]]);
@@ -1970,7 +1970,7 @@ $('#ayar').onclick=ayarAc;
 // A tile draws a small neumorphic card in the theme's own colours. The automatic switch is separate: picking a tile while it is on turns it off.
 const TEMEL=['','dark'],temaL=f=>Object.entries(TEMALAR).filter(([v,t])=>f(v,t));
 {const sec=f=>temaL(f).map(([v,t])=>`<option value="${v}">${t.ad}</option>`).join('');
-  $('#aGunduz').innerHTML=$('#aGece').innerHTML=`<optgroup label="Temel">${sec(v=>TEMEL.includes(v))}</optgroup><optgroup label="Açık">${sec((v,t)=>!TEMEL.includes(v)&&!t.k)}</optgroup><optgroup label="Koyu">${sec((v,t)=>!TEMEL.includes(v)&&t.k)}</optgroup>`}
+  $('#aGunduz').innerHTML=$('#aGece').innerHTML=`<optgroup label="${L('Temel','Basic')}">${sec(v=>TEMEL.includes(v))}</optgroup><optgroup label="${L('Açık','Light')}">${sec((v,t)=>!TEMEL.includes(v)&&!t.k)}</optgroup><optgroup label="${L('Koyu','Dark')}">${sec((v,t)=>!TEMEL.includes(v)&&t.k)}</optgroup>`}
 function temaCiz(){
   const oto=['auto','gunes'].includes(S.tema),simdi=temaHedef();
   const k=([v,t])=>`<button class="temaK" data-t="${v}" aria-pressed="${!oto&&(S.tema||'')===v}" style="--tb:${t.r[0]};--th:${t.r[1]};--tl:${t.r[2]};--ty:${t.r[6]}"><i></i><span>${t.ad}${oto&&simdi===v?L('<small> · şu an</small>','<small> · now</small>'):''}</span></button>`;
@@ -2000,16 +2000,16 @@ $('#aArka').onchange=e=>{S.ayar.arka=e.target.value;ayarUygula();kaydet()};
 // Card settings: each card has its own dialog (right-click empty space on the card, or Settings → Cards).
 // ayar: [key (S.ayar), name, type, options, default]; gizle: [id, name, selector] — a turned-off part is hidden (S.ayar.kartGizle[card]).
 // Those without a selector (note list, large cover) are turned off by ekSig not adding the class.
-const KART_AD={saat:L('Saat','Clock'),takvim:L('Takvim','Calendar'),uygulamalar:'Uygulamalar',gorevler:L('Görevler','Tasks'),notlar:L('Notlar','Notes'),haber:L('Haberler','News'),hava:L('Hava durumu','Weather'),spotify:'Spotify',odak:L('Odak','Focus'),kur:L('Döviz ve altın','Currency and gold'),sistem:'Sistem',pano:L('Pano geçmişi','Clipboard history'),mail:'Gmail'};
+const KART_AD={saat:L('Saat','Clock'),takvim:L('Takvim','Calendar'),uygulamalar:L('Uygulamalar','Apps'),gorevler:L('Görevler','Tasks'),notlar:L('Notlar','Notes'),haber:L('Haberler','News'),hava:L('Hava durumu','Weather'),spotify:'Spotify',odak:L('Odak','Focus'),kur:L('Döviz ve altın','Currency and gold'),sistem:L('Sistem','System'),pano:L('Pano geçmişi','Clipboard history'),mail:'Gmail'};
 const BOYUT={kucuk:L('Küçük','Small'),'':L('Orta','Medium'),buyuk:L('Büyük','Large')};
 const HKAT=DIL==='tr'?{sondakika:'Son dakika',gundem:'Gündem',bilim:'Bilim',finans:'Finans',spor:'Spor',yasam:'Yaşam'}
   :{en_top:'Top stories',en_world:'World',en_business:'Business',en_tech:'Technology',en_science:'Science',en_sport:'Sport'}; // English: BBC News RSS // sondakika: TRT Haber RSS, the others Bundle (same as the Rust allow list)
 const KART_AYAR={
-  saat:{ayar:[['saatModel',L('Saat modeli','Clock style'),'sec',SAAT_MOD,'sade'],['saniye','Saniye kolu','sw',0,true],['saat2',L('İkinci saat','Second clock'),'sec',SAAT2,'Europe/Warsaw']],
+  saat:{ayar:[['saatModel',L('Saat modeli','Clock style'),'sec',SAAT_MOD,'sade'],['saniye',L('Saniye kolu','Second hand'),'sw',0,true],['saat2',L('İkinci saat','Second clock'),'sec',SAAT2,'']],
     gizle:[['alt',L('Geri sayım ve güneş saatleri','Countdown and sun times'),'.saatalt'],['ek',L('Gün ışığı ve uzun tarih (kart büyükken)','Daylight and long date (when the card is large)'),'#saatEk']]},
-  takvim:{ayar:[['gorunum',L('Açılış görünümü','Opening view'),'seg',{ay:'Ay',hafta:L('Hafta','Week')},'ay'],['etk',L('Etkinlikten 10 dk önce bildir','Notify 10 min before events'),'sw',0,true]],
+  takvim:{ayar:[['gorunum',L('Açılış görünümü','Opening view'),'seg',{ay:L('Ay','Month'),hafta:L('Hafta','Week')},'ay'],['etk',L('Etkinlikten 10 dk önce bildir','Notify 10 min before events'),'sw',0,true]],
     gizle:[['yedi',L('Önümüzdeki 7 gün','Next 7 days'),'#takvimEk'],['ad',L('Hücrede etkinlik adı (geniş kartta)','Event names in cells (wide card)'),'.grid em'],['hf',L('Hafta numaraları (geniş kartta)','Week numbers (wide card)'),'.grid button[data-hf]::after']]},
-  uygulamalar:{ayar:[['uygBoyut','Simge boyutu','seg',BOYUT,'']],
+  uygulamalar:{ayar:[['uygBoyut',L('Simge boyutu','Icon size'),'seg',BOYUT,'']],
     gizle:[['ara',L('Arama kutusu (kart büyükken)','Search box (when the card is large)'),'#uygAra'],['son',L('Son açılanlar','Recently opened'),'.uygBol>div:first-child'],['cok',L('En çok açılanlar','Most opened'),'.uygBol>div:nth-child(2)']]},
   gorevler:{ayar:[['bitenGizle',L('Tamamlanan görevleri gizle','Hide completed tasks'),'sw',0,false]],
     gizle:[['ek',L('İlerleme halkası ve 7 gün grafiği (kart büyükken)','Progress ring and 7-day chart (when the card is large)'),'#gorevEk']]},
@@ -2017,8 +2017,8 @@ const KART_AYAR={
     gizle:[['liste',L('Geniş kartta not listesi','Note list on wide card'),null],['ek',L('Kelime ve karakter sayısı','Word and character count'),'#notEk']]},
   hava:{ayar:[['sehir',L('Şehir','City'),'metin',0,''],['havaGun',L('Varsayılan tahmin','Default forecast'),'seg',{'':L('Saatlik','Hourly'),gun:L('3 gün','3 days')},''],['havaUyari',L('Sabah yağmur ve don uyarısı','Morning rain and frost alert'),'sw',0,true]], // no numeric keys: they would move to the front of the object
     gizle:[['det',L('Nem, basınç, UV, rüzgâr (kart büyükken)','Humidity, pressure, UV, wind (when the card is large)'),'.hvDet'],['egri',L('24 saatlik eğri (kart büyükken)','24-hour curve (when the card is large)'),'.hvEgri'],['yedi',L('7 günlük tahmin (kart büyükken)','7-day forecast (when the card is large)'),'.hv7']]},
-  haber:{ayar:[['haberKat','Kategori','seg',HKAT,'gundem'],['haberKelime',L('Gizlenecek kelimeler (virgülle ayır)','Words to hide (comma separated)'),'metin',0,'']],
-    gizle:[['kat',L('Kategori düğmeleri','Category buttons'),'#hKat'],['logo',L('Kaynak logoları','Source logos'),'.hbLogo'],['gorsel',L('Haber görselleri (geniş kartta)','News images (wide card)'),'.hbGorsel'],...Object.entries(HKAT).map(([v,ad])=>['k'+v,ad+' sekmesi',`#hKat [data-v=${v}]`])]},
+  haber:{ayar:[['haberKat',L('Kategori','Category'),'seg',HKAT,'gundem'],['haberKelime',L('Gizlenecek kelimeler (virgülle ayır)','Words to hide (comma separated)'),'metin',0,'']],
+    gizle:[['kat',L('Kategori düğmeleri','Category buttons'),'#hKat'],['logo',L('Kaynak logoları','Source logos'),'.hbLogo'],['gorsel',L('Haber görselleri (geniş kartta)','News images (wide card)'),'.hbGorsel'],...Object.entries(HKAT).map(([v,ad])=>['k'+v,ad+L(' sekmesi',' tab'),`#hKat [data-v=${v}]`])]},
   spotify:{ayar:[],gizle:[['ses',L('Ses kaydırıcısı','Volume slider'),'#ses'],['kapak',L('Büyük kapak (kart uzunken)','Large cover (when the card is tall)'),null],['sira',L('Sıradaki şarkılar (kart büyükken)','Up next (when the card is large)'),'#spEk']]},
   kur:{ayar:[],gizle:[]},sistem:{ayar:[],gizle:[]},pano:{ayar:[],gizle:[]},mail:{ayar:[],gizle:[]},
   odak:{ayar:[['calisma',L('Çalışma süresi (dk)','Work time (min)'),'sayi',[1,180],25],['mola',L('Mola süresi (dk)','Break time (min)'),'sayi',[1,180],5],['hedef',L('Günlük hedef (tur)','Daily goal (rounds)'),'sayi',[1,20],4],['odakOto',L('Tur bitince sonrakini kendiliğinden başlat','Start the next round automatically'),'sw',0,false],['rahatsiz',L('Çalışırken bildirimleri biriktir, tur bitince tek bildirimle göster','Hold notifications while working, show them in one notification when the round ends'),'sw',0,true]],
@@ -2179,7 +2179,7 @@ async function bagla(p){
 }
 // Waits for permission in the browser; the dialog updates itself once connected
 function bekle(p){
-  const k=KUR[p],d=pencere(`<div class="ic"><div class="dh"><h1>${k.ad}</h1><button class="rb" data-kapat aria-label="Kapat" title="Kapat (Esc)">${SVG(IKON.kapat)}${L('</button></div>\n    <div class="durum" aria-live="polite"><span class="cark"></span><p>Tarayıcıda açılan sayfada hesabını seçip izin ver.<br><small class="m">Bu pencere bağlantı kurulunca kendiliğinden güncellenir.</small></p></div>\n    <div class="db"><button class="btn" id="kTekrar">Tarayıcıyı tekrar aç</button><button class="btn" data-kapat>Kapat</button></div></div>','</button></div>\n    <div class="durum" aria-live="polite"><span class="cark"></span><p>Choose your account and allow access on the page that opened in your browser.<br><small class="m">This window updates by itself once connected.</small></p></div>\n    <div class="db"><button class="btn" id="kTekrar">Open the browser again</button><button class="btn" data-kapat>Close</button></div></div>')}`);
+  const k=KUR[p],d=pencere(`<div class="ic"><div class="dh"><h1>${k.ad}</h1><button class="rb" data-kapat aria-label="${L('Kapat','Close')}" title="${L('Kapat (Esc)','Close (Esc)')}">${SVG(IKON.kapat)}${L('</button></div>\n    <div class="durum" aria-live="polite"><span class="cark"></span><p>Tarayıcıda açılan sayfada hesabını seçip izin ver.<br><small class="m">Bu pencere bağlantı kurulunca kendiliğinden güncellenir.</small></p></div>\n    <div class="db"><button class="btn" id="kTekrar">Tarayıcıyı tekrar aç</button><button class="btn" data-kapat>Kapat</button></div></div>','</button></div>\n    <div class="durum" aria-live="polite"><span class="cark"></span><p>Choose your account and allow access on the page that opened in your browser.<br><small class="m">This window updates by itself once connected.</small></p></div>\n    <div class="db"><button class="btn" id="kTekrar">Open the browser again</button><button class="btn" data-kapat>Close</button></div></div>')}`);
   d.querySelector('#kTekrar').onclick=()=>api('/api/connect/'+p,{});
   d.yokla=setInterval(async()=>{
     const c=await api('/api/config');
@@ -2238,7 +2238,7 @@ function odakCiz(){
   $('#sure').textContent=iki(O.kalan/60|0)+':'+iki(O.kalan%60);
   $('#ilerleme').style.strokeDashoffset=289*(1-Math.min(1,O.kalan/sure(O.mod)));
   $('#ilerleme').style.stroke=O.mod==='calisma'?'var(--ye)':'#e9a25b';
-  $('#mod').textContent=O.mod==='calisma'?L('Çalışma','Work'):L('Mola','Break');$('.halka').title=(O.mod==='calisma'?L('Çalışma','Work'):L('Mola','Break'))+' · '+dk(O.mod)+' dakika';
+  $('#mod').textContent=O.mod==='calisma'?L('Çalışma','Work'):L('Mola','Break');$('.halka').title=(O.mod==='calisma'?L('Çalışma','Work'):L('Mola','Break'))+' · '+dk(O.mod)+L(' dakika',' min');
   const et=O.bitis?L('Duraklat','Pause'):O.kalan<sure(O.mod)?L('Devam et','Resume'):L('Başlat','Start'),ob=$('#obas');
   if(ob.title!==et){ob.title=et;ob.setAttribute('aria-label',et);ob.innerHTML=SVG(O.bitis?IK.pause:IK.play)}
 }
@@ -2252,7 +2252,7 @@ function odakIstat(){
   for(let d=new Date(),k=0;k<90;k++,d.setDate(d.getDate()-1)){if(S.odak[gunStr(d)])seri++;else if(k)break}
   ekYaz('#odakEk',`${L('<div><div class="ekSat" style="margin:0 0 6px;font-size:12px"><span>Bugün <b>','<div><div class="ekSat" style="margin:0 0 6px;font-size:12px"><span>Today <b>')}${bug}${L(' tur · ',' rounds · ')}${bug*dk('calisma')}${L(' dk</b></span><span>',' min</b></span><span>')}${seri?seri+L(' günlük seri','-day streak'):L('Seri yok','No streak')}</span></div>`
     +`<div class="cizgi"><i style="width:${Math.min(100,bug/hd*100)}${L('%"></i></div><div class="ekSat"><span>Günlük hedef</span><span>','%"></i></div><div class="ekSat"><span>Daily goal</span><span>')}${bug}/${hd}${bug>=hd?' ✓':''}</span></div></div>`
-    +`${L('<div><h3>Son 7 gün</h3>','<div><h3>Last 7 days</h3>')}${bar7(S.odak,'tur')}</div>`);
+    +`${L('<div><h3>Son 7 gün</h3>','<div><h3>Last 7 days</h3>')}${bar7(S.odak,L('tur','rounds'))}</div>`);
 }
 $('#obas').onclick=()=>{O.bitis=O.bitis?0:Date.now()+O.kalan*1000;odakCiz()};
 // Free timer ("10 min tea"): a single timer independent of focus. The end time is in localStorage: it continues after a restart.
@@ -2262,7 +2262,7 @@ const sySakla=()=>{try{SY?localStorage.sayac=JSON.stringify(SY):localStorage.rem
 function serbestCiz(){
   if(SY&&SY.bitis<=Date.now()){if(S){api('/api/notify',{baslik:L('Sayaç','Timer'),metin:SY.ad+L(' süresi doldu.',' is up.')});/* a timer the user set: comes through during do-not-disturb too */tost(SY.ad+L(' süresi doldu',' is up'))}else return;SY=null;sySakla()} // do not notify before the data loads (lock/startup)
   const k=SY?Math.max(0,Math.round((SY.bitis-Date.now())/1000)):0;
-  ekYaz('#serbest',SY?`<span>${esc(SY.ad)} · <b>${k>=3600?(k/3600|0)+':'+iki(k%3600/60|0):iki(k/60|0)}:${iki(k%60)}</b></span><button class="mb" data-sy="x" aria-label="Sayacı iptal et" title="Sayacı iptal et">${SVG(IKON.kapat)}</button>`
+  ekYaz('#serbest',SY?`<span>${esc(SY.ad)} · <b>${k>=3600?(k/3600|0)+':'+iki(k%3600/60|0):iki(k/60|0)}:${iki(k%60)}</b></span><button class="mb" data-sy="x" aria-label="${L('Sayacı iptal et','Cancel timer')}" title="${L('Sayacı iptal et','Cancel timer')}">${SVG(IKON.kapat)}</button>`
     :`<button class="btn k" data-sy="yeni" title="${L('Serbest sayaç başlat (ör. 10 dk çay)','Start a free timer (e.g. 10 min tea)')}">${SVG(IKON.arti)}${L('Sayaç</button>','Timer</button>')}`);
 }
 $('#geriSay').onclick=()=>S&&sayimPencere();$('#geriSay').onkeydown=e=>{if(e.key==='Enter'&&S)sayimPencere()};
@@ -2315,7 +2315,7 @@ const SIMGE=['','⭐','🎂','💐','🎉','🎓','📚','📝','💼','✈️',
 // Colour/icon picker: {c,i} | 'sifir' | null (cancel)
 function stilSec(baslik,s,ornek){
   let c=s.c,i=s.i;
-  const d=pencere(`<div class="ic"><div class="dh"><h1>${esc(baslik)}</h1><button class="rb" data-kapat aria-label="Kapat" title="Kapat (Esc)">${SVG(IKON.kapat)}${L('</button></div>\n    <div class="row onizle"><span class="dot"></span><span></span></div>\n    <h3>Renk</h3><div class="palet">','</button></div>\n    <div class="row onizle"><span class="dot"></span><span></span></div>\n    <h3>Color</h3><div class="palet">')}${PALET.map(p=>`<button class="renkB" data-c="${p}" style="--c:${p}" aria-label="Renk ${p}"></button>`).join('')}${L('</div>\n    <h3>Simge</h3><div class="simgeler">','</div>\n    <h3>Icon</h3><div class="simgeler">')}${SIMGE.map(x=>`<button class="simB" data-i="${x}" aria-label="${x?'Simge '+x:L('Simge yok','No icon')}"${x?'':L(' title="Simge yok"',' title="No icon"')}>${x||'—'}</button>`).join('')}${L('</div>\n    <div class="db"><button class="btn" data-sifir>Varsayılana dön</button><button class="btn ana" data-tamam>Kaydet</button></div></div>','</div>\n    <div class="db"><button class="btn" data-sifir>Reset to default</button><button class="btn ana" data-tamam>Save</button></div></div>')}`);
+  const d=pencere(`<div class="ic"><div class="dh"><h1>${esc(baslik)}</h1><button class="rb" data-kapat aria-label="${L('Kapat','Close')}" title="${L('Kapat (Esc)','Close (Esc)')}">${SVG(IKON.kapat)}${L('</button></div>\n    <div class="row onizle"><span class="dot"></span><span></span></div>\n    <h3>Renk</h3><div class="palet">','</button></div>\n    <div class="row onizle"><span class="dot"></span><span></span></div>\n    <h3>Color</h3><div class="palet">')}${PALET.map(p=>`<button class="renkB" data-c="${p}" style="--c:${p}" aria-label="${L('Renk','Color')} ${p}"></button>`).join('')}${L('</div>\n    <h3>Simge</h3><div class="simgeler">','</div>\n    <h3>Icon</h3><div class="simgeler">')}${SIMGE.map(x=>`<button class="simB" data-i="${x}" aria-label="${x?L('Simge ','Icon ')+x:L('Simge yok','No icon')}"${x?'':L(' title="Simge yok"',' title="No icon"')}>${x||'—'}</button>`).join('')}${L('</div>\n    <div class="db"><button class="btn" data-sifir>Varsayılana dön</button><button class="btn ana" data-tamam>Kaydet</button></div></div>','</div>\n    <div class="db"><button class="btn" data-sifir>Reset to default</button><button class="btn ana" data-tamam>Save</button></div></div>')}`);
   const ciz=()=>{
     const r=c||ornek.c,sm=i!==undefined?i:ornek.i;
     d.querySelector('.onizle .dot').style.setProperty('--c',r);d.querySelector('.onizle span:last-child').textContent=(sm?sm+' ':'')+ornek.ad;
@@ -2419,13 +2419,13 @@ function detay(i){
   const e=evler[i];if(!e)return;
   const tb=tBilgi(e),z=zaman(e),bit=e.end&&new Date(e.end.dateTime||e.end.date+'T00:00'),gun=z.toLocaleDateString(LOC,{weekday:'long',day:'numeric',month:'long'});
   const gs=gunleri(e),uz=d=>new Date(d+'T00:00').toLocaleDateString(LOC,{weekday:'long',day:'numeric',month:'long'});
-  const ne=(gs.length>1&&!e.start.dateTime?`${uz(gs[0])} – ${uz(gs.at(-1))} · ${gs.length}${L(' gün',' days')}`:e.start.dateTime?`${gun}, ${saat(z)}${bit?' – '+saat(bit):''}`:`${gun}${L(' · tüm gün',' · all day')}`)+(e.recurringEventId?' · tekrarlanan':'')+(tb.ad?' · '+tb.ad:'');
+  const ne=(gs.length>1&&!e.start.dateTime?`${uz(gs[0])} – ${uz(gs.at(-1))} · ${gs.length}${L(' gün',' days')}`:e.start.dateTime?`${gun}, ${saat(z)}${bit?' – '+saat(bit):''}`:`${gun}${L(' · tüm gün',' · all day')}`)+(e.recurringEventId?L(' · tekrarlanan',' · repeating'):'')+(tb.ad?' · '+tb.ad:'');
   const acik=(e.description||'').replace(/<br\s*\/?>/gi,'\n').replace(/<[^>]+>/g,'').slice(0,2000); // Google descriptions may be HTML
   const sil=tb.yaz===false?'':e.recurringEventId
     ?L('<button class="btn tehb" data-sil="tek">Yalnızca bunu sil</button><button class="btn tehb" data-sil="seri">Tüm tekrarları sil</button>','<button class="btn tehb" data-sil="tek">Delete only this</button><button class="btn tehb" data-sil="seri">Delete all repeats</button>')
     :L('<button class="btn tehb" data-sil="tek">Sil</button>','<button class="btn tehb" data-sil="tek">Delete</button>');
-  const d=pencere(`<div class="ic"><div class="dh"><h1>${esc(etkAd(e))}</h1><button class="rb" data-kapat aria-label="Kapat" title="Kapat (Esc)">${SVG(IKON.kapat)}</button></div>
-    <p class="m">${esc(ne)}</p>${e.location?`<p class="m">Yer: ${esc(e.location)}</p>`:''}${acik.trim()?`<div class="aciklama">${esc(acik.trim())}</div>`:''}
+  const d=pencere(`<div class="ic"><div class="dh"><h1>${esc(etkAd(e))}</h1><button class="rb" data-kapat aria-label="${L('Kapat','Close')}" title="${L('Kapat (Esc)','Close (Esc)')}">${SVG(IKON.kapat)}</button></div>
+    <p class="m">${esc(ne)}</p>${e.location?`<p class="m">${L('Yer','Place')}: ${esc(e.location)}</p>`:''}${acik.trim()?`<div class="aciklama">${esc(acik.trim())}</div>`:''}
     <div class="db"><button class="btn" id="eStil"><span class="dot" style="--c:${esc(renk(e))}${L('"></span>Renk ve simge</button>','"></span>Color and icon</button>')}${e.htmlLink?L('<button class="btn" id="eAc">Google Takvim’de aç</button>','<button class="btn" id="eAc">Open in Google Calendar</button>'):''}${sil}</div></div>`);
   d.querySelector('[data-kapat]').focus();
   d.querySelector('#eStil').onclick=()=>evStil(e);
@@ -2435,7 +2435,7 @@ function detay(i){
     if(!b.dataset.onay){b.dataset.onay=1;b.textContent=L('Kalıcı olarak silinsin mi? Tekrar tıkla','Delete permanently? Click again');return} // Google has no undo
     b.disabled=true;
     const r=await api('/api/calendar/delete',{takvim:e._t,id:b.dataset.sil==='seri'?e.recurringEventId:e.id});
-    if(r.durum!=='ok'){b.disabled=false;return tost('Silinemedi: '+String(r.durum).slice(0,120))}
+    if(r.durum!=='ok'){b.disabled=false;return tost(L('Silinemedi: ','Could not delete: ')+String(r.durum).slice(0,120))}
     kapat(d);tost(b.dataset.sil==='seri'?L('Tüm tekrarlar silindi','All repeats deleted'):L('Etkinlik silindi','Event deleted'));takvimYenile();
   });
 }
@@ -2445,7 +2445,7 @@ async function onemliEkle(gun){
     {ad:L('Tür','Type'),secenek:{dogum:L('🎂 Doğum günü','🎂 Birthday'),yildonumu:L('💐 Yıldönümü','💐 Anniversary'),onemli:L('⭐ Önemli gün','⭐ Important day')},v:'dogum'},
     {ad:L('Kim / ne','Who / what'),zorunlu:1,ipucu:L('ör. Ayşe','e.g. Alex')},
     {ad:L('Tarih (doğum ya da başlangıç yılını biliyorsan onu seç; yaş otomatik hesaplanır)','Date (if you know the birth or start year, pick it; the age is calculated automatically)'),tip:'date',v:gun||gunStr(new Date()),zorunlu:1},
-    {ad:'Tekrar',secenek:{yil:L('Her yıl','Every year'),bir:L('Yalnızca bir kez','Only once')},v:'yil'}],L('Ekle','Add'));
+    {ad:L('Tekrar','Repeat'),secenek:{yil:L('Her yıl','Every year'),bir:L('Yalnızca bir kez','Only once')},v:'yil'}],L('Ekle','Add'));
   if(!v)return;
   const [t,ad,tarih,tek]=v;
   if(!ad||!/^\d{4}-\d{2}-\d{2}$/.test(tarih))return tost(L('Ad ve tarih gerekli','Name and date are required'));
@@ -2516,7 +2516,7 @@ function takvimCiz(r,bas,son){
   if(icinde)takvimDenendi=true;
   if(document.activeElement&&el.contains(document.activeElement)&&document.activeElement.tagName==='INPUT')return; // refresh while the form is being typed
   gBagli=r.durum==='ok';
-  if(baglan(el,r,L('Google Takvim','Google Calendar'),'google')){el.insertAdjacentHTML('afterbegin','<h2>Etkinlikler</h2>');if(icinde){bugunEv=null;yakin=[];yarinEv=[]}return}
+  if(baglan(el,r,L('Google Takvim','Google Calendar'),'google')){el.insertAdjacentHTML('afterbegin',L('<h2>Etkinlikler</h2>','<h2>Events</h2>'));if(icinde){bugunEv=null;yakin=[];yarinEv=[]}return}
   takvimler=r.veri.takvimler||[];eksikIzin=!!r.veri.eksik_izin;
   const gizli=gizliT();
   evler=(r.veri.items||[]).filter(e=>e.start&&!gizli.includes(e._t)).sort((a,b)=>zaman(a)-zaman(b));
@@ -2657,7 +2657,7 @@ function kurCiz(){
   if(kurV.ecb){const us=x=>x.toLocaleString(LOC,{style:'currency',currency:'USD',minimumFractionDigits:x<10?4:2});
     ekYaz('#kur',sat('Euro','EUR → USD',us(kurV.usd))+sat('Pound','GBP → USD',us(kurV.usd/kurV.gbp))+sat('Gold','ounce',kurV.ons?us(kurV.ons):'—'));
     return $('#kurAlt').textContent=`ECB ${kurV.tarih} reference rate · updated ${oncesi(kurV.t)}${kurHata?' · could not refresh':''}`}
-  ekYaz('#kur',sat(L('Dolar','Dollar'),'USD',tl(kurV.usd))+sat(L('Euro','Euro'),'EUR',tl(kurV.eur))+sat(L('Gram altın','Gold (gram)'),'hesaplanan',kurV.ons?tl(kurV.ons*kurV.usd/31.1035):'—'));
+  ekYaz('#kur',sat(L('Dolar','Dollar'),'USD',tl(kurV.usd))+sat(L('Euro','Euro'),'EUR',tl(kurV.eur))+sat(L('Gram altın','Gold (gram)'),L('hesaplanan','calculated'),kurV.ons?tl(kurV.ons*kurV.usd/31.1035):'—'));
   $('#kurAlt').textContent=`TCMB ${kurV.tarih}${L(' satış kuru · ',' selling rate · ')}${L(oncesi(kurV.t)+' güncellendi','updated '+oncesi(kurV.t))}${kurHata?L(' · yenilenemedi',' · could not refresh'):''}`;
 }
 // System card: every 3 s while the card is open and the window visible. CPU percent is the difference of two readings: empty on the first read.
@@ -2845,7 +2845,6 @@ document.addEventListener('focusout',e=>{if(kayYazi&&!kayYazi.kap.contains(e.rel
 // ===== Card layout: every card can be grabbed by its title and dragged elsewhere; sizes adjust by themselves
 const KOLON={sol:'.left',orta:'.orta',sag:'.sag'};
 const VARSAYILAN_YER={sol:['saat','takvim'],orta:['uygulamalar','gorevler','notlar','haber'],sag:['hava','spotify','odak','kur','sistem','pano','mail']};
-const YENI_KART=['kur','sistem','pano']; // cards added later start closed so they do not disturb the existing layout; they are opened from Settings → Cards
 const BUYUYEN=new Set(['takvim','gorevler','notlar','spotify','odak','haber','pano','mail']); // cards whose content scrolls or is centred
 const GENIS=new Set(['uygulamalar','takvim']); // a row of its own in the middle
 const kartAd=el=>el.classList.contains('tasinan')||el.hidden?undefined:el.dataset.kart||el.dataset.yer; // a moved or closed card does not count in the layout (a placeholder holds the moved card's place)
@@ -3078,10 +3077,10 @@ $('#aFoto').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f
 $('#aFotoSil').onclick=()=>{delete S.ayar.foto;kaydet();profilCiz()};
 async function pinOz(pin,tuz){const h=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(tuz+':'+pin));return [...new Uint8Array(h)].map(x=>x.toString(16).padStart(2,'0')).join('')}
 const pinDogru=async pin=>!!A('pin')&&await pinOz(pin,A('pin').tuz)===A('pin').oz;
-async function pinSor(baslik){const v=await sor(baslik,[{ad:'Mevcut PIN',tip:'pin',zorunlu:true}],L('Devam','Continue'));if(!v)return false;
+async function pinSor(baslik){const v=await sor(baslik,[{ad:L('Mevcut PIN','Current PIN'),tip:'pin',zorunlu:true}],L('Devam','Continue'));if(!v)return false;
   if(await pinDogru(v[0]))return true;tost(L('PIN yanlış','Wrong PIN'));return false}
 $('#aPin').onclick=async()=>{if(A('pin')&&!await pinSor(L('PIN’i değiştir','Change PIN')))return;
-  const v=await sor('PIN belirle',[{ad:L('Yeni PIN (4–8 rakam)','New PIN (4–8 digits)'),tip:'pin',zorunlu:true},{ad:L('Yeni PIN tekrar','Repeat new PIN'),tip:'pin',zorunlu:true}],L('Kaydet','Save'),L('Unutursan: %APPDATA%\\RYOCS\\data.json içindeki "pin" alanını silerek kaldırabilirsin.','If you forget it: delete the "pin" field in %APPDATA%\\RYOCS\\data.json.'));
+  const v=await sor(L('PIN belirle','Set PIN'),[{ad:L('Yeni PIN (4–8 rakam)','New PIN (4–8 digits)'),tip:'pin',zorunlu:true},{ad:L('Yeni PIN tekrar','Repeat new PIN'),tip:'pin',zorunlu:true}],L('Kaydet','Save'),L('Unutursan: %APPDATA%\\RYOCS\\data.json içindeki "pin" alanını silerek kaldırabilirsin.','If you forget it: delete the "pin" field in %APPDATA%\\RYOCS\\data.json.'));
   if(!v)return;if(!/^\d{4,8}$/.test(v[0]))return tost(L('PIN 4–8 rakam olmalı','The PIN must be 4–8 digits'));if(v[0]!==v[1])return tost(L('PIN’ler eşleşmedi','The PINs do not match'));
   const tuz=[...crypto.getRandomValues(new Uint8Array(16))].map(x=>x.toString(16).padStart(2,'0')).join('');
   S.ayar.pin={tuz,oz:await pinOz(v[0],tuz)};kaydet();profilCiz();tost(L('PIN kilidi açık','PIN lock is on'))};
@@ -3099,7 +3098,7 @@ $('#kilit form').onsubmit=async e=>{e.preventDefault();const i=$('#kilitPin');if
 // Rust calls this when the window is closed (hidden to the tray)
 function kapandi(){
   for(const d of document.querySelectorAll('dialog[open]'))kapat(d);
-  if(S&&!A('tepsiBilgi')){S.ayar.tepsiBilgi=true;api('/api/config').then(c=>bildir(L('RYOCS arka planda çalışıyor','RYOCS is running in the background'),`${L('Açmak için ','To open it use ')}${c.veri?.kisayol?c.veri.kisayol+' ya da ':''}${L('tepsideki simge. Tamamen kapatmak için simgeye sağ tıklayıp Çıkış’ı seçin.','the tray icon. To quit completely, right-click the icon and choose Exit.')}`))}
+  if(S&&!A('tepsiBilgi')){S.ayar.tepsiBilgi=true;api('/api/config').then(c=>bildir(L('RYOCS arka planda çalışıyor','RYOCS is running in the background'),`${L('Açmak için ','To open it use ')}${c.veri?.kisayol?c.veri.kisayol+L(' ya da ',' or '):''}${L('tepsideki simge. Tamamen kapatmak için simgeye sağ tıklayıp Çıkış’ı seçin.','the tray icon. To quit completely, right-click the icon and choose Exit.')}`))}
   kaydetSimdi();if(A('pin'))kilitle();
 }
 async function hepsi(){

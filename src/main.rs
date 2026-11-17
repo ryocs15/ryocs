@@ -659,10 +659,10 @@ fn uygulama_ac(yol: &str) -> Result<Value, String> {
     uygulama_gecerli(yol)?;
     let p = std::path::Path::new(yol);
     // .exe runs in its own folder (games look for their files there); if it needs admin rights the shell handles it
-    if p.extension().is_some_and(|e| e.eq_ignore_ascii_case("exe")) {
-        if std::process::Command::new(p).current_dir(p.parent().unwrap_or(p)).spawn().is_ok() {
-            return Ok(Value::Null);
-        }
+    if p.extension().is_some_and(|e| e.eq_ignore_ascii_case("exe"))
+        && std::process::Command::new(p).current_dir(p.parent().unwrap_or(p)).spawn().is_ok()
+    {
+        return Ok(Value::Null);
     }
     quiet("explorer").arg(yol).spawn().map_err(|e| e.to_string())?;
     Ok(Value::Null)
@@ -689,7 +689,7 @@ fn simgeler(b: &str) -> Result<Value, String> {
 
 /// Desktop shortcuts (user and public desktop; including a desktop moved to OneDrive)
 fn kisayollar() -> Result<Value, String> {
-    let mut dizinler: Vec<PathBuf> = ["USERPROFILE", "OneDrive", "PUBLIC"].iter().filter_map(|k| std::env::var_os(k)).map(|d| PathBuf::from(d).join("Desktop")).collect();
+    let mut dizinler: Vec<PathBuf> = ["USERPROFILE", "OneDrive", "PUBLIC"].iter().filter_map(std::env::var_os).map(|d| PathBuf::from(d).join("Desktop")).collect();
     dizinler.dedup();
     let mut l: Vec<Value> = dizinler.iter().filter_map(|d| fs::read_dir(d).ok()).flatten().flatten().map(|e| e.path())
         .filter(|p| uygulama_gecerli(&p.to_string_lossy()).is_ok())
