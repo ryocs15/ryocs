@@ -149,6 +149,46 @@ fn hata_kaydet(metin: &str) {
     }
 }
 
+/// Windows DPAPI: only this Windows user on this PC can decrypt (other programs reading the file cannot).
+fn dpapi(veri: &[u8], sifrele: bool) -> Option<Vec<u8>> {
+    use windows_sys::Win32::Security::Cryptography::{CryptProtectData, CryptUnprotectData, CRYPTPROTECT_UI_FORBIDDEN, CRYPT_INTEGER_BLOB};
+    let girdi = CRYPT_INTEGER_BLOB { cbData: veri.len() as u32, pbData: veri.as_ptr() as *mut u8 };
+    let mut cikti = CRYPT_INTEGER_BLOB { cbData: 0, pbData: std::ptr::null_mut() };
+    let n = std::ptr::null();
+    let ok = unsafe {
+        if sifrele {
+            CryptProtectData(&girdi, n as _, n as _, n, n as _, CRYPTPROTECT_UI_FORBIDDEN, &mut cikti)
+        } else {
+            CryptUnprotectData(&girdi, std::ptr::null_mut(), n as _, n, n as _, CRYPTPROTECT_UI_FORBIDDEN, &mut cikti)
+        }
+    };
+    if ok == 0 {
+        return None;
+    }
+    let v = unsafe { std::slice::from_raw_parts(cikti.pbData, cikti.cbData as usize).to_vec() };
+    unsafe { windows_sys::Win32::Foundation::LocalFree(cikti.pbData as _) };
+    Some(v)
+}
+
+/// tokens.json is DPAPI-encrypted (base64); a plain JSON file from an older version is still read and encrypted on the next write.
+fn tokens_oku() -> Value {
+    use base64::Engine;
+    let s = fs::read_to_string(dir().join("tokens.json")).unwrap_or_default();
+    let s = s.trim().trim_start_matches('\u{feff}');
+    let duz = if s.starts_with('{') {
+        Some(s.as_bytes().to_vec())
+    } else {
+        base64::engine::general_purpose::STANDARD.decode(s).ok().and_then(|b| dpapi(&b, false))
+    };
+    duz.and_then(|b| serde_json::from_slice(&b).ok()).unwrap_or_else(|| json!({}))
+}
+
+fn tokens_yaz(v: &Value) -> Result<(), String> {
+    use base64::Engine;
+    let sifreli = dpapi(v.to_string().as_bytes(), true).ok_or("DPAPI")?;
+    write_text("tokens.json", &base64::engine::general_purpose::STANDARD.encode(sifreli))
+}
+
 fn write_json(name: &str, v: &Value) -> Result<(), String> {
     write_text(name, &v.to_string())
 }
@@ -621,7 +661,7 @@ fn creds(p: &str) -> Result<(String, String), String> {
 
 /// For the settings dialog: city and account states (credential/token values are never returned).
 fn config_get() -> Value {
-    let (c, t) = (read_json("config.json"), read_json("tokens.json"));
+    let (c, t) = (read_json("config.json"), tokens_oku());
     let hesap = |p: &str| {
         if creds(p).is_err() { "kimlik_yok" } else if t[p]["refresh_token"].is_string() { "ok" } else { "bagli_degil" }
     };
@@ -653,11 +693,11 @@ fn config_set(b: &str) -> Result<Value, String> {
 fn disconnect(p: &Provider) -> Result<Value, String> {
     *kilit(&TAKVIM_LISTESI) = None;
     let _d = kilit(&BELIRTEC_DOSYASI);
-    let mut all = read_json("tokens.json");
+    let mut all = tokens_oku();
     if let Some(o) = all.as_object_mut() {
         o.remove(p.name);
     }
-    write_json("tokens.json", &all)?;
+    tokens_yaz(&all)?;
     Ok(Value::Null)
 }
 
@@ -670,7 +710,7 @@ fn save_token(p: &str, mut t: Value) {
         return; // unexpected response: the old token is kept
     }
     let _d = kilit(&BELIRTEC_DOSYASI);
-    let mut all = read_json("tokens.json");
+    let mut all = tokens_oku();
     if !all.is_object() {
         all = json!({});
     }
@@ -679,7 +719,7 @@ fn save_token(p: &str, mut t: Value) {
     }
     t["expires_at"] = json!(now() + t["expires_in"].as_u64().unwrap_or(3600));
     all[p] = t;
-    if let Err(e) = write_json("tokens.json", &all) {
+    if let Err(e) = tokens_yaz(&all) {
         hata_kaydet(&format!("tokens.json write failed: {e}"));
     }
 }
@@ -688,7 +728,7 @@ fn save_token(p: &str, mut t: Value) {
 fn token(p: &Provider) -> Result<String, String> {
     let (id, secret) = creds(p.name)?;
     let _tek = kilit(&YENILEME[(p.name == "spotify") as usize]); // if another request is refreshing, wait for it and use its result
-    let all = read_json("tokens.json");
+    let all = tokens_oku();
     let t = &all[p.name];
     if t["expires_at"].as_u64().unwrap_or(0) > now() + 60 {
         if let Some(a) = t["access_token"].as_str() {
@@ -906,8 +946,12 @@ h1{font-weight:400;font-size:20px;margin:0 0 8px}p{color:#747780;line-height:1.5
 fn callback(p: &Provider, path_and_query: &str) -> Result<(), String> {
     let u = url::Url::parse(&format!("{ORIGIN}{path_and_query}")).map_err(|e| e.to_string())?;
     let q: HashMap<String, String> = u.query_pairs().into_owned().collect();
-    let (st, dogrulayici) = kilit(&OAUTH_STATE).remove(p.name).unwrap_or_default();
-    if st.is_empty() || q.get("state") != Some(&st) {
+    // removed only when the state matches: a stray /callback from a web page must not cancel a sign-in in progress
+    let (st, dogrulayici) = {
+        let mut s = kilit(&OAUTH_STATE);
+        if s.get(p.name).is_some_and(|(st, _)| q.get("state") == Some(st)) { s.remove(p.name).unwrap_or_default() } else { Default::default() }
+    };
+    if st.is_empty() {
         return Err(l("Geçersiz istek (state uyuşmuyor). Uygulamadan yeniden bağlanın.", "Invalid request (state mismatch). Connect again from the app.").into());
     }
     let code = q.get("code").ok_or_else(|| format!("{} {}", l("İzin verilmedi:", "Permission denied:"), q.get("error").map_or("", |s| s)))?;
@@ -939,7 +983,7 @@ fn takvim_url(takvim: &str, devam: &[&str]) -> Result<url::Url, String> {
 /// If an old connection lacks the Gmail permission: "izin_yok", the UI suggests reconnecting. RYOCS never changes anything in the mailbox.
 fn mail() -> Result<Value, String> {
     let auth = format!("Bearer {}", token(&provider("google")?)?);
-    if !read_json("tokens.json")["google"]["scope"].as_str().is_some_and(|s| s.contains("gmail.readonly")) {
+    if !tokens_oku()["google"]["scope"].as_str().is_some_and(|s| s.contains("gmail.readonly")) {
         return Err("izin_yok".into());
     }
     let g = "https://gmail.googleapis.com/gmail/v1/users/me";
@@ -966,7 +1010,7 @@ fn mail() -> Result<Value, String> {
 }
 
 fn google_tam_izin() -> bool {
-    read_json("tokens.json")["google"]["scope"].as_str().is_some_and(|s| s.contains("calendar.calendarlist"))
+    tokens_oku()["google"]["scope"].as_str().is_some_and(|s| s.contains("calendar.calendarlist"))
 }
 
 /// Events of all visible calendars (and the regional holidays); each event gets its calendar as "_t".
@@ -1525,6 +1569,10 @@ fn main() {
     if !cfg.exists() {
         fs::write(&cfg, CONFIG_SABLON).ok();
     }
+    // tokens.json from an older version is plain JSON: encrypt it now
+    if fs::read_to_string(dir().join("tokens.json")).is_ok_and(|s| s.trim_start_matches('\u{feff}').trim_start().starts_with('{')) {
+        tokens_yaz(&tokens_oku()).ok();
+    }
     // If the port is taken the app is already running: bring the existing window to front instead of a second one.
     let server = match Server::http(ADDR) {
         Ok(s) => s,
@@ -1727,6 +1775,14 @@ mod tests {
         assert!(esitle(r#"{"baslangic":true}"#).is_err());
         assert_eq!(veri_oku().unwrap()["a"], 3);
         fs::remove_dir_all(&kok).ok();
+    }
+
+    #[test]
+    fn dpapi_gidis_donus() {
+        let s = dpapi(br#"{"google":{"refresh_token":"x"}}"#, true).unwrap();
+        assert!(!s.windows(13).any(|w| w == b"refresh_token")); // not plain text on disk
+        assert_eq!(dpapi(&s, false).unwrap(), br#"{"google":{"refresh_token":"x"}}"#);
+        assert!(dpapi(b"bozuk", false).is_none()); // a damaged file means "not connected", not a crash
     }
 
     #[test]

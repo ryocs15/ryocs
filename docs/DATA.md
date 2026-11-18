@@ -6,7 +6,7 @@ Everything RYOCS stores lives in `%APPDATA%\RYOCS`. Nothing is sent anywhere exc
 |---|---|
 | `data.json` | Your tasks, notes, settings and layout (below). Written by the app on every change. |
 | `config.json` | Weather city and the Google / Spotify keys you created. |
-| `tokens.json` | Sign-in tokens for Google and Spotify (deleted by *Disconnect*). |
+| `tokens.json` | Sign-in tokens for Google and Spotify, encrypted with Windows DPAPI (only your Windows account on this PC can read them; deleted by *Disconnect*). |
 | `esitle.json` | OneDrive sync: on/off, folder, last synced fingerprint. |
 | `pencere.json` | Window: maximized or not, and the normal position and size (`maks`, `x`, `y`, `w`, `h`, screen pixels). |
 | `yedekler\` | Backups: `data-YYYY-MM-DD.json` (one per day, last 14), `data-geri-alma.json` (the state before the last restore or import), `data-onedrive.json` (the OneDrive copy that lost a sync conflict). |
