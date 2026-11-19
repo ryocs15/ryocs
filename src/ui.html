@@ -1016,7 +1016,8 @@ const $=s=>document.querySelector(s), K=document.documentElement, C=['#8fb996','
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>'&#'+c.charCodeAt(0)+';');
 async function api(p,b){
   // keepalive (finishes while the page closes) only for small bodies: Chromium rejects keepalive bodies over 64 KB
-  try{const s=b===undefined?null:JSON.stringify(b);return await (await fetch(p,s===null?{}:{method:'POST',body:s,keepalive:s.length<30000})).json()}
+  const headers={'X-Ryocs':window.RYOCS_ANAHTAR||''}; // key from the app window (Rust); without it the server answers 403
+  try{const s=b===undefined?null:JSON.stringify(b);return await (await fetch(p,s===null?{headers}:{method:'POST',headers,body:s,keepalive:s.length<30000})).json()}
   catch(e){return{durum:L('Sunucuya ulaşılamadı','Could not reach the server')}}
 }
 // Do not disturb: while a focus work round runs, notifications are held and arrive as one notification when the round ends or stops (localStorage: if the app closes, they arrive at the next start)
@@ -1468,7 +1469,10 @@ async function hava(){
 
 // Persistent state (data.json)
 let S=null,kt,yeniGorev=null;
-const kaydetSimdi=()=>{clearTimeout(kt);return S?api('/api/state',S).then(r=>{if(r.durum!=='ok')tost(L('Kaydedilemedi: ','Could not save: ')+String(r.durum).slice(0,120));return r}):Promise.resolve()}; // Rust also calls this when the window closes
+let kayitSira=Promise.resolve(); // saves are sent one after another, so the server never writes an older state after a newer one
+const kaydetSimdi=()=>{clearTimeout(kt);if(!S)return Promise.resolve();
+  const p=kayitSira.then(()=>api('/api/state',S)).then(r=>{if(r.durum!=='ok')tost(L('Kaydedilemedi: ','Could not save: ')+String(r.durum).slice(0,120));return r});
+  kayitSira=p.catch(()=>{});return p}; // Rust also calls this when the window closes
 const kaydet=()=>{clearTimeout(kt);kt=setTimeout(kaydetSimdi,300)};
 const A=k=>S?.ayar?.[k];
 const ara=()=>$('#ara').value.trim().toLocaleLowerCase(LOC);
@@ -2234,7 +2238,7 @@ async function sehirKaydet(sehir){
 // the card updates itself when a value changes
 const KART_SONRA={saatBicim:()=>{ustSon='';tick();ciz();havaSerit='';havaCiz();$('#grid').dataset.ay='';takvim()},haftaBasi:()=>{secili=null;$('#grid').dataset.ay='';takvim()},
   birim:()=>{havaC={};try{localStorage.removeItem('hava')}catch{}hava()},tatil:()=>takvimYenile(),saatModel:()=>{saatYuz();tick()},saniye:()=>saatYuz(),saat2:()=>{ustSon='';ustCiz()},gorunum:v=>{gorunum=v;secili=null;takvim()},
-  uygBoyut:()=>ayarUygula(),bitenGizle:()=>ciz(),notYazi:()=>kartAyarUygula(),havaGun:()=>havaCiz(),hedef:()=>odakIstat(),haberKat:()=>{$('#haberler').scrollTop=0;haber()},haberKelime:()=>haberCiz(),kurTaban:()=>kur(true),kurListe:()=>kurCiz(),kurTur:()=>kurCiz(),altinBirim:()=>kurCiz(),gumus:()=>kurCiz(),kurDegisim:()=>kurCiz(),
+  uygBoyut:()=>ayarUygula(),bitenGizle:()=>ciz(),notYazi:()=>kartAyarUygula(),havaGun:()=>havaCiz(),hedef:()=>odakIstat(),haberKat:()=>{$('#haberler').scrollTop=0;haber()},haberKelime:()=>haberCiz(),kurTaban:()=>kur(true),kurListe:()=>{kurCiz();if(kurKodlar().some(c=>kurV&&!kurV.k[c]))kur(true)},kurTur:()=>kurCiz(),altinBirim:()=>kurCiz(),gumus:v=>v?kur(true):kurCiz(),kurDegisim:()=>kurCiz(),
   calisma:()=>{if(!O.bitis)O={mod:'calisma',kalan:sure('calisma'),bitis:0};odakCiz()},mola:()=>{if(!O.bitis)O={mod:'calisma',kalan:sure('calisma'),bitis:0};odakCiz()}};
 function kartAyar(k){
   const a=KART_AYAR[k],gz=A('kartGizle')?.[k]||[],deger=(key,vars)=>key==='sehir'?havaV?yerEtiket({ad:havaV.sehir,bolge:havaV.bolge}):'':key==='sehirler'?sehirler().map(yerEtiket).join(', '):A(key)??vars;
@@ -2496,7 +2500,7 @@ let gorunum='ay',evler=[],secili=null,gBagli=false;
 const zaman=e=>new Date(e.start.dateTime||e.start.date+'T00:00'),evGun=e=>gunStr(zaman(e));
 function gunleri(e){
   const d=zaman(e);d.setHours(0,0,0,0);
-  let son=e.end?.date?new Date(e.end.date+'T00:00'):e.end?.dateTime?new Date(e.end.dateTime):null;
+  let son=e.end?.date?new Date(e.end.date+'T00:00'):e.end?.dateTime?new Date(+new Date(e.end.dateTime)-1):null; // -1 ms: ending at 00:00 is not on the next day
   if(son&&e.end.date)son.setDate(son.getDate()-1); // all day: the end date is exclusive
   const g=[gunStr(d)];
   for(let n=0;son&&n<62;n++){d.setDate(d.getDate()+1);if(d>son)break;g.push(gunStr(d))}
@@ -2877,13 +2881,17 @@ const ecbAyir=(xml,ons,ag,dunya)=>{const d=new DOMParser().parseFromString(xml,'
   const w=k.USD>0?capraz(k,dunya,r=>r*k.USD):[]; // X per EUR = X per USD × USD per EUR
   return k.USD>0?{t:Date.now(),tarih:d.querySelector('Cube[time]')?.getAttribute('time')||'',ecb:1,k,w,ons:ons>0?ons:null,ag:ag>0?ag:null}:null};
 // TRY as home currency: TCMB (buying / selling / banknote). Any other: ECB + world rates, value of X in home B = (B per EUR) / (X per EUR).
+// codes the central banks publish themselves (TCMB, ECB); any other code needs the world rates
+const KUR_TCMB='USD AUD DKK EUR GBP CHF SEK CAD KWD NOK SAR JPY BGN RON RUB CNY PKR QAR KRW AZN AED KZT XDR TRY'.split(' '),
+  KUR_ECB='EUR USD JPY CZK DKK GBP HUF PLN RON SEK CHF ISK NOK TRY AUD BRL CAD CNY HKD IDR ILS INR KRW MXN MYR NZD PHP SGD THB ZAR'.split(' ');
 const kurTR=()=>kurTaban()==='TRY',kurUygun=v=>!!v&&!v.ecb===kurTR(); // cached rates of the other source wait for a new fetch
 // codes typed in the card settings: three letters, no repeats, at most 10, not the home currency
 const kurKodlar=()=>{const b=kurTaban(),l=[...new Set(String(A('kurListe')??'').toUpperCase().split(/[^A-Z]+/).filter(x=>x.length===3&&x!==b))].slice(0,10);return l.length?l:kurVarsListe(b)};
 async function kur(zorla){
   if(!S||!kartAcik('kur'))return;kurCiz();
   if(!zorla&&kurUygun(kurV)&&Date.now()-kurV.t<18e5)return; // 30 dk
-  const r=await api(kurTR()?'/api/kur':'/api/kur_ecb'),x=r.veri||{},v=r.durum!=='ok'?null:typeof x.tcmb==='string'?kurAyir(x.tcmb,x.ons,x.ag,x.dunya):typeof x.ecb==='string'?ecbAyir(x.ecb,x.ons,x.ag,x.dunya):null;
+  const b=kurTaban(),capr=[...kurKodlar(),b].some(c=>!(kurTR()?KUR_TCMB:KUR_ECB).includes(c)); // a code (or home currency) the bank does not publish: world rates are needed
+  const r=await api((kurTR()?'/api/kur':'/api/kur_ecb')+`?ag=${A('gumus')?1:0}&dunya=${capr?1:0}`),x=r.veri||{},v=r.durum!=='ok'?null:typeof x.tcmb==='string'?kurAyir(x.tcmb,x.ons,x.ag,x.dunya):typeof x.ecb==='string'?ecbAyir(x.ecb,x.ons,x.ag,x.dunya):null;
   kurHata=!v&&(r.durum===AG_YOK?'ag':true);
   if(v){if(!!v.ecb!==!!kurV?.ecb)kurV=null;v.ons||=kurV?.ons||null;v.ag||=kurV?.ag||null; // if gold or silver could not be fetched, the old price stays
     v.dun=kurV&&kurV.tarih!==v.tarih?kurV.k:kurV?.dun||null; // rates of the previous published day, for the change arrow

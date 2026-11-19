@@ -157,8 +157,14 @@ fn read_json(name: &str) -> Value {
 
 /// data.json: empty data if the file does not exist; an error if it exists but cannot be read (so the UI does not save empty data over the real data).
 fn veri_oku() -> Result<Value, String> {
-    match fs::read_to_string(dir().join("data.json")) {
-        Err(_) => Ok(json!({})),
+    veri_coz(fs::read_to_string(dir().join("data.json")))
+}
+/// Only "file not found" gives empty data. Any other read error (locked by antivirus or OneDrive, not UTF-8) is an error:
+/// the UI then does not start with empty data that it would later save over the real file.
+fn veri_coz(r: std::io::Result<String>) -> Result<Value, String> {
+    match r {
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(json!({})),
+        Err(e) => Err(format!("{} ({e})", l("Veri dosyası (data.json) okunamadı. RYOCS'u yeniden başlatın.", "Could not read the data file (data.json). Restart RYOCS."))),
         Ok(s) => serde_json::from_str::<Value>(s.trim_start_matches('\u{feff}')).ok().filter(Value::is_object)
             .ok_or(l("Veri dosyası (data.json) bozuk. Ayarlar → Veri'den bir yedeği geri yükleyin.", "The data file (data.json) is corrupt. Restore a backup from Settings → Data.").into()),
     }
@@ -393,17 +399,18 @@ fn guncelleme() -> Result<Value, String> {
 }
 
 /// English currency card: ECB daily reference rates (raw XML, parsed in the UI) + gold-api.com gold and silver ounce (USD).
-fn kur_ecb() -> Result<Value, String> {
+/// ag / dunya: silver and world rates only when the card shows them (silver row on, a code the bank does not publish).
+fn kur_ecb(ag: bool, dunya_da: bool) -> Result<Value, String> {
     let ecb = metin("https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml")?;
-    Ok(json!({ "ecb": ecb, "ons": maden("XAU"), "ag": maden("XAG"), "dunya": dunya() }))
+    Ok(json!({ "ecb": ecb, "ons": maden("XAU"), "ag": ag.then(|| maden("XAG")).flatten(), "dunya": dunya_da.then(dunya).flatten() }))
 }
 
 /// Currency and gold: TCMB daily rates XML (raw text, parsed by the UI) + gold-api.com gold and silver ounce (USD).
 /// If gold cannot be fetched the rates still return; the UI computes gram gold as ounce × dollar ÷ 31.1035.
 /// shortcut: gold-api.com is a documented but unguaranteed free service; if it closes the gold row shows "—".
-fn kur() -> Result<Value, String> {
+fn kur(ag: bool, dunya_da: bool) -> Result<Value, String> {
     let tcmb = metin("https://www.tcmb.gov.tr/kurlar/today.xml")?;
-    Ok(json!({ "tcmb": tcmb, "ons": maden("XAU"), "ag": maden("XAG"), "dunya": dunya() }))
+    Ok(json!({ "tcmb": tcmb, "ons": maden("XAU"), "ag": ag.then(|| maden("XAG")).flatten(), "dunya": dunya_da.then(dunya).flatten() }))
 }
 /// World rates (units per 1 USD, about 160 currencies, daily) for codes the central bank feed lacks, e.g. PLN in TCMB.
 /// shortcut: open.er-api.com is free without a key but asks for attribution (shown in the card) and may rate-limit; on failure those rows are skipped.
@@ -1345,6 +1352,13 @@ fn spotify(cmd: &str, b: &str) -> Result<Value, String> {
 fn allowed(host: Option<&str>, origin: Option<&str>) -> bool {
     host == Some(ADDR) && origin.is_none_or(|o| o == ORIGIN)
 }
+/// Key made at every start and given only to the app's own window (initialization script, not the served HTML).
+/// Without it another Windows user or a browser tab on this PC could read /api/state or start programs through /api/uygulama.
+static ANAHTAR: LazyLock<String> = LazyLock::new(rastgele);
+/// /api/show stays open: a second RYOCS instance uses it to bring this window forward (it only shows the window).
+fn anahtar_gerekli(path: &str) -> bool {
+    path.starts_with("/api/") && path != "/api/show"
+}
 
 fn send(req: Request, code: u16, ctype: &str, text: String) {
     let h = Header::from_bytes(&b"Content-Type"[..], ctype.as_bytes()).unwrap();
@@ -1357,10 +1371,14 @@ fn handle(mut req: Request) {
     if !allowed(host.as_deref(), origin.as_deref()) {
         return send(req, 403, "text/plain", "yasak".into());
     }
-    let mut b = String::new();
-    req.as_reader().take(1 << 20).read_to_string(&mut b).ok();
     let url = req.url().to_string();
     let path = url.split('?').next().unwrap_or("");
+    if anahtar_gerekli(path) && hdr("X-Ryocs").as_deref() != Some(ANAHTAR.as_str()) {
+        return send(req, 403, "text/plain", "yasak".into());
+    }
+    let mut b = String::new();
+    // 16 MB: data.json with years of notes must still save (1 MB cut it off and the save failed)
+    req.as_reader().take(16 << 20).read_to_string(&mut b).ok();
     let post = *req.method() == Method::Post;
     const HTML: &str = "text/html; charset=utf-8";
 
@@ -1448,10 +1466,9 @@ fn handle(mut req: Request) {
         guncelleme()
     } else if !post && path == "/api/mail" {
         mail()
-    } else if !post && path == "/api/kur_ecb" {
-        kur_ecb()
-    } else if !post && path == "/api/kur" {
-        kur()
+    } else if let (false, "/api/kur" | "/api/kur_ecb") = (post, path) {
+        let q = |k: &str| url.split_once('?').is_some_and(|(_, s)| url::form_urlencoded::parse(s.as_bytes()).any(|(a, b)| a == k && b == "1"));
+        if path == "/api/kur" { kur(q("ag"), q("dunya")) } else { kur_ecb(q("ag"), q("dunya")) }
     } else if !post && path == "/api/sistem" {
         Ok(sistem())
     } else if post && path == "/api/pano" {
@@ -1737,6 +1754,7 @@ fn main() {
         DwmSetWindowAttribute(window.hwnd() as _, DWMWA_WINDOW_CORNER_PREFERENCE as u32, &DWMWCP_ROUND as *const i32 as _, 4);
     }
     let webview = wry::WebViewBuilder::new()
+        .with_initialization_script(format!("window.RYOCS_ANAHTAR={};", json!(*ANAHTAR)))
         .with_url(ORIGIN)
         .with_background_color((233, 234, 236, 255))
         .with_browser_accelerator_keys(false) // browser shortcuts such as F5, Ctrl+P, Ctrl+F do not belong to the app
@@ -1829,6 +1847,22 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn api_anahtarsiz_kapali() {
+        assert!(anahtar_gerekli("/api/state") && anahtar_gerekli("/api/uygulama") && anahtar_gerekli("/api/favicon"));
+        assert!(!anahtar_gerekli("/") && !anahtar_gerekli("/callback/google") && !anahtar_gerekli("/api/show"));
+        assert!(ANAHTAR.len() >= 40 && !include_str!("ui.html").contains(ANAHTAR.as_str()));
+    }
+
+    #[test]
+    fn veri_yalniz_dosya_yoksa_bos() {
+        use std::io::{Error, ErrorKind};
+        assert_eq!(veri_coz(Err(Error::from(ErrorKind::NotFound))), Ok(json!({})));
+        assert!(veri_coz(Err(Error::from(ErrorKind::PermissionDenied))).is_err()); // locked: never "empty"
+        assert!(veri_coz(Ok("[1]".into())).is_err());
+        assert_eq!(veri_coz(Ok("\u{feff}{\"a\":1}".into())), Ok(json!({"a": 1})));
+    }
 
     #[test]
     fn favicon_ayiklama() {

@@ -2,6 +2,18 @@
 
 All releases: [GitHub Releases](https://github.com/ryocs15/ryocs/releases). Your data (`%APPDATA%\RYOCS`) is kept by every update.
 
+## 1.0.6 (2026-11-19)
+
+**Security**
+- The local server answers only the RYOCS window: a browser tab or another Windows user on the same PC can no longer read your data or start programs through it.
+
+**Fixed**
+- If data.json cannot be read for a moment (for example locked by antivirus or OneDrive), RYOCS shows an error instead of starting empty and saving the empty data over it.
+- Saves are sent one after another, so the last change before closing is never overwritten by an older save.
+- Data larger than 1 MB saves again (the limit is now 16 MB).
+- An event that ends at midnight no longer also shows on the next day.
+- The currency card downloads silver and world rates only when it shows them.
+
 ## 1.0.5 (2026-11-19)
 
 **New**
