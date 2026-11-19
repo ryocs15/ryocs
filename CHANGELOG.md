@@ -2,6 +2,23 @@
 
 All releases: [GitHub Releases](https://github.com/ryocs15/ryocs/releases). Your data (`%APPDATA%\RYOCS`) is kept by every update.
 
+## 1.0.5 (2026-11-19)
+
+**New**
+- Currency card settings: home currency (any ISO code), which currencies to show (up to 10, about 160 to choose from), buying / selling / banknote rate for TRY, gold and silver in grams or ounces, a silver row, change since the previous day.
+- Currencies the central bank does not publish (e.g. PLN in TCMB) are cross rates from ExchangeRate-API, marked "cross".
+- Quick links show the site's icon, fetched from the site itself.
+
+**Changed**
+- Defaults follow your Windows country, not the app language: home currency, °C / °F, 12 / 24 h clock, first day of the week, public holidays and the first weather city.
+
+**Fixed**
+- Weather: the 7-day forecast shows as many days as fit instead of leaving a large empty space.
+- Resizing a card no longer jumps a scrolled list or column back to the top.
+- News from TRT Haber and BBC are sorted newest first.
+- "Next 7 days" lists only days with events.
+- Minimize and maximize buttons react to the mouse like the close button.
+
 ## 1.0.0 (2026-11-17)
 
 **New**

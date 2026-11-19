@@ -31,8 +31,8 @@ The interface is in **English** and **Turkish**. It follows the Windows display 
 - **Spotify** now playing, controls and up next
 - **Focus timer** (pomodoro) with daily goal, streak, your own labels, a *what am I working on* note with a weekly breakdown, and *do not disturb* (notifications wait until the round ends)
 - **Gmail** unread mail (read-only)
-- **Currency and gold** (ECB rates in English, TCMB in Turkish), **system** info, **clipboard history**
-- Quick search and command palette (Ctrl+F), app and game launcher, quick links, search in Settings
+- **Currency and gold** in your home currency (about 160 currencies; TCMB for TRY, ECB and world rates otherwise), **system** info, **clipboard history**
+- Quick search and command palette (Ctrl+F), app and game launcher, quick links with site icons, search in Settings
 - Lives in the tray with a global shortcut you can choose; remembers its window size and position
 - Drag cards to move them, drag the gaps between them to resize; save and restore layouts
 - 16 themes, glass look, 11 animated backgrounds (lava lamp, snow, fireflies, aurora…), PIN lock

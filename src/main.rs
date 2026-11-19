@@ -115,6 +115,34 @@ fn dil_tr() -> bool {
     tr
 }
 
+/// Windows "Country or region" as two letters (e.g. "DE"); empty if it is not a country code (e.g. "001" world).
+/// The UI uses it for defaults that depend on the country, not the language: base currency, °C/°F, holidays, clock.
+fn bolge() -> String {
+    let mut b = [0u16; 16];
+    let n = unsafe { windows_sys::Win32::Globalization::GetUserDefaultGeoName(b.as_mut_ptr(), b.len() as i32) };
+    bolge_kodu(&String::from_utf16_lossy(&b[..(n.max(1) - 1) as usize]))
+}
+/// First weather city for a new install: the capital (or largest city) of the Windows country, not always Istanbul.
+/// shortcut: countries not listed get London; the user picks the real city in Settings anyway.
+fn varsayilan_sehir() -> &'static str {
+    match bolge().as_str() {
+        "TR" => "Istanbul", "US" => "New York", "GB" => "London", "IE" => "Dublin", "CA" => "Toronto", "AU" => "Sydney", "NZ" => "Auckland",
+        "DE" => "Berlin", "AT" => "Vienna", "CH" => "Zurich", "FR" => "Paris", "BE" => "Brussels", "NL" => "Amsterdam", "LU" => "Luxembourg",
+        "ES" => "Madrid", "PT" => "Lisbon", "IT" => "Rome", "GR" => "Athens", "CY" => "Nicosia", "MT" => "Valletta",
+        "PL" => "Warsaw", "CZ" => "Prague", "SK" => "Bratislava", "HU" => "Budapest", "RO" => "Bucharest", "BG" => "Sofia",
+        "RS" => "Belgrade", "HR" => "Zagreb", "SI" => "Ljubljana", "UA" => "Kyiv", "RU" => "Moscow", "AZ" => "Baku", "GE" => "Tbilisi",
+        "SE" => "Stockholm", "NO" => "Oslo", "DK" => "Copenhagen", "FI" => "Helsinki", "EE" => "Tallinn", "LV" => "Riga", "LT" => "Vilnius",
+        "KZ" => "Almaty", "IL" => "Tel Aviv", "SA" => "Riyadh", "AE" => "Dubai", "QA" => "Doha", "KW" => "Kuwait City", "EG" => "Cairo",
+        "ZA" => "Johannesburg", "NG" => "Lagos", "IN" => "New Delhi", "PK" => "Karachi", "CN" => "Beijing", "JP" => "Tokyo", "KR" => "Seoul",
+        "SG" => "Singapore", "HK" => "Hong Kong", "ID" => "Jakarta", "TH" => "Bangkok", "MY" => "Kuala Lumpur", "PH" => "Manila", "VN" => "Hanoi",
+        "BR" => "Sao Paulo", "MX" => "Mexico City", "AR" => "Buenos Aires", "CL" => "Santiago", "CO" => "Bogota",
+        _ => "London",
+    }
+}
+fn bolge_kodu(s: &str) -> String {
+    if s.len() == 2 && s.bytes().all(|c| c.is_ascii_uppercase()) { s.into() } else { String::new() }
+}
+
 /// Picks the Turkish or English text.
 fn l(tr: &'static str, en: &'static str) -> &'static str {
     if dil_tr() { tr } else { en }
@@ -292,7 +320,7 @@ fn weather(q: &HashMap<String, String>) -> Result<Value, String> {
     } else if cfg["konum"].is_object() {
         yer_dogrula(&cfg["konum"])?
     } else {
-        konum(sehir_adi(cfg["sehir"].as_str().unwrap_or("Istanbul"))?)?
+        konum(sehir_adi(cfg["sehir"].as_str().unwrap_or(varsayilan_sehir()))?)?
     };
     let f = q.get("birim").is_some_and(|b| b == "f"); // °F, mph, inch; anything else is metric
     let mut w = body(
@@ -364,20 +392,27 @@ fn guncelleme() -> Result<Value, String> {
     }))
 }
 
-/// English currency card: ECB daily reference rates (raw XML, parsed in the UI) + gold-api.com gold ounce (USD).
+/// English currency card: ECB daily reference rates (raw XML, parsed in the UI) + gold-api.com gold and silver ounce (USD).
 fn kur_ecb() -> Result<Value, String> {
     let ecb = metin("https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml")?;
-    let ons = body(AGENT.get("https://api.gold-api.com/price/XAU").call()).ok().and_then(|v| v["price"].as_f64());
-    Ok(json!({ "ecb": ecb, "ons": ons }))
+    Ok(json!({ "ecb": ecb, "ons": maden("XAU"), "ag": maden("XAG"), "dunya": dunya() }))
 }
 
-/// Currency and gold: TCMB daily rates XML (raw text, parsed by the UI) + gold-api.com gold ounce (USD).
+/// Currency and gold: TCMB daily rates XML (raw text, parsed by the UI) + gold-api.com gold and silver ounce (USD).
 /// If gold cannot be fetched the rates still return; the UI computes gram gold as ounce × dollar ÷ 31.1035.
 /// shortcut: gold-api.com is a documented but unguaranteed free service; if it closes the gold row shows "—".
 fn kur() -> Result<Value, String> {
     let tcmb = metin("https://www.tcmb.gov.tr/kurlar/today.xml")?;
-    let ons = body(AGENT.get("https://api.gold-api.com/price/XAU").call()).ok().and_then(|v| v["price"].as_f64());
-    Ok(json!({ "tcmb": tcmb, "ons": ons }))
+    Ok(json!({ "tcmb": tcmb, "ons": maden("XAU"), "ag": maden("XAG"), "dunya": dunya() }))
+}
+/// World rates (units per 1 USD, about 160 currencies, daily) for codes the central bank feed lacks, e.g. PLN in TCMB.
+/// shortcut: open.er-api.com is free without a key but asks for attribution (shown in the card) and may rate-limit; on failure those rows are skipped.
+fn dunya() -> Option<Value> {
+    body(AGENT.get("https://open.er-api.com/v6/latest/USD").call()).ok().map(|v| v["rates"].clone()).filter(Value::is_object)
+}
+/// Gold (XAU) or silver (XAG) ounce price in USD from gold-api.com; None if it cannot be fetched.
+fn maden(kod: &str) -> Option<f64> {
+    body(AGENT.get(&format!("https://api.gold-api.com/price/{kod}")).call()).ok().and_then(|v| v["price"].as_f64())
 }
 
 /// System card: CPU (difference between two readings), memory, system disk, battery.
@@ -666,7 +701,7 @@ fn config_get() -> Value {
         if creds(p).is_err() { "kimlik_yok" } else if t[p]["refresh_token"].is_string() { "ok" } else { "bagli_degil" }
     };
     json!({
-        "sehir": c["sehir"].as_str().unwrap_or("Istanbul"),
+        "sehir": c["sehir"].as_str().unwrap_or(varsayilan_sehir()),
         // only the client ID to fill the setup dialog (never the secret)
         "google_id": c["google"]["client_id"].as_str().unwrap_or(""),
         "spotify_id": c["spotify"]["client_id"].as_str().unwrap_or(""),
@@ -809,6 +844,68 @@ fn simgeler(b: &str) -> Result<Value, String> {
         .filter(|y| !y.contains("://") && uygulama_gecerli(y).is_ok()).take(80).collect();
     let cikti = ps(r#"Add-Type -AssemblyName System.Drawing;$o=@{};$k=New-Object -ComObject WScript.Shell;foreach($p in ($env:RYOCS_GIRDI|ConvertFrom-Json)){try{$h=$p;if($p -like '*.lnk'){$s=$k.CreateShortcut($p);$i=($s.IconLocation -split ',')[0];$h=@($i,$s.TargetPath,$p)|?{$_ -and (Test-Path -LiteralPath $_ -PathType Leaf)}|select -First 1}elseif($p -like '*.url'){$i=(Select-String -LiteralPath $p -Pattern '^IconFile=(.+)$'|select -First 1).Matches.Groups[1].Value;if($i -and (Test-Path -LiteralPath $i)){$h=$i}};$b=[System.Drawing.Icon]::ExtractAssociatedIcon($h).ToBitmap();$m=New-Object IO.MemoryStream;$b.Save($m,[System.Drawing.Imaging.ImageFormat]::Png);$o[[string]$p]='data:image/png;base64,'+[Convert]::ToBase64String($m.ToArray())}catch{}};$o|ConvertTo-Json -Compress"#, &serde_json::to_string(&yollar).unwrap_or_default())?;
     Ok(serde_json::from_str(&cikti).unwrap_or(json!({})))
+}
+
+/// Quick link icon: the site's own favicon, fetched from the site itself (no third-party icon service learns the user's links).
+/// /favicon.ico first; if that is not an image, the first <link rel="…icon…"> of the home page. Returned as a data: URL.
+fn favicon(adres: &str) -> Result<Value, String> {
+    let u = url::Url::parse(adres).map_err(|e| e.to_string())?;
+    if !matches!(u.scheme(), "http" | "https") || u.host_str().is_none() {
+        return Err("http(s) değil".into());
+    }
+    let oku = |a: &str| -> Option<(String, Vec<u8>)> {
+        let r = AGENT.get(a).call().ok()?;
+        let tur = r.content_type().to_string();
+        let mut b = Vec::new();
+        r.into_reader().take(300_000).read_to_end(&mut b).ok()?;
+        Some((tur, b))
+    };
+    let resim = |(tur, b): (String, Vec<u8>)| simge_turu(&tur, &b).map(|t| (t, b));
+    let kok = u.join("/").map_err(|e| e.to_string())?;
+    let bulunan = kok.join("/favicon.ico").ok().and_then(|a| oku(a.as_str())).and_then(resim).or_else(|| {
+        let (_, sayfa) = oku(kok.as_str())?;
+        let href = ikon_href(&String::from_utf8_lossy(&sayfa))?;
+        oku(kok.join(&href).ok()?.as_str()).and_then(resim)
+    });
+    use base64::Engine;
+    let (tur, b) = bulunan.ok_or("simge yok")?;
+    Ok(Value::String(format!("data:{tur};base64,{}", base64::engine::general_purpose::STANDARD.encode(b))))
+}
+/// Image type of a downloaded icon from its header or its first bytes (servers often send .ico as octet-stream); None if not an image.
+fn simge_turu(tur: &str, b: &[u8]) -> Option<String> {
+    if b.is_empty() {
+        return None;
+    }
+    if b.starts_with(&[0, 0, 1, 0]) {
+        return Some("image/x-icon".into());
+    }
+    if b.starts_with(b"\x89PNG") {
+        return Some("image/png".into());
+    }
+    let t = tur.split(';').next().unwrap_or("").trim().to_ascii_lowercase();
+    t.starts_with("image/").then_some(t) // an SVG shown in <img> cannot run scripts
+}
+/// href of the first <link> whose rel contains "icon" (icon, shortcut icon, apple-touch-icon).
+fn ikon_href(html: &str) -> Option<String> {
+    let k = html.to_ascii_lowercase();
+    let mut i = 0;
+    while let Some(j) = k[i..].find("<link") {
+        let bas = i + j;
+        let son = bas + k[bas..].find('>')?;
+        let etiket = &k[bas..son];
+        let deger = |ad: &str| {
+            let p = etiket.find(&format!("{ad}="))? + ad.len() + 1;
+            let q = etiket[p..].chars().next()?;
+            let (a, b) = if q == '"' || q == '\'' { (p + 1, etiket[p + 1..].find(q)? + p + 1) } else { (p, etiket[p..].find(char::is_whitespace).map_or(etiket.len(), |x| x + p)) };
+            Some((a, b))
+        };
+        if deger("rel").is_some_and(|(a, b)| etiket[a..b].contains("icon")) {
+            let (a, b) = deger("href")?;
+            return Some(html[bas + a..bas + b].trim().to_string()); // original case: paths are case-sensitive
+        }
+        i = son;
+    }
+    None
 }
 
 /// Desktop shortcuts (user and public desktop; including a desktop moved to OneDrive)
@@ -1268,7 +1365,7 @@ fn handle(mut req: Request) {
     const HTML: &str = "text/html; charset=utf-8";
 
     if !post && path == "/" {
-        return send(req, 200, HTML, include_str!("ui.html").into());
+        return send(req, 200, HTML, include_str!("ui.html").replace("__BOLGE__", &bolge()));
     }
     if let (false, Some(name)) = (post, path.strip_prefix("/callback/")) {
         let sonuc = provider(name).and_then(|p| callback(&p, &url));
@@ -1295,6 +1392,8 @@ fn handle(mut req: Request) {
         serde_json::from_str::<Value>(&b).map_err(|e| e.to_string()).and_then(|v| uygulama_ac(v["yol"].as_str().unwrap_or("")))
     } else if post && path == "/api/simgeler" {
         simgeler(&b)
+    } else if !post && path == "/api/favicon" {
+        url::form_urlencoded::parse(url.split_once('?').map_or("", |x| x.1).as_bytes()).find(|(k, _)| k == "u").ok_or("u yok".to_string()).and_then(|(_, u)| favicon(&u))
     } else if !post && path == "/api/kisayollar" {
         kisayollar()
     } else if post && path == "/api/dosya-sec" {
@@ -1567,7 +1666,7 @@ fn main() {
     }));
     let cfg = dir().join("config.json");
     if !cfg.exists() {
-        fs::write(&cfg, CONFIG_SABLON).ok();
+        fs::write(&cfg, CONFIG_SABLON.replace("Istanbul", varsayilan_sehir())).ok();
     }
     // tokens.json from an older version is plain JSON: encrypt it now
     if fs::read_to_string(dir().join("tokens.json")).is_ok_and(|s| s.trim_start_matches('\u{feff}').trim_start().starts_with('{')) {
@@ -1730,6 +1829,24 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn favicon_ayiklama() {
+        assert_eq!(ikon_href(r#"<head><link rel="stylesheet" href="a.css"><LINK REL="Shortcut Icon" HREF="/Img/Fav.png"></head>"#).as_deref(), Some("/Img/Fav.png"));
+        assert_eq!(ikon_href("<link rel=icon href=/f.ico>").as_deref(), Some("/f.ico"));
+        assert_eq!(ikon_href("<link rel='apple-touch-icon' href='t.png'/>").as_deref(), Some("t.png"));
+        assert_eq!(ikon_href("<link rel=stylesheet href=x.css>"), None);
+        assert_eq!(simge_turu("application/octet-stream", &[0, 0, 1, 0, 1]).as_deref(), Some("image/x-icon"));
+        assert_eq!(simge_turu("text/html", b"<html>"), None);
+        assert!(favicon("file:///C:/x").is_err() && favicon("javascript:alert(1)").is_err());
+    }
+
+    #[test]
+    fn bolge_yalniz_ulke_kodu() {
+        assert_eq!([bolge_kodu("TR"), bolge_kodu("001"), bolge_kodu("tr"), bolge_kodu("")], ["TR", "", "", ""]);
+        assert!(bolge().is_empty() || bolge().len() == 2); // the real Windows setting
+        assert!(include_str!("ui.html").matches("__BOLGE__").count() == 1); // exactly one placeholder is replaced
+    }
 
     #[test]
     fn sistem_gercek_degerler() {

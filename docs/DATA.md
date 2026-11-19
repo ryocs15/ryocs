@@ -53,6 +53,7 @@ Missing keys mean the default.
 | `bitenGizle` | Hide completed tasks. |
 | `havaGun`, `havaUyari`, `sehirler`, `birim` | Weather: 3-day view, morning alert, extra cities `[{ad, bolge, lat, lon}]` (older saves: plain names), units `c` / `f` (missing = °F in the US). |
 | `haberKat`, `haberKelime`, `haberGizli` | News category, hidden words, hidden sources. |
+| `kurTaban`, `kurListe`, `kurTur`, `altinBirim`, `gumus`, `kurDegisim` | Currency card: home currency (ISO code; missing = from the Windows country, e.g. TRY in Turkey, EUR in Germany, else USD; TRY uses TCMB, any other ECB), codes to show (comma separated; missing = USD, EUR or the two of USD/EUR/GBP that are not home), rate type `''` selling / `al` buying / `ef` banknote (TRY only), gold unit `gram` / `ons` (missing = ounce in US, GB, CA, AU, else gram), silver row, change since the previous day (missing = on). Codes the central bank feed lacks (e.g. PLN) are cross rates from open.er-api.com. |
 | `calisma`, `mola`, `hedef`, `odakOto`, `rahatsiz`, `calismaAd`, `molaAd`, `odakNe` | Focus: work and break minutes, daily goal, auto start, do not disturb, own labels, "working on" note. |
 | `ozet`, `tepsiBilgi`, `tur` | Morning summary on/off, "running in the tray" notice already shown, first-run tips already shown. |
 | `kisayol` | Global show / hide shortcut: index in the list (0 Win+Ctrl+R, 1 Win+Alt+Y, 2 Ctrl+Alt+Shift+R, 3 Ctrl+Alt+Space) or `yok` = off. |

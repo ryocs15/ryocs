@@ -6,7 +6,10 @@
 <script>
 // Language: Settings → General → Language (kept in localStorage so it is known before the data loads); otherwise the Windows language: Turkish if tr, English otherwise.
 const DIL=(()=>{try{const d=localStorage.dil;if(d==='tr'||d==='en')return d}catch{}return /^tr\b/i.test(navigator.language)?'tr':'en'})();
-const L=(tr,en)=>DIL==='tr'?tr:en,yz=x=>DIL==='tr'?'%'+x:x+'%',LOC=DIL==='tr'?'tr-TR':(/^en-/i.test(navigator.language)?navigator.language:'en-US');
+// Country: Windows "Country or region" (filled in by the server); otherwise (opened as a file) Turkey in Turkish, the browser's region in English. The language only says which words to use,
+// the country decides currency, °C/°F, holidays, 12/24 h clock and the first day of the week (an English user in Germany gets en-DE).
+const BOLGE=(()=>{const b='__BOLGE__';return /^[A-Z]{2}$/.test(b)?b:DIL==='tr'?'TR':(navigator.language.split('-')[1]||'US').toUpperCase()})();
+const L=(tr,en)=>DIL==='tr'?tr:en,yz=x=>DIL==='tr'?'%'+x:x+'%',LOC=(()=>{try{return new Intl.Locale(DIL+'-'+BOLGE).toString()}catch{return DIL==='tr'?'tr-TR':'en-US'}})();
 document.documentElement.lang=DIL;
 // Themes in one place: r = [background, light shadow, dark shadow, text, muted text, line, accent]; k: dark; cz: glass background; ek: extra variables.
 // '' (Light) and dark (Dark) are the base themes and come from the :root rules in CSS; the rules of the others are generated here.
@@ -53,9 +56,9 @@ body{background:var(--bg);color:var(--tx);font:300 14px "Poppins","Segoe UI Vari
 #baslik{position:relative;z-index:60;display:flex;align-items:center;gap:8px;height:34px;margin:0 -6px 8px 4px;flex:none;color:var(--mu);font-size:12px;letter-spacing:.5px}
 #baslik svg.lg{width:16px;height:16px}
 #baslik .sp{flex:1;align-self:stretch}
-#baslik .pd{width:30px;height:30px;border-radius:50%;box-shadow:var(--up-s);display:grid;place-items:center;color:var(--tx)}
+#baslik .pd{width:30px;height:30px;border-radius:50%;box-shadow:var(--up-s);display:grid;place-items:center;color:var(--tx);transition:transform .15s,background-color .15s,color .15s}
 #baslik .pd svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round}
-#baslik .pd:hover{transform:translateY(-1px)}
+#baslik .pd:hover{transform:translateY(-1px);background:color-mix(in srgb,var(--ye) 22%,transparent)}
 #baslik .pd:active{box-shadow:var(--in);transform:none}
 #baslik .pd.kap:hover{background:var(--kr);color:#fff}
 html.kenar,html.kenar *{cursor:var(--imlec)!important}
@@ -130,7 +133,7 @@ nav #ara{flex:0 1 280px;min-width:150px;border-radius:20px;padding:10px 18px}
 #linkler{display:flex;gap:10px;overflow-x:auto;scrollbar-width:none;padding:6px;margin:-6px;min-width:0;flex:0 1 auto}
 #linkler::-webkit-scrollbar{display:none}
 #linkler.tasar{mask-image:linear-gradient(to right,#000 calc(100% - 28px),transparent)} /* links that do not fit show that they can be scrolled */
-#linkler .rb{width:34px;height:34px;font-size:13px;font-weight:400}
+#linkler .rb{width:34px;height:34px;font-size:13px;font-weight:400}#linkler .rb img{width:18px;height:18px;border-radius:4px;object-fit:contain}#linkler .rb img+span{display:none}
 #yenile.don svg,#hYenile.don svg{animation:don .8s linear infinite}
 #ayar:hover svg{transform:rotate(60deg)}
 
@@ -152,7 +155,7 @@ main{display:grid;grid-template-columns:300px minmax(0,1fr) 310px;gap:14px;min-h
 .ek{flex:1 1 0;min-height:0;contain:size;overflow:hidden;display:flex;flex-direction:column}
 .panel>.ek{margin-top:-10px;flex-grow:2} /* .panel gap: an empty extra must not stretch the card; extra share for the event list */
 .ek>*{flex:none;margin-top:14px}
-.ek>:empty,.ek>[hidden]{display:none!important}
+.ek>:empty,.ek>[hidden],.kirp>[hidden]{display:none!important}
 :is(.uygSon,.ek) h3{font-size:11px;font-weight:600;line-height:1;letter-spacing:.08em;text-transform:uppercase;color:var(--mu);margin:0 0 8px}
 .cizgi{height:6px;border-radius:3px;box-shadow:var(--in);position:relative;overflow:hidden}
 .cizgi>i{position:absolute;inset:0 auto 0 0;border-radius:3px;background:var(--ye)}
@@ -177,7 +180,7 @@ main{display:grid;grid-template-columns:300px minmax(0,1fr) 310px;gap:14px;min-h
 .yedi>div{display:flex;gap:8px;align-items:baseline;font-size:12px;padding:3px 0;min-width:0}
 .yedi>div>b{flex:none;width:58px;font-weight:500}
 .yedi>div>span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.yedi .bos{color:var(--mu)}
+
 .grid em{display:none}
 .panel.genis .grid:not(.hafta) button{height:46px}
 .panel.genis .grid em{display:block;position:absolute;left:4px;right:4px;bottom:4px;font:400 9px/1.2 "Segoe UI",sans-serif;font-style:normal;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--mu);pointer-events:none}
@@ -254,7 +257,7 @@ main [data-kart][hidden]{display:none!important} /* a closed card (the card layo
 .hbGorsel{display:none;width:76px;height:50px;border-radius:9px;object-fit:cover;flex:none;background:var(--ln)}
 .haberK.genis .hbGorsel{display:block}
 .kurS,.sisS{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:4px 0;font-size:13px}
-.kurS b{font-weight:600;font-variant-numeric:tabular-nums}.kurS small,.sisS small{color:var(--mu);font-size:11px}
+.kurS b{font-weight:600;font-variant-numeric:tabular-nums}.kurD{font-weight:400;margin-left:4px}.kurS small,.sisS small{color:var(--mu);font-size:11px}
 #sistem .cizgi{margin-bottom:6px}
 #pano,#mail{flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column;gap:2px;contain:size;min-height:90px}
 #mailSay:not(:empty){margin-left:8px;padding:1px 8px;border-radius:10px;background:var(--ye);color:#fff;font-size:11px;font-weight:600}
@@ -1208,10 +1211,16 @@ function ekSig(k){
   const ek=k.querySelector(':scope>.ek');if(!ek)return;
   // the extra only uses truly empty space: while measuring, the scrolling list/form takes as much as its content, the extra gets the rest
   const ls=[...k.children].filter(c=>c!==ek&&/auto|scroll/.test(getComputedStyle(c).overflowY));
-  ls.forEach(c=>c.style.flex='none');ek.style.flex='';for(const c of ek.children)c.hidden=false;
-  const ust=ek.getBoundingClientRect().top,alt=ek.getBoundingClientRect().bottom+.5;let n=0,dur=false,son=ust;
-  for(const c of ek.children){if(!c.offsetHeight)continue;const b=c.getBoundingClientRect().bottom;if(dur||b>alt){c.hidden=true;dur=true}else{n++;son=b}}
-  const lsH=ls.reduce((t,c)=>t+c.offsetHeight,0);ls.forEach(c=>c.style.flex='');
+  const st=ls.map(c=>c.scrollTop); // measuring with flex:none removes the overflow and would reset a scrolled list to the top
+  ls.forEach(c=>c.style.flex='none');ek.style.flex='';for(const c of ek.querySelectorAll(':scope>*,.kirp>*'))c.hidden=false;
+  const ust=ek.getBoundingClientRect().top,alt=ek.getBoundingClientRect().bottom+.5;let n=0,son=ust;
+  // a block that does not fit is hidden and the next (maybe smaller) one is tried, so no large empty space is left;
+  // a .kirp block (7-day forecast) first drops rows from its end; with fewer than 3 rows left it is hidden as a whole
+  for(const c of ek.children){if(!c.offsetHeight)continue;let b=c.getBoundingClientRect().bottom;
+    if(b>alt&&c.classList.contains('kirp')){const sat=[...c.children].filter(x=>x.tagName==='DIV');while(sat.length>3&&b>alt){sat.pop().hidden=true;b=c.getBoundingClientRect().bottom}
+      if(b>alt)for(const x of c.children)x.hidden=false}
+    if(b>alt)c.hidden=true;else{n++;son=b}}
+  const lsH=ls.reduce((t,c)=>t+c.offsetHeight,0);ls.forEach((c,i)=>{c.style.flex='';c.scrollTop=st[i]});
   // newly shown blocks appear in turn; their bars fill (does not replay when the same number of blocks is rewritten)
   const gor=[...ek.children].filter(c=>!c.hidden&&c.offsetHeight);
   if(K.dataset.anim!=='off')gor.slice(ek._n||0).forEach((c,i)=>{const o={duration:420,delay:i*90,easing:'cubic-bezier(.2,.7,.3,1)',fill:'backwards'};
@@ -1252,11 +1261,12 @@ function takvimEk(){
   let h='';
   if(ileri.length){
     const gizli=gizliT(),b=new Date();b.setHours(0,0,0,0);
-    h=L('<div class="yedi"><h3>Önümüzdeki 7 gün</h3>','<div class="yedi"><h3>Next 7 days</h3>')+[...Array(7)].map((_,k)=>{
+    const g=[...Array(7)].map((_,k)=>{
       const d=new Date(b);d.setDate(d.getDate()+k);const t=gunStr(d),ev=ileri.filter(e=>e.start&&!gizli.includes(e._t)&&evGunde(e,t)).sort((x,y)=>zaman(x)-zaman(y));
       const y=ev.map(e=>(e.start.dateTime?saat(zaman(e))+' ':'')+etkAd(e)).join(' · ');
-      return `<div><b>${k?d.toLocaleDateString(LOC,{weekday:'short',day:'numeric'}):L('Bugün','Today')}</b><span class="${ev.length?'':'bos'}" title="${esc(y)}">${esc(y)||'—'}</span></div>`;
-    }).join('')+'</div>';
+      return ev.length?`<div><b>${k?d.toLocaleDateString(LOC,{weekday:'short',day:'numeric'}):L('Bugün','Today')}</b><span title="${esc(y)}">${esc(y)}</span></div>`:'';
+    }).join(''); // empty days are left out: a column of dashes takes space and says nothing
+    if(g)h=L('<div class="yedi"><h3>Önümüzdeki 7 gün</h3>','<div class="yedi"><h3>Next 7 days</h3>')+g+'</div>';
   }
   ekYaz('#takvimEk',h);
 }
@@ -1297,9 +1307,9 @@ function ustCiz(){
   // a local countdown is shown if it is nearer than the calendar one (an ongoing calendar period comes first)
   const yl=sayimSirali().find(x=>x.t>=bugun);
   if(yl&&(!g||yl.t<(gunleri(g)[0]>bugun?gunleri(g)[0]:bugun))){gs=`<b>${sayimYazi(yl.t,bugun)}</b> · ${esc(yl.ad)}`;gsB=yl.ad+' · '+new Date(yl.t+'T00:00').toLocaleDateString(LOC,{day:'numeric',month:'long',year:'numeric'})}
-  // second clock: Turkey if we are in the same zone
+  // second clock in our own zone is hidden; in Turkish it shows Turkey instead (for those living abroad)
   let tz=A('saat2')??'',ad=SAAT2[tz];
-  if(tz&&dilimSaat(tz,n,1)===saat24(n)){tz=tz==='Europe/Istanbul'?'':'Europe/Istanbul';ad=L('Türkiye','Turkey')}
+  if(tz&&dilimSaat(tz,n,1)===saat24(n)){tz=DIL==='tr'&&tz!=='Europe/Istanbul'?'Europe/Istanbul':'';ad=L('Türkiye','Turkey')}
   const d=havaV?.daily,gunes=d?.sunrise?.[0]?`<span title="${L('Gün doğumu','Sunrise')}"><svg viewBox="0 0 24 24"><path d="M3 19h18M6.5 19a5.5 5.5 0 0 1 11 0M12 3.5v6M9 6.5l3-3 3 3"/></svg>${saatS(d.sunrise[0].slice(11,16))}</span><span title="${L('Gün batımı','Sunset')}"><svg viewBox="0 0 24 24"><path d="M3 19h18M6.5 19a5.5 5.5 0 0 1 11 0M12 3.5v6M9 6.5l3 3 3-3"/></svg>${saatS(d.sunset[0].slice(11,16))}</span>`:'';
   const cevrim=!navigator.onLine||takvimUyarildi||!!document.querySelector('#hava .ag,#olay .ag');
   if(sonGuncel){const dk=Math.floor((Date.now()-sonGuncel)/6e4);$('#yenile').title=(cevrim?L('Çevrimdışı: son bilinen veriler gösteriliyor. ','Offline: showing the last known data. '):'')+L('Son güncelleme: ','Last updated: ')+(dk<1?L('az önce','just now'):dk+L(' dk önce',' min ago'))+L(' · Yenile (F5)',' · Refresh (F5)')}
@@ -1430,7 +1440,7 @@ function havaEk(w){
   if(d.time.length>=7){
     const mn=Math.min(...d.temperature_2m_min.slice(0,7)),mx=Math.max(...d.temperature_2m_max.slice(0,7)),r=(mx-mn)||1;
     const hRenk=f=>`color-mix(in oklab,var(--tu) ${Math.round(f*100)}%,var(--ma))`; // colour from the week's coldest (blue) to its warmest (orange)
-    h+=L('<div class="hv7"><h3>7 gün</h3>','<div class="hv7"><h3>7 days</h3>')+d.time.slice(0,7).map((g,k)=>`<div title="${esc(WMO[d.weather_code[k]]||'')}${d.precipitation_probability_max?.[k]?L(' · yağış ',' · rain ')+yz(d.precipitation_probability_max[k]):''}"><span>${k?new Date(g+'T00:00').toLocaleDateString(LOC,{weekday:'short',day:'numeric'}):L('Bugün','Today')}</span>${havaIkon(d.weather_code[k])}<em>${T(d.temperature_2m_min[k])}</em><span class="cizgi"><i style="left:${(d.temperature_2m_min[k]-mn)/r*100}%;right:${(mx-d.temperature_2m_max[k])/r*100}%;background:linear-gradient(90deg,${hRenk((d.temperature_2m_min[k]-mn)/r)},${hRenk((d.temperature_2m_max[k]-mn)/r)})"></i></span><em>${T(d.temperature_2m_max[k])}</em></div>`).join('')+'</div>';
+    h+=L('<div class="hv7 kirp"><h3>7 gün</h3>','<div class="hv7 kirp"><h3>7 days</h3>')+d.time.slice(0,7).map((g,k)=>`<div title="${esc(WMO[d.weather_code[k]]||'')}${d.precipitation_probability_max?.[k]?L(' · yağış ',' · rain ')+yz(d.precipitation_probability_max[k]):''}"><span>${k?new Date(g+'T00:00').toLocaleDateString(LOC,{weekday:'short',day:'numeric'}):L('Bugün','Today')}</span>${havaIkon(d.weather_code[k])}<em>${T(d.temperature_2m_min[k])}</em><span class="cizgi"><i style="left:${(d.temperature_2m_min[k]-mn)/r*100}%;right:${(mx-d.temperature_2m_max[k])/r*100}%;background:linear-gradient(90deg,${hRenk((d.temperature_2m_min[k]-mn)/r)},${hRenk((d.temperature_2m_max[k]-mn)/r)})"></i></span><em>${T(d.temperature_2m_max[k])}</em></div>`).join('')+'</div>';
   }
   // other cities (when the card is large): click to switch
   const l=['',...sehirler().map(yerAnahtar)].map(s=>[s,s?havaC[s]?.v:havaV]).filter(([,v])=>v&&v!==w);
@@ -1938,10 +1948,18 @@ async function uygEkle(){
 }
 
 // Quick links
+// Site icons: fetched once per host by Rust from the site itself and kept in localStorage; a failed host is tried again after a day.
+// The letter stays under the icon and shows if there is no icon or the image cannot be drawn.
+let FAV={};try{FAV=JSON.parse(localStorage.fav||'{}')}catch{}
+const favHost=u=>{try{const x=new URL(u);return /^https?:$/.test(x.protocol)?x.host:''}catch{return''}},favSor=new Set();
 function linkCiz(){
-  $('#linkler').innerHTML=S.links.map((l,i)=>`<button class="rb" data-l="${i}" title="${esc(l.a)} — ${esc(l.u)}" aria-label="${esc(l.a)}${L(' aç">',' open">')}${esc((l.a[0]||'?').toLocaleUpperCase(LOC))}</button>`).join('')
+  $('#linkler').innerHTML=S.links.map((l,i)=>{const f=FAV[favHost(l.u)]?.v;return `<button class="rb" data-l="${i}" title="${esc(l.a)} — ${esc(l.u)}" aria-label="${esc(l.a)}${L(' aç">',' open">')}${f?`<img src="${esc(f)}" alt="" onerror="this.remove()">`:''}<span>${esc((l.a[0]||'?').toLocaleUpperCase(LOC))}</span></button>`}).join('')
     +`<button class="rb" data-l="+" title="${L('Hızlı ekle','Quick add')}" aria-label="${L('Hızlı ekle','Quick add')}" aria-haspopup="menu">${SVG(IKON.arti)}</button>`;
   linkTasma();
+  for(const l of S.links){const h=favHost(l.u),o=FAV[h];if(!h||favSor.has(h)||o&&(o.v||Date.now()-o.t<864e5))continue;favSor.add(h);
+    api('/api/favicon?u='+encodeURIComponent(l.u)).then(r=>{const v=r.durum==='ok'&&typeof r.veri==='string'&&r.veri.startsWith('data:image/')&&r.veri.length<2e5?r.veri:'';
+      if(r.durum===AG_YOK)return favSor.delete(h); // offline: try again next time
+      FAV[h]={v,t:Date.now()};try{localStorage.fav=JSON.stringify(FAV)}catch{}if(v)linkCiz()})}
 }
 const linkTasma=()=>{const l=$('#linkler');l.classList.toggle('tasar',l.scrollWidth>l.clientWidth+1&&l.scrollLeft+l.clientWidth<l.scrollWidth-2)};
 addEventListener('resize',linkTasma);$('#linkler').addEventListener('scroll',linkTasma);
@@ -2158,8 +2176,14 @@ const HKAT=DIL==='tr'?{sondakika:'Son dakika',gundem:'Gündem',bilim:'Bilim',fin
   :{en_top:'Top stories',en_world:'World',en_business:'Business',en_tech:'Technology',en_science:'Science',en_sport:'Sport'}; // English: BBC News RSS // sondakika: TRT Haber RSS, the others Bundle (same as the Rust allow list)
 // Public holidays: Google's holiday calendar of a country (S.ayar.tatil: a key below or 'yok'; missing: by the system's region)
 const TATIL_YER={turkish:L('Türkiye','Turkey'),usa:L('ABD','United States'),uk:L('Birleşik Krallık','United Kingdom'),canadian:L('Kanada','Canada'),australian:L('Avustralya','Australia'),irish:L('İrlanda','Ireland'),new_zealand:L('Yeni Zelanda','New Zealand'),indian:L('Hindistan','India'),german:L('Almanya','Germany'),french:L('Fransa','France'),spain:L('İspanya','Spain'),italian:L('İtalya','Italy'),dutch:L('Hollanda','Netherlands'),polish:L('Polonya','Poland'),swedish:L('İsveç','Sweden'),japanese:L('Japonya','Japan'),brazilian:L('Brezilya','Brazil')};
-const OTO_TATIL=DIL==='tr'?'turkish':({TR:'turkish',US:'usa',GB:'uk',CA:'canadian',AU:'australian',IE:'irish',NZ:'new_zealand',IN:'indian',DE:'german',FR:'french',ES:'spain',IT:'italian',NL:'dutch',PL:'polish',SE:'swedish',JP:'japanese',BR:'brazilian'}[(navigator.language.split('-')[1]||'').toUpperCase()]||'usa');
+const OTO_TATIL=({TR:'turkish',US:'usa',GB:'uk',CA:'canadian',AU:'australian',IE:'irish',NZ:'new_zealand',IN:'indian',DE:'german',FR:'french',ES:'spain',IT:'italian',NL:'dutch',PL:'polish',SE:'swedish',JP:'japanese',BR:'brazilian'}[BOLGE]||(DIL==='tr'?'turkish':'usa'));
 const tatilId=()=>{const v=TATIL_YER[A('tatil')]?A('tatil'):A('tatil')==='yok'?'yok':OTO_TATIL;return v==='yok'?'yok':(v==='turkish'&&DIL==='tr'?'tr.':'en.')+v+'#holiday@group.v.calendar.google.com'};
+// Currency card defaults come from the Windows country, not the language. shortcut: countries not listed here default to USD; the user can type any code.
+const EURO='AT BE CY DE EE ES FI FR GR HR IE IT LT LU LV MT NL PT SI SK'.split(' ');
+const TABAN0=EURO.includes(BOLGE)?'EUR':{TR:'TRY',US:'USD',GB:'GBP',CA:'CAD',AU:'AUD',NZ:'NZD',IN:'INR',JP:'JPY',CN:'CNY',KR:'KRW',BR:'BRL',MX:'MXN',AR:'ARS',CL:'CLP',CO:'COP',PL:'PLN',SE:'SEK',NO:'NOK',DK:'DKK',CH:'CHF',CZ:'CZK',HU:'HUF',RO:'RON',BG:'BGN',RS:'RSD',UA:'UAH',RU:'RUB',AZ:'AZN',GE:'GEL',KZ:'KZT',IL:'ILS',SA:'SAR',AE:'AED',QA:'QAR',KW:'KWD',EG:'EGP',ZA:'ZAR',NG:'NGN',SG:'SGD',HK:'HKD',ID:'IDR',TH:'THB',MY:'MYR',PH:'PHP',VN:'VND',PK:'PKR'}[BOLGE]||'USD';
+const ONS0=['US','GB','CA','AU'].includes(BOLGE)?'ons':'gram';
+const kurTaban=()=>{const b=String(A('kurTaban')??'').trim().toUpperCase();return /^[A-Z]{3}$/.test(b)?b:TABAN0};
+const kurVarsListe=b=>b==='TRY'?['USD','EUR']:['USD','EUR','GBP'].filter(c=>c!==b).slice(0,2);
 const KART_AYAR={
   saat:{ayar:[['saatModel',L('Saat modeli','Clock style'),'sec',SAAT_MOD,'sade'],['saatBicim',L('Saat biçimi','Time format'),'seg',{'':L('Otomatik','Auto'),h24:L('24 saat','24 h'),h12:L('12 saat','12 h')},''],['saniye',L('Saniye kolu','Second hand'),'sw',0,true],['saat2',L('İkinci saat','Second clock'),'sec',SAAT2,'']],
     gizle:[['alt',L('Geri sayım ve güneş saatleri','Countdown and sun times'),'.saatalt'],['ek',L('Gün ışığı ve uzun tarih (kart büyükken)','Daylight and long date (when the card is large)'),'#saatEk']]},
@@ -2176,7 +2200,12 @@ const KART_AYAR={
   haber:{ayar:[['haberKat',L('Kategori','Category'),'seg',HKAT,'gundem'],['haberKelime',L('Gizlenecek kelimeler (virgülle ayır)','Words to hide (comma separated)'),'metin',0,'']],
     gizle:[['kat',L('Kategori düğmeleri','Category buttons'),'#hKat'],['logo',L('Kaynak logoları','Source logos'),'.hbLogo'],['gorsel',L('Haber görselleri (geniş kartta)','News images (wide card)'),'.hbGorsel'],...Object.entries(HKAT).map(([v,ad])=>['k'+v,ad+L(' sekmesi',' tab'),`#hKat [data-v=${v}]`])]},
   spotify:{ayar:[],gizle:[['ses',L('Ses kaydırıcısı','Volume slider'),'#ses'],['kapak',L('Büyük kapak (kart uzunken)','Large cover (when the card is tall)'),null],['sira',L('Sıradaki şarkılar (kart büyükken)','Up next (when the card is large)'),'#spEk']]},
-  kur:{ayar:[],gizle:[]},sistem:{ayar:[],gizle:[]},pano:{ayar:[],gizle:[]},mail:{ayar:[],gizle:[]},
+  kur:{ayar:[['kurTaban',L('Ana para birimi (ISO kodu, örn. TRY, EUR, PLN)','Home currency (ISO code, e.g. USD, EUR, PLN)'),'metin',0,TABAN0],
+      ['kurListe',L('Gösterilecek dövizler (ISO kodları, virgülle; en fazla 10)','Currencies to show (ISO codes, comma separated; up to 10)'),'metin',0,kurVarsListe(TABAN0).join(', ')],
+      ['kurTur',L('Kur türü (yalnız TRY, TCMB)','Rate type (TRY only, TCMB)'),'seg',{'':L('Satış','Selling'),al:L('Alış','Buying'),ef:L('Efektif satış','Banknote')},''],
+      ['altinBirim',L('Altın ve gümüş birimi','Gold and silver unit'),'seg',{gram:'Gram',ons:L('Ons','Ounce')},ONS0],
+      ['gumus',L('Gümüş satırı','Silver row'),'sw',0,false],['kurDegisim',L('Önceki güne göre değişim','Change since the previous day'),'sw',0,true]],
+    gizle:[['altin',L('Altın ve gümüş satırları','Gold and silver rows'),'.kurAltin'],['kaynak',L('Kaynak ve güncelleme satırı','Source and update line'),'#kurAlt']]},sistem:{ayar:[],gizle:[]},pano:{ayar:[],gizle:[]},mail:{ayar:[],gizle:[]},
   odak:{ayar:[['calisma',L('Çalışma süresi (dk)','Work time (min)'),'sayi',[1,180],25],['mola',L('Mola süresi (dk)','Break time (min)'),'sayi',[1,180],5],['hedef',L('Günlük hedef (tur)','Daily goal (rounds)'),'sayi',[1,20],4],['calismaAd',L('Çalışma adı (boşsa “Çalışma”)','Work label (empty: “Work”)'),'metin',0,''],['molaAd',L('Mola adı (boşsa “Mola”)','Break label (empty: “Break”)'),'metin',0,''],['odakOto',L('Tur bitince sonrakini kendiliğinden başlat','Start the next round automatically'),'sw',0,false],['rahatsiz',L('Çalışırken bildirimleri biriktir, tur bitince tek bildirimle göster','Hold notifications while working, show them in one notification when the round ends'),'sw',0,true]],
     gizle:[['ne',L('Üzerinde çalışılan iş','What you are working on'),'#odakNe'],['hafta',L('Bu hafta neye çalıştın (kart büyükken)','This week by task (when the card is large)'),'.odNe'],['sayac',L('Serbest sayaç','Free timer'),'#serbest'],['spark',L('Başlıkta 7 günlük mini grafik','7-day mini chart in the title'),'#odakIst .spark'],['ek',L('Bugün, seri, hedef ve grafik (kart büyükken)','Today, streak, goal and chart (when the card is large)'),'#odakEk']]}};
 document.head.insertAdjacentHTML('beforeend','<style>'+Object.entries(KART_AYAR).flatMap(([k,a])=>a.gizle.filter(g=>g[2]).map(([id,,sel])=>`[data-kart=${k}][data-gizle~=${id}] ${sel}{display:none!important}`)).join('')+'</style>');
@@ -2205,7 +2234,7 @@ async function sehirKaydet(sehir){
 // the card updates itself when a value changes
 const KART_SONRA={saatBicim:()=>{ustSon='';tick();ciz();havaSerit='';havaCiz();$('#grid').dataset.ay='';takvim()},haftaBasi:()=>{secili=null;$('#grid').dataset.ay='';takvim()},
   birim:()=>{havaC={};try{localStorage.removeItem('hava')}catch{}hava()},tatil:()=>takvimYenile(),saatModel:()=>{saatYuz();tick()},saniye:()=>saatYuz(),saat2:()=>{ustSon='';ustCiz()},gorunum:v=>{gorunum=v;secili=null;takvim()},
-  uygBoyut:()=>ayarUygula(),bitenGizle:()=>ciz(),notYazi:()=>kartAyarUygula(),havaGun:()=>havaCiz(),hedef:()=>odakIstat(),haberKat:()=>{$('#haberler').scrollTop=0;haber()},haberKelime:()=>haberCiz(),
+  uygBoyut:()=>ayarUygula(),bitenGizle:()=>ciz(),notYazi:()=>kartAyarUygula(),havaGun:()=>havaCiz(),hedef:()=>odakIstat(),haberKat:()=>{$('#haberler').scrollTop=0;haber()},haberKelime:()=>haberCiz(),kurTaban:()=>kur(true),kurListe:()=>kurCiz(),kurTur:()=>kurCiz(),altinBirim:()=>kurCiz(),gumus:()=>kurCiz(),kurDegisim:()=>kurCiz(),
   calisma:()=>{if(!O.bitis)O={mod:'calisma',kalan:sure('calisma'),bitis:0};odakCiz()},mola:()=>{if(!O.bitis)O={mod:'calisma',kalan:sure('calisma'),bitis:0};odakCiz()}};
 function kartAyar(k){
   const a=KART_AYAR[k],gz=A('kartGizle')?.[k]||[],deger=(key,vars)=>key==='sehir'?havaV?yerEtiket({ad:havaV.sehir,bolge:havaV.bolge}):'':key==='sehirler'?sehirler().map(yerEtiket).join(', '):A(key)??vars;
@@ -2804,6 +2833,7 @@ async function haber(zorla){
     :Array.isArray(r.veri)&&r.veri.map(x=>({b:String(x.title||''),l:String(x.link||''),k:String(x.channelName||x.channel_name||''),lg:x.channel_logo_src||'',g:x.imageLink||'',t:/^\d{4}-\d\d-\d\dT\d\d:\d\d(:\d\d)?$/.test(x.pubDate)?x.pubDate+'Z':x.pubDate||''}));
   haberHata[k]=!l?.length;
   if(l?.length){
+    const zt=x=>Date.parse(x.t)||0;l.sort((a,b)=>zt(b)-zt(a));
     haberT[k]=Date.now();haberV[k]=l.slice(0,30);
     try{localStorage['haber_'+k]=JSON.stringify(haberV[k]);localStorage.hbT=JSON.stringify(haberT)}catch{}
   }else if(!haberV[k])return ekYaz('#haberler',r.durum===AG_YOK?agYok():`${L('<p class="m">Haberler alınamadı. ','<p class="m">Could not load the news. ')}${hKaynak(k)}${L(' akışı değişmiş olabilir.</p>',' feed may have changed.</p>')}`);
@@ -2832,28 +2862,55 @@ $('#haberler').onclick=e=>{const b=e.target.closest('[data-h]'),x=b&&haberV[habe
   if(!hbOkundu.includes(x.l)){hbOkundu=[x.l,...hbOkundu].slice(0,300);try{localStorage.hbOkundu=JSON.stringify(hbOkundu)}catch{}b.classList.add('okundu')}};
 // Currency and gold: USD/EUR from the TCMB daily rate (renewed at 15:30 on working days; on weekends the last working day),
 // gram gold is computed from the gold-api.com ounce price (ounce × dollar ÷ 31.1035). The last successful data is in localStorage.
-let kurV=null,kurHata=false;try{kurV=JSON.parse(localStorage.kur||'null');if(!!kurV?.ecb!==(DIL!=='tr'))kurV=null}catch{} // cached rates of the other language's source are dropped
-const kurAyir=(xml,ons)=>{const d=new DOMParser().parseFromString(xml,'text/xml'),al=k=>+d.querySelector(`Currency[CurrencyCode="${k}"] ForexSelling`)?.textContent,usd=al('USD'),eur=al('EUR');
-  return usd>0&&eur>0?{t:Date.now(),tarih:d.documentElement.getAttribute('Tarih')||'',usd,eur,ons:ons>0?ons:null}:null};
-// English: ECB reference rates per euro; dollar values are derived (USD per EUR / USD per GBP).
-const ecbAyir=(xml,ons)=>{const d=new DOMParser().parseFromString(xml,'text/xml'),al=k=>+d.querySelector(`Cube[currency="${k}"]`)?.getAttribute('rate'),usd=al('USD'),gbp=al('GBP');
-  return usd>0&&gbp>0?{t:Date.now(),tarih:d.querySelector('Cube[time]')?.getAttribute('time')||'',ecb:1,usd,gbp,ons:ons>0?ons:null}:null};
+let kurV=null,kurHata=false;try{kurV=JSON.parse(localStorage.kur||'null');if(!kurV?.k)kurV=null}catch{} // cache from before 1.1 (no k) is dropped
+// TCMB: per currency, TL for one unit (JPY is quoted per 100): s selling, a buying, e banknote selling
+// codes the central bank lacks (e.g. PLN) are cross-calculated from world rates per dollar: TL per X = TL per USD ÷ X per USD
+const capraz=(k,dunya,f)=>Object.entries(dunya&&typeof dunya==='object'?dunya:{}).filter(([c,r])=>/^[A-Z]{3}$/.test(c)&&r>0&&!k[c]&&c!=='TRY').map(([c,r])=>(k[c]=f(r),c));
+const kurAyir=(xml,ons,ag,dunya)=>{const d=new DOMParser().parseFromString(xml,'text/xml'),k={};
+  for(const c of d.querySelectorAll('Currency[CurrencyCode]')){const u=+c.querySelector('Unit')?.textContent||1,al=t=>+c.querySelector(t)?.textContent/u||0;
+    k[c.getAttribute('CurrencyCode')]={s:al('ForexSelling'),a:al('ForexBuying'),e:al('BanknoteSelling')}}
+  const u=k.USD,w=u?.s>0?capraz(k,dunya,r=>({s:u.s/r,a:u.a/r,e:u.e/r})):[];
+  return u?.s>0?{t:Date.now(),tarih:d.documentElement.getAttribute('Tarih')||'',k,w,ons:ons>0?ons:null,ag:ag>0?ag:null}:null};
+// English: ECB reference rates per euro; dollar values are derived (USD per X = USD per EUR / X per EUR).
+const ecbAyir=(xml,ons,ag,dunya)=>{const d=new DOMParser().parseFromString(xml,'text/xml'),k={EUR:1};
+  for(const c of d.querySelectorAll('Cube[currency]'))k[c.getAttribute('currency')]=+c.getAttribute('rate');
+  const w=k.USD>0?capraz(k,dunya,r=>r*k.USD):[]; // X per EUR = X per USD × USD per EUR
+  return k.USD>0?{t:Date.now(),tarih:d.querySelector('Cube[time]')?.getAttribute('time')||'',ecb:1,k,w,ons:ons>0?ons:null,ag:ag>0?ag:null}:null};
+// TRY as home currency: TCMB (buying / selling / banknote). Any other: ECB + world rates, value of X in home B = (B per EUR) / (X per EUR).
+const kurTR=()=>kurTaban()==='TRY',kurUygun=v=>!!v&&!v.ecb===kurTR(); // cached rates of the other source wait for a new fetch
+// codes typed in the card settings: three letters, no repeats, at most 10, not the home currency
+const kurKodlar=()=>{const b=kurTaban(),l=[...new Set(String(A('kurListe')??'').toUpperCase().split(/[^A-Z]+/).filter(x=>x.length===3&&x!==b))].slice(0,10);return l.length?l:kurVarsListe(b)};
 async function kur(zorla){
   if(!S||!kartAcik('kur'))return;kurCiz();
-  if(!zorla&&kurV&&Date.now()-kurV.t<18e5)return; // 30 dk
-  const r=await api(DIL==='tr'?'/api/kur':'/api/kur_ecb'),v=r.durum!=='ok'?null:typeof r.veri?.tcmb==='string'?kurAyir(r.veri.tcmb,r.veri.ons):typeof r.veri?.ecb==='string'?ecbAyir(r.veri.ecb,r.veri.ons):null;
+  if(!zorla&&kurUygun(kurV)&&Date.now()-kurV.t<18e5)return; // 30 dk
+  const r=await api(kurTR()?'/api/kur':'/api/kur_ecb'),x=r.veri||{},v=r.durum!=='ok'?null:typeof x.tcmb==='string'?kurAyir(x.tcmb,x.ons,x.ag,x.dunya):typeof x.ecb==='string'?ecbAyir(x.ecb,x.ons,x.ag,x.dunya):null;
   kurHata=!v&&(r.durum===AG_YOK?'ag':true);
-  if(v){if(!v.ons&&kurV?.ons)v.ons=kurV.ons;if(!!v.ecb!==!!kurV?.ecb)kurV=null;kurV=v;try{localStorage.kur=JSON.stringify(v)}catch{}} // if gold could not be fetched, the old ounce price stays
+  if(v){if(!!v.ecb!==!!kurV?.ecb)kurV=null;v.ons||=kurV?.ons||null;v.ag||=kurV?.ag||null; // if gold or silver could not be fetched, the old price stays
+    v.dun=kurV&&kurV.tarih!==v.tarih?kurV.k:kurV?.dun||null; // rates of the previous published day, for the change arrow
+    kurV=v;try{localStorage.kur=JSON.stringify(v)}catch{}}
   kurCiz();
 }
 function kurCiz(){
-  if(!kurV||!(kurV.usd>0))return ekYaz('#kur',kurHata==='ag'?agYok():kurHata?L('<p class="m">Kurlar alınamadı. TCMB akışı değişmiş olabilir.</p>','<p class="m">Could not load the rates. The feed may have changed.</p>'):L('<p class="m yuk">Kurlar yükleniyor…</p>','<p class="m yuk">Loading rates…</p>'));
-  const tl=x=>x.toLocaleString(LOC,{minimumFractionDigits:2,maximumFractionDigits:2})+' ₺',sat=(ad,alt,v)=>`<div class="kurS"><span>${ad} <small>${alt}</small></span><b>${v}</b></div>`;
-  if(kurV.ecb){const us=x=>x.toLocaleString(LOC,{style:'currency',currency:'USD',minimumFractionDigits:x<10?4:2});
-    ekYaz('#kur',sat('Euro','EUR → USD',us(kurV.usd))+sat('Pound','GBP → USD',us(kurV.usd/kurV.gbp))+sat('Gold','ounce',kurV.ons?us(kurV.ons):'—'));
-    return $('#kurAlt').textContent=`ECB ${kurV.tarih} reference rate · updated ${oncesi(kurV.t)}${kurHata?' · could not refresh':''}`}
-  ekYaz('#kur',sat(L('Dolar','Dollar'),'USD',tl(kurV.usd))+sat(L('Euro','Euro'),'EUR',tl(kurV.eur))+sat(L('Gram altın','Gold (gram)'),L('hesaplanan','calculated'),kurV.ons?tl(kurV.ons*kurV.usd/31.1035):'—'));
-  $('#kurAlt').textContent=`TCMB ${kurV.tarih}${L(' satış kuru · ',' selling rate · ')}${L(oncesi(kurV.t)+' güncellendi','updated '+oncesi(kurV.t))}${kurHata?L(' · yenilenemedi',' · could not refresh'):''}`;
+  const B=kurTaban(),V=kurUygun(kurV)?kurV:null;
+  if(!V)return ekYaz('#kur',kurHata==='ag'?agYok():kurHata?L('<p class="m">Kurlar alınamadı. Kaynak geçici olarak kapalı ya da değişmiş olabilir.</p>','<p class="m">Could not load the rates. The source may be down or may have changed.</p>'):L('<p class="m yuk">Kurlar yükleniyor…</p>','<p class="m yuk">Loading rates…</p>'));
+  const tr=!V.ecb,k=V.k;
+  if(!tr&&!(k[B]>0)){$('#kurAlt').textContent='';return ekYaz('#kur',`<p class="m">${L('Ana para birimi bulunamadı: ','Home currency not found: ')}${esc(B)}</p>`)}
+  const tur=tr?A('kurTur')||'':'',gram=(A('altinBirim')||ONS0)==='gram',ad=new Intl.DisplayNames([LOC],{type:'currency'}),yok=[];
+  // value of one unit of code c in the home currency; 0 if missing
+  const deg=(k,c)=>!k?.[c]?0:tr?(tur==='al'?k[c].a:tur==='ef'?k[c].e:k[c].s):k[B]>0?k[B]/k[c]:0;
+  const para=x=>{const f=x<.1?6:x<10?4:2;return x.toLocaleString(LOC,{style:'currency',currency:B,minimumFractionDigits:f,maximumFractionDigits:f})};
+  const fark=(c,v)=>{const o=deg(V.dun,c);if(A('kurDegisim')===false||!o||!v)return'';const p=(v-o)/o*100;
+    return ` <small class="kurD" title="${L('önceki güne göre','since the previous day')}">${p>0?'▲':p<0?'▼':'='} ${Math.abs(p).toLocaleString(LOC,{minimumFractionDigits:2,maximumFractionDigits:2})}%</small>`};
+  const sat=(ad,alt,v,f='',s='')=>`<div class="kurS${s}"><span>${ad} <small>${alt}</small></span><b>${v}${f}</b></div>`;
+  let h='',capr=0;for(const c of kurKodlar()){const v=deg(k,c);if(!k[c]){yok.push(c);continue}
+    const cp=V.w?.includes(c);if(cp)capr=1;
+    h+=sat(esc(ad.of(c)),c+' → '+B+(cp?L(' · çapraz',' · cross'):''),v?para(v):'—',fark(c,v))}
+  const usd=tr?k.USD.s:k[B]/k.USD,maden=(o,a)=>sat(a,gram?L('gram · hesaplanan','gram · calculated'):L('ons','ounce'),o?para(o*usd/(gram?31.1035:1)):'—','',' kurAltin'); // usd: home currency per dollar
+  h+=maden(V.ons,L('Altın','Gold'));if(A('gumus'))h+=maden(V.ag,L('Gümüş','Silver'));
+  ekYaz('#kur',h);
+  const eksik=(capr?L(' · çapraz kurlar: ExchangeRate-API',' · cross rates by ExchangeRate-API'):'')+(yok.length?L(' · bulunamadı: ',' · not found: ')+yok.join(', '):''),yenilenmedi=kurHata?L(' · yenilenemedi',' · could not refresh'):'';
+  $('#kurAlt').textContent=(tr?`TCMB ${V.tarih} `+(tur==='al'?L('alış kuru','buying rate'):tur==='ef'?L('efektif satış kuru','banknote selling rate'):L('satış kuru','selling rate'))
+    :`ECB ${V.tarih} `+L('referans kuru','reference rate'))+` · ${L(oncesi(V.t)+' güncellendi','updated '+oncesi(V.t))}${eksik}${yenilenmedi}`;
 }
 // System card: every 3 s while the card is open and the window visible. CPU percent is the difference of two readings: empty on the first read.
 async function sistem(){
@@ -3137,7 +3194,7 @@ addEventListener('pointermove',e=>{
     const f=Math.min(.92,Math.max(.08,(b.hU+e.clientY-b.y)/(b.hU+b.hA))),u=Math.min(8,Math.max(.1,b.top*f)),a=Math.min(8,Math.max(.1,b.top-u));
     S.ayar.kartBoy??={};for(const el of b.ust)S.ayar.kartBoy[kartAd(el)]=+u.toFixed(3);for(const el of b.alt)S.ayar.kartBoy[kartAd(el)]=+a.toFixed(3);
   }
-  b.dy=e.clientY-b.y;b.raf||=requestAnimationFrame(()=>{b.raf=0;boyutla();if(b.ust)minUygula(b)}); // one layout per frame; the card contents are not redrawn
+  b.dy=e.clientY-b.y;b.raf||=requestAnimationFrame(()=>{b.raf=0;const kt=Object.values(KOLON).map(x=>[$(x),$(x).scrollTop]);boyutla();if(b.ust)minUygula(b);for(const [x,t] of kt)x.scrollTop=t}); // a column scrolled down must not jump to the top // one layout per frame; the card contents are not redrawn
 });
 function boyBitir(iptal){
   if(!boyS)return;const b=boyS,[kb0,se0,yo0,km0]=JSON.parse(b.eski);boyS=null;K.classList.remove('boyutlaniyor');
