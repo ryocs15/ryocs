@@ -2,6 +2,14 @@
 
 All releases: [GitHub Releases](https://github.com/ryocs15/ryocs/releases). Your data (`%APPDATA%\RYOCS`) is kept by every update.
 
+## 1.0.7 (2026-11-19)
+
+**Fixed**
+- Currency card: a currency the central bank no longer publishes (e.g. BGN in TCMB) shows as a cross rate instead of "not found".
+- A calendar event that was moved to a later time is reminded again before its new start.
+- The focus timer survives quitting or restarting RYOCS; a round that ended while RYOCS was closed counts on the day it ended.
+- Gmail card: message headers are downloaded once instead of every minute.
+
 ## 1.0.6 (2026-11-19)
 
 **Security**

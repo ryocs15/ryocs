@@ -1097,14 +1097,23 @@ fn mail() -> Result<Value, String> {
     // the ID goes into the URL path: letters/digits only
     let idler: Vec<String> = liste["messages"].as_array().into_iter().flatten().filter_map(|m| m["id"].as_str())
         .filter(|i| !i.is_empty() && i.len() <= 64 && i.bytes().all(|c| c.is_ascii_alphanumeric())).map(String::from).collect();
-    let mailler: Vec<Value> = thread::scope(|k| {
-        let isler: Vec<_> = idler.iter().map(|id| { let auth = &auth; k.spawn(move || {
+    // headers of a message do not change: only new ids are fetched; the memory keeps just the current unread ones
+    static ONBELLEK: LazyLock<Mutex<HashMap<String, Value>>> = LazyLock::new(Default::default);
+    let yeni: Vec<&String> = { let o = kilit(&ONBELLEK); idler.iter().filter(|i| !o.contains_key(*i)).collect() };
+    let gelen: Vec<Value> = thread::scope(|k| {
+        let isler: Vec<_> = yeni.iter().map(|id| { let auth = &auth; k.spawn(move || {
             body(AGENT.get(&format!("{g}/messages/{id}")).query("format", "metadata")
                 .query("metadataHeaders", "From").query("metadataHeaders", "Subject")
                 .query("fields", "id,threadId,internalDate,payload/headers").set("Authorization", auth).call())
         })}).collect();
         isler.into_iter().filter_map(|h| h.join().ok()?.ok()).collect()
     });
+    let mailler: Vec<Value> = {
+        let mut o = kilit(&ONBELLEK);
+        for m in gelen { if let Some(i) = m["id"].as_str() { o.insert(i.into(), m); } }
+        o.retain(|i, _| idler.contains(i));
+        idler.iter().filter_map(|i| o.get(i).cloned()).collect()
+    };
     let baslik = |m: &Value, ad: &str| m["payload"]["headers"].as_array().into_iter().flatten()
         .find(|h| h["name"].as_str().is_some_and(|n| n.eq_ignore_ascii_case(ad))).and_then(|h| h["value"].as_str()).unwrap_or("").to_string();
     let liste: Vec<Value> = mailler.iter().map(|m| json!({

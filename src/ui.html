@@ -1756,7 +1756,7 @@ function hatirlat(){
   if(degisti){ciz();kaydet()}
   if(A('etk')!==false)for(const e of ileriGor()){
     const b=new Date(e.start.dateTime),k=b-simdi;
-    if(k>0&&k<=6e5&&!bildirilen.has(e.id)){bildirilen.add(e.id);bildir(L('Yaklaşan etkinlik','Upcoming event'),`${e.summary||L('(başlıksız)','(untitled)')} · ${saat(b)}`)}
+    if(k>0&&k<=6e5&&!bildirilen.has(e.id+e.start.dateTime)){bildirilen.add(e.id+e.start.dateTime);bildir(L('Yaklaşan etkinlik','Upcoming event'),`${e.summary||L('(başlıksız)','(untitled)')} · ${saat(b)}`)}
   }
   ozet();havaUyar();
 }
@@ -2419,6 +2419,7 @@ $('#aDosya').onchange=async e=>{
 // Focus timer; the end time is stored, so timers slowed down in the background do not drift
 const VARS={calisma:25,mola:5},dk=m=>A(m)||VARS[m],sure=m=>dk(m)*60;
 let O={mod:'calisma',kalan:sure('calisma'),bitis:0};
+try{const o=JSON.parse(localStorage.odakO||'null');if((o?.mod==='calisma'||o?.mod==='mola')&&o.kalan>=0&&o.bitis>=0)O={mod:o.mod,kalan:+o.kalan,bitis:+o.bitis}}catch{}
 function odakSessiz(){return A('rahatsiz')!==false&&O.mod==='calisma'&&O.bitis>Date.now()}
 // mode names: the user's own (card settings) or Work / Break
 const modAd=m=>String(A(m==='calisma'?'calismaAd':'molaAd')||'').trim().slice(0,20)||(m==='calisma'?L('Çalışma','Work'):L('Mola','Break'));
@@ -2429,14 +2430,15 @@ function odakCiz(){
     O.kalan=Math.max(0,Math.round((O.bitis-Date.now())/1000));
     if(!O.kalan){
       const yeni=O.mod==='calisma'?'mola':'calisma';
-      if(O.mod==='calisma'&&S){const g=gunStr(new Date());S.odak[g]=(S.odak[g]||0)+1;(S.odakLog??=[]).push(A('odakNe')?{g,dk:dk('calisma'),ne:A('odakNe')}:{g,dk:dk('calisma')});kaydet();odakIstat()}
+      if(O.mod==='calisma'&&S){const g=gunStr(new Date(O.bitis));S.odak[g]=(S.odak[g]||0)+1;(S.odakLog??=[]).push(A('odakNe')?{g,dk:dk('calisma'),ne:A('odakNe')}:{g,dk:dk('calisma')});kaydet();odakIstat()}
       const hl=$('.halka');hl.classList.add('bitti');hl.onanimationend=()=>hl.classList.remove('bitti'); // tur bitti: halka parlar
       const n=bekleyen.length;
       api('/api/notify',{baslik:L('Odak','Focus'),metin:odakMetin(yeni),metin2:n?`${L('Odak sırasında ','During focus ')}${n}${L(' bildirim: ',' notifications: ')}`+bekleyenYazi():''});
-      O={mod:yeni,kalan:sure(yeni),bitis:A('odakOto')?Date.now()+sure(yeni)*1000:0}; // card setting: the next round starts by itself
+      O={mod:yeni,kalan:sure(yeni),bitis:A('odakOto')&&Date.now()-O.bitis<6e4?Date.now()+sure(yeni)*1000:0}; // card setting: the next round starts by itself (not after RYOCS was closed for a while)
     }
   }
   if(bekleyen.length&&!odakSessiz()){const n=bekleyen.length;api('/api/notify',{baslik:`${L('Odak sırasında ','During focus ')}${n}${L(' bildirim',' notifications')}`,metin:bekleyenYazi()})} // paused/reset/setting turned off
+  const oS=JSON.stringify(O);if(oS!==odakCiz.son){odakCiz.son=oS;try{localStorage.odakO=oS}catch{}} // written only when it changes (not every second while paused)
   $('#sure').textContent=iki(O.kalan/60|0)+':'+iki(O.kalan%60);
   $('#ilerleme').style.strokeDashoffset=289*(1-Math.min(1,O.kalan/sure(O.mod)));
   $('#ilerleme').style.stroke=O.mod==='calisma'?'var(--ye)':'#e9a25b';
@@ -2881,16 +2883,14 @@ const ecbAyir=(xml,ons,ag,dunya)=>{const d=new DOMParser().parseFromString(xml,'
   const w=k.USD>0?capraz(k,dunya,r=>r*k.USD):[]; // X per EUR = X per USD × USD per EUR
   return k.USD>0?{t:Date.now(),tarih:d.querySelector('Cube[time]')?.getAttribute('time')||'',ecb:1,k,w,ons:ons>0?ons:null,ag:ag>0?ag:null}:null};
 // TRY as home currency: TCMB (buying / selling / banknote). Any other: ECB + world rates, value of X in home B = (B per EUR) / (X per EUR).
-// codes the central banks publish themselves (TCMB, ECB); any other code needs the world rates
-const KUR_TCMB='USD AUD DKK EUR GBP CHF SEK CAD KWD NOK SAR JPY BGN RON RUB CNY PKR QAR KRW AZN AED KZT XDR TRY'.split(' '),
-  KUR_ECB='EUR USD JPY CZK DKK GBP HUF PLN RON SEK CHF ISK NOK TRY AUD BRL CAD CNY HKD IDR ILS INR KRW MXN MYR NZD PHP SGD THB ZAR'.split(' ');
 const kurTR=()=>kurTaban()==='TRY',kurUygun=v=>!!v&&!v.ecb===kurTR(); // cached rates of the other source wait for a new fetch
 // codes typed in the card settings: three letters, no repeats, at most 10, not the home currency
 const kurKodlar=()=>{const b=kurTaban(),l=[...new Set(String(A('kurListe')??'').toUpperCase().split(/[^A-Z]+/).filter(x=>x.length===3&&x!==b))].slice(0,10);return l.length?l:kurVarsListe(b)};
 async function kur(zorla){
   if(!S||!kartAcik('kur'))return;kurCiz();
   if(!zorla&&kurUygun(kurV)&&Date.now()-kurV.t<18e5)return; // 30 dk
-  const b=kurTaban(),capr=[...kurKodlar(),b].some(c=>!(kurTR()?KUR_TCMB:KUR_ECB).includes(c)); // a code (or home currency) the bank does not publish: world rates are needed
+  // world rates are needed if a code (or the home currency) was not in the bank's own feed last time, or nothing was fetched yet
+  const b=kurTaban(),son=kurUygun(kurV)?kurV:null,capr=!son||[...kurKodlar(),...kurTR()?[]:[b]].some(c=>!son.k[c]||son.w?.includes(c));
   const r=await api((kurTR()?'/api/kur':'/api/kur_ecb')+`?ag=${A('gumus')?1:0}&dunya=${capr?1:0}`),x=r.veri||{},v=r.durum!=='ok'?null:typeof x.tcmb==='string'?kurAyir(x.tcmb,x.ons,x.ag,x.dunya):typeof x.ecb==='string'?ecbAyir(x.ecb,x.ons,x.ag,x.dunya):null;
   kurHata=!v&&(r.durum===AG_YOK?'ag':true);
   if(v){if(!!v.ecb!==!!kurV?.ecb)kurV=null;v.ons||=kurV?.ons||null;v.ag||=kurV?.ag||null; // if gold or silver could not be fetched, the old price stays
