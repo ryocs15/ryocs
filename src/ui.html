@@ -162,7 +162,7 @@ main{display:grid;grid-template-columns:300px minmax(0,1fr) 310px;gap:14px;min-h
 .ekSat{display:flex;justify-content:space-between;gap:8px;font-size:11px;color:var(--mu);margin-top:5px;white-space:nowrap}
 .ekSat>*{overflow:hidden;text-overflow:ellipsis}
 .bar7{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;height:86px;align-items:end;text-align:center}
-.bar7>span{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:3px;font-size:10px;color:var(--mu)}
+.bar7>span{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:3px;font-size:11px;color:var(--mu)}
 .bar7 i{width:min(70%,18px);min-height:3px;border-radius:4px;background:var(--ye);opacity:.75}
 .bar7>span:last-child i{background:var(--tu);opacity:1}
 .bar7 b{font-weight:500;color:var(--tx)}
@@ -188,7 +188,7 @@ main{display:grid;grid-template-columns:300px minmax(0,1fr) 310px;gap:14px;min-h
 [data-kart=notlar][data-yazi=kucuk] #not{font-size:12px}[data-kart=notlar][data-yazi=buyuk] #not{font-size:16px;line-height:1.55}
 .kaIpucu{margin-top:14px;font-size:12px}
 main [data-kart][hidden]{display:none!important} /* a closed card (the card layout sets display:flex; it must not override hidden) */
-.panel.genis .grid button[data-hf]::after{content:attr(data-hf);position:absolute;top:3px;left:5px;font-size:9px;color:var(--mu);opacity:.8}
+.panel.genis .grid button[data-hf]::after{content:attr(data-hf);position:absolute;top:3px;left:5px;font-size:10px;color:var(--mu)}
 /* Apps: search and most opened (when the card is large) */
 #uygAra{margin-top:14px;flex:none}
 .uyg:not(.buyur) #uygAra{display:none}
@@ -266,7 +266,7 @@ main [data-kart][hidden]{display:none!important} /* a closed card (the card layo
 .pn{display:block;width:100%;flex:none;text-align:left;padding:6px;border-radius:10px;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pn:hover{background:var(--ln)}
 .panoK h2 .btn{margin-left:6px}
-.hbKaynak{align-self:flex-end;color:var(--mu);font-size:10px;margin-top:6px;opacity:.7}
+.hbKaynak{align-self:flex-end;color:var(--mu);font-size:11px;margin-top:6px;opacity:.8}
 /* dragging */
 main [data-kart]>h2,main .head h1,main .clock{cursor:grab}
 .kartYer{border-radius:26px;box-shadow:var(--in);min-height:60px}
@@ -769,7 +769,7 @@ kbd{font:12px Consolas,monospace;padding:2px 6px;border-radius:6px;box-shadow:va
 /* Search results: grouped list below the search box */
 .araSonuc{position:fixed;z-index:40;width:420px;max-height:min(62vh,520px);overflow:auto;padding:8px;border-radius:20px;background:var(--bg);box-shadow:0 18px 44px rgba(0,0,0,.22),var(--up-s);animation:pop .14s var(--yay)}
 :root[data-skin=cam]:not([data-theme=dark]) .araSonuc{background:var(--cam),rgba(246,247,250,.7);backdrop-filter:blur(26px) saturate(1.5)}
-.araSonuc h6{margin:8px 10px 4px;font-size:10.5px;font-weight:500;letter-spacing:1.2px;text-transform:uppercase;color:var(--mu)}
+.araSonuc h6{margin:8px 10px 4px;font-size:11px;font-weight:500;letter-spacing:1.2px;text-transform:uppercase;color:var(--mu)}
 .araSonuc button{display:flex;align-items:center;gap:10px;width:100%;padding:7px 10px;border-radius:12px;background:none;text-align:left;min-width:0}
 .araSonuc button[aria-selected=true]{background:var(--ln)}
 .araSonuc .si{width:22px;height:22px;flex:none;display:grid;place-items:center;border-radius:6px;font-size:14px;font-style:normal}
@@ -814,8 +814,10 @@ function selamYazi(n,d){
   const dk=60e3,gd=new Date(d.sunrise[i]),gb=new Date(d.sunset[i]),ogle=new Date(n).setHours(12,0,0,0);
   return n<gd-60*dk?L('İyi geceler','Good night'):n<Math.max(ogle,gd)?L('Günaydın','Good morning'):n<gb-30*dk?L('Tünaydın','Good afternoon'):n<+gb+180*dk?L('İyi akşamlar','Good evening'):L('İyi geceler','Good night');
 }
-{const n=new Date();let d=null,ad='';try{d=JSON.parse(localStorage.hava||'null')?.v?.daily;ad=localStorage.ad||''}catch{} // splash screen: last known sunrise/sunset
-  document.getElementById('acSelam').textContent=selamAd(selamYazi(n,d),ad);document.getElementById('acTarih').textContent=n.toLocaleDateString(LOC,{day:'numeric',month:'long',weekday:'long'})}
+// splash screen: last known sunrise/sunset (only these times stay in plain localStorage; the name arrives from the encrypted cache a moment later)
+const gunesO=()=>{try{return JSON.parse(localStorage.gunes||'null')}catch{return null}};
+{const n=new Date();
+  document.getElementById('acSelam').textContent=selamAd(selamYazi(n,gunesO()),'');document.getElementById('acTarih').textContent=n.toLocaleDateString(LOC,{day:'numeric',month:'long',weekday:'long'})}
 </script>
 <div class="frame">
   <nav>
@@ -964,10 +966,11 @@ function selamYazi(n,d){
   </section>
   <section class="ayBol" data-b="veri" role="tabpanel" aria-label="Veri" hidden>
   <div class="ar"><label for="aYedekSec">Yedekten geri yükle<small>her gün otomatik, son 14 gün</small></label><div class="grp"><select class="in" id="aYedekSec"></select><button class="btn" id="aGeri">Yükle</button></div></div>
-  <div class="ar"><span>OneDrive ile eşitle<small id="aEsD">kapalı</small></span><div class="grp"><button class="btn" id="aEsCoz" hidden>Çöz…</button><button class="sw" role="switch" id="aEs" aria-checked="false" aria-label="OneDrive ile eşitle"></button></div></div>
+  <div class="ar"><span>Şifreleme<small>veriler bu Windows hesabına kilitli; Windows yeniden kurulursa yalnız dışa aktarılan dosya açılır</small></span></div>
+  <div class="ar"><span>OneDrive ile eşitle<small id="aEsD">kapalı</small></span><div class="grp"><button class="btn" id="aEsCoz" hidden>Çöz…</button><button class="btn" id="aEsPar" hidden>Parola…</button><button class="sw" role="switch" id="aEs" aria-checked="false" aria-label="OneDrive ile eşitle"></button></div></div>
   <div class="ar"><span>Yedek klasörü</span><button class="btn" id="aYedek">Klasörü aç</button></div>
   <div class="ar"><span>Hata kaydı<small>bir sorunu bildirirken işe yarar</small></span><button class="btn" id="aLog">Aç</button></div>
-  <div class="ar"><span>Dışa / içe aktar<small>tüm veriler tek bir JSON dosyasında</small></span><div class="grp"><button class="btn" id="aDis">Dışa aktar</button><button class="btn" id="aIc">İçe aktar</button><input type="file" id="aDosya" accept=".json,application/json" hidden></div></div>
+  <div class="ar"><span>Dışa / içe aktar<small>tüm veriler tek bir JSON dosyasında, şifresiz: güvenli bir yerde sakla</small></span><div class="grp"><button class="btn" id="aDis">Dışa aktar</button><button class="btn" id="aIc">İçe aktar</button><input type="file" id="aDosya" accept=".json,application/json" hidden></div></div>
   </section>
   </div>
 </div></dialog>
@@ -980,7 +983,7 @@ function selamYazi(n,d){
 
 <script>
 // Static HTML text is written in Turkish; in English it is replaced once at startup (exact text and title/aria-label/placeholder/alt). Dynamic text uses L().
-if(DIL!=='tr'){const T={"Dil ve bölge":"Language and region","Uygulama":"App","Efektler":"Effects","Yerleşim":"Layout","Başlangıç ve pencere":"Startup and window","Bildirimler ve güncellemeler":"Notifications and updates","Lav lambası":"Lava lamp","Kar":"Snow","Ateş böceği":"Fireflies","Saat biçimi, haftanın ilk günü, hava birimleri ve resmî tatiller ilgili kartın ayarlarındadır.":"Time format, first day of the week, weather units and public holidays are in the settings of each card.","Hata kaydı":"Error log","bir sorunu bildirirken işe yarar":"useful when reporting a problem","Aç":"Open","Ayarlarda ara":"Search settings","Göster / gizle kısayolu":"Show / hide shortcut","Güncellemeler":"Updates","Şimdi denetle":"Check now","Ay":"Month","Hafta":"Week","Bugün":"Today","Uygulamalar ve oyunlar":"Apps and games","Görevler":"Tasks","Alışkanlıklar":"Habits","Ekle":"Add","Haberler":"News","Hava durumu yükleniyor…":"Loading weather…","Odak":"Focus","Döviz ve altın":"Currency and gold","Sistem":"System","Pano":"Clipboard","Temizle":"Clear","Ayarlar":"Settings","Görünüm":"Appearance","Kartlar":"Cards","Takvim":"Calendar","Genel ve bildirimler":"General and notifications","Hesaplar":"Accounts","Veri":"Data","Temel temalar":"Basic themes","Diğer temalar":"Other themes","Otomatik geçiş":"Automatic switch","gündüz ve gece için iki tema arasında kendiliğinden geçer":"switches between two themes for day and night","Kapalı":"Off","Gün ışığı":"Daylight","Gündüz / gece":"Day / night","otomatik geçişte kullanılan temalar":"themes used by the automatic switch","Cam görünüm":"Glass look","yalnızca açık temada: saydam, parlak yüzeyler":"light themes only: translucent, glossy surfaces","Vurgu rengi":"Accent color","düğmeler, çubuklar, anahtarlar ve odak çerçevesi":"buttons, bars, switches and the focus ring","Arka plan":"Background","kartların arkasında hareketli desen":"animated pattern behind the cards","Yok":"None","Işık":"Light","Kabarcık":"Bubbles","Şerit":"Ribbon","Geometri":"Geometry","Dalga":"Wave","Yıldız":"Stars","Animasyonlar":"Animations","Anahtarla kartı aç ya da kapat; kapatılan kart açılınca eski yerine döner. “Ayarlar” kartın kendi ayarlarını açar (kartta boş bir yere sağ tıklayarak da açılır).":"Turn a card on or off with the switch; a closed card returns to its old place when reopened. “Settings” opens the card's own settings (also by right-clicking an empty spot on the card)","Genel":"General","Uygulama simgeleri":"App icons","Küçük":"Small","Orta":"Medium","Büyük":"Large","Kart yerleşimi":"Card layout","kartları başlıklarından sürükleyerek yerlerini, aralarındaki boşluktan sürükleyerek boyutlarını değiştirebilirsin":"drag cards by their titles to move them, and the gaps between them to resize","Varsayılana dön":"Reset to default","Yerleşim yedekleri":"Layout backups","kartların yeri, boyutu ve açık/kapalı durumu; uygulamadan önceki hâl \"Önceki yerleşim\" olarak saklanır":"card places, sizes and open/closed state; the state before applying is kept as \"Previous layout\"","Kaydet":"Save","Uygula":"Apply","Sil":"Delete","Hava durumu şehri":"Weather city","İkinci saat":"Second clock","saat kartında; aynı saat dilimindeysen Türkiye gösterilir":"on the clock card; if you are in the same time zone, Turkey is shown","Çalışma süresi (dk)":"Work time (min)","Mola süresi (dk)":"Break time (min)","Günlük hedef (tur)":"Daily goal (rounds)","kart büyükken ilerlemesi görünür":"progress shows when the card is large","Etkinlik bildirimi":"Event notification","takvim etkinliğinden 10 dakika önce":"10 minutes before a calendar event","Etkinlik görünümü":"Event look","Türe göre renk ve simge. Tek bir etkinliği değiştirmek için etkinliğe tıklayıp “Renk ve simge”yi seç.":"Color and icon by type. To change a single event, click it and choose “Color and icon”.","Gösterilen takvimler":"Calendars shown","Adın":"Your name","selamlarda sana adınla hitap edilir":"greetings use your name","Profil fotoğrafı":"Profile picture","yoksa adının baş harfi gösterilir":"your initial is shown if empty","Seç":"Choose","Kaldır":"Remove","PIN kilidi":"PIN lock","Windows açılınca başlat":"Start with Windows","tepside, pencere açılmadan başlar":"starts in the tray without opening the window","Göster / gizle":"Show / hide","her yerden":"from anywhere","Kapat düğmesi":"Close button","RYOCS tepside çalışmaya devam eder; çıkmak için simgeye sağ tıklayın":"RYOCS keeps running in the tray; right-click the icon to exit","Sabah özeti":"Morning summary","günün ilk açılışında görevler, etkinlikler ve hava":"tasks, events and weather on the first open of the day","Kısayollar":"Shortcuts","Ctrl+F ara · Ctrl+N yeni öğe · Ctrl+, ayarlar · F5 yenile":"Ctrl+F search · Ctrl+N new item · Ctrl+, settings · F5 refresh","Göreve çift tık: düzenle · Sağ tık: menü · Alt+↑/↓: görevi taşı":"Task double-click: edit · Right-click: menu · Alt+↑/↓: move task","Notlarda Ctrl+Enter: yapılacak kutusu ekle / işaretle":"In notes Ctrl+Enter: add / tick a checkbox","Google Takvim":"Google Calendar","Kimlikler":"Credentials","Bağla":"Connect","Gelişmiş":"Advanced","kimlikleri config.json dosyasında elle düzenle":"edit the credentials in config.json by hand","Dosyayı aç":"Open file","Yedekten geri yükle":"Restore from backup","her gün otomatik, son 14 gün":"automatic every day, last 14 days","Yükle":"Load","OneDrive ile eşitle":"Sync with OneDrive","kapalı":"off","Çöz…":"Resolve…","Yedek klasörü":"Backup folder","Klasörü aç":"Open folder","Dışa / içe aktar":"Export / import","tüm veriler tek bir JSON dosyasında":"all data in a single JSON file","Dışa aktar":"Export","İçe aktar":"Import","Simge durumuna küçült":"Minimize","Önceki boyutuna getir":"Restore down","Kapat (tepside çalışmaya devam eder)":"Close (keeps running in the tray)","Yenile":"Refresh","Yenile (F5)":"Refresh (F5)","Profil":"Profile","Hızlı bağlantılar":"Quick links","Ara ya da komut yaz (Ctrl+F)":"Search or type a command (Ctrl+F)","Uygulamalar, görevler, notlar, etkinlikler, bağlantılar ve komutlar":"Apps, tasks, notes, events, links and commands","Ara":"Search","Ayarlar (Ctrl+,)":"Settings (Ctrl+,)","Saat":"Clock","Takvim görünümü":"Calendar view","Bugüne dön":"Back to today","Önceki":"Previous","Sonraki":"Next","Uygulama ekle":"Add app","Uygulama ya da oyun ekle":"Add an app or game","Uygulama ara…  Enter: ilkini aç":"Search apps…  Enter: open the first","Uygulama ara":"Search apps","Yapılacaklar ve alışkanlıklar":"Tasks and habits","Liste":"List","Süzgeci kaldır":"Remove filter","Liste seçenekleri":"List options","Yeni görev (Ctrl+N)":"New task (Ctrl+N)","Yeni görev":"New task","Hatırlatma zamanı ekle":"Add a reminder time","Hatırlatma zamanı":"Reminder time","Notlar":"Notes","Not listesi":"Note list","Aklındakini yaz…  Ctrl+Enter: yapılacak kutusu":"Write what's on your mind…  Ctrl+Enter: checkbox","Not":"Note","Haberleri yenile":"Refresh news","Haber kategorisi":"News category","Hava durumu":"Weather","Ses düzeyi":"Volume","Başlat":"Start","Sıfırla":"Reset","Mailleri yenile":"Refresh mail","Pano geçmişi":"Clipboard history","Geçmişi temizle":"Clear history","Ayar kategorileri":"Settings categories","Kapat":"Close","Kapat (Esc)":"Close (Esc)","Otomatik tema geçişi":"Automatic theme switch","Gündüz teması":"Day theme","Gece teması":"Night theme","Arka plan animasyonu":"Background animation","Uygulama simgelerinin boyutu":"App icon size","Kayıtlı yerleşim":"Saved layout","Etkinlikten 10 dakika önce bildir":"Notify 10 minutes before events","Ad":"Name","Kurulum adımları ve istemci kimliği":"Setup steps and client ID"},c=v=>{const t=v.trim();return T[t]?v.replace(t,T[t]):v};
+if(DIL!=='tr'){const T={"Dil ve bölge":"Language and region","Uygulama":"App","Efektler":"Effects","Yerleşim":"Layout","Başlangıç ve pencere":"Startup and window","Bildirimler ve güncellemeler":"Notifications and updates","Lav lambası":"Lava lamp","Kar":"Snow","Ateş böceği":"Fireflies","Saat biçimi, haftanın ilk günü, hava birimleri ve resmî tatiller ilgili kartın ayarlarındadır.":"Time format, first day of the week, weather units and public holidays are in the settings of each card.","Hata kaydı":"Error log","bir sorunu bildirirken işe yarar":"useful when reporting a problem","Aç":"Open","Ayarlarda ara":"Search settings","Göster / gizle kısayolu":"Show / hide shortcut","Güncellemeler":"Updates","Şimdi denetle":"Check now","Ay":"Month","Hafta":"Week","Bugün":"Today","Uygulamalar ve oyunlar":"Apps and games","Görevler":"Tasks","Alışkanlıklar":"Habits","Ekle":"Add","Haberler":"News","Hava durumu yükleniyor…":"Loading weather…","Odak":"Focus","Döviz ve altın":"Currency and gold","Sistem":"System","Pano":"Clipboard","Temizle":"Clear","Ayarlar":"Settings","Görünüm":"Appearance","Kartlar":"Cards","Takvim":"Calendar","Genel ve bildirimler":"General and notifications","Hesaplar":"Accounts","Veri":"Data","Temel temalar":"Basic themes","Diğer temalar":"Other themes","Otomatik geçiş":"Automatic switch","gündüz ve gece için iki tema arasında kendiliğinden geçer":"switches between two themes for day and night","Kapalı":"Off","Gün ışığı":"Daylight","Gündüz / gece":"Day / night","otomatik geçişte kullanılan temalar":"themes used by the automatic switch","Cam görünüm":"Glass look","yalnızca açık temada: saydam, parlak yüzeyler":"light themes only: translucent, glossy surfaces","Vurgu rengi":"Accent color","düğmeler, çubuklar, anahtarlar ve odak çerçevesi":"buttons, bars, switches and the focus ring","Arka plan":"Background","kartların arkasında hareketli desen":"animated pattern behind the cards","Yok":"None","Işık":"Light","Kabarcık":"Bubbles","Şerit":"Ribbon","Geometri":"Geometry","Dalga":"Wave","Yıldız":"Stars","Animasyonlar":"Animations","Anahtarla kartı aç ya da kapat; kapatılan kart açılınca eski yerine döner. “Ayarlar” kartın kendi ayarlarını açar (kartta boş bir yere sağ tıklayarak da açılır).":"Turn a card on or off with the switch; a closed card returns to its old place when reopened. “Settings” opens the card's own settings (also by right-clicking an empty spot on the card)","Genel":"General","Uygulama simgeleri":"App icons","Küçük":"Small","Orta":"Medium","Büyük":"Large","Kart yerleşimi":"Card layout","kartları başlıklarından sürükleyerek yerlerini, aralarındaki boşluktan sürükleyerek boyutlarını değiştirebilirsin":"drag cards by their titles to move them, and the gaps between them to resize","Varsayılana dön":"Reset to default","Yerleşim yedekleri":"Layout backups","kartların yeri, boyutu ve açık/kapalı durumu; uygulamadan önceki hâl \"Önceki yerleşim\" olarak saklanır":"card places, sizes and open/closed state; the state before applying is kept as \"Previous layout\"","Kaydet":"Save","Uygula":"Apply","Sil":"Delete","Hava durumu şehri":"Weather city","İkinci saat":"Second clock","saat kartında; aynı saat dilimindeysen Türkiye gösterilir":"on the clock card; if you are in the same time zone, Turkey is shown","Çalışma süresi (dk)":"Work time (min)","Mola süresi (dk)":"Break time (min)","Günlük hedef (tur)":"Daily goal (rounds)","kart büyükken ilerlemesi görünür":"progress shows when the card is large","Etkinlik bildirimi":"Event notification","takvim etkinliğinden 10 dakika önce":"10 minutes before a calendar event","Etkinlik görünümü":"Event look","Türe göre renk ve simge. Tek bir etkinliği değiştirmek için etkinliğe tıklayıp “Renk ve simge”yi seç.":"Color and icon by type. To change a single event, click it and choose “Color and icon”.","Gösterilen takvimler":"Calendars shown","Adın":"Your name","selamlarda sana adınla hitap edilir":"greetings use your name","Profil fotoğrafı":"Profile picture","yoksa adının baş harfi gösterilir":"your initial is shown if empty","Seç":"Choose","Kaldır":"Remove","PIN kilidi":"PIN lock","Windows açılınca başlat":"Start with Windows","tepside, pencere açılmadan başlar":"starts in the tray without opening the window","Göster / gizle":"Show / hide","her yerden":"from anywhere","Kapat düğmesi":"Close button","RYOCS tepside çalışmaya devam eder; çıkmak için simgeye sağ tıklayın":"RYOCS keeps running in the tray; right-click the icon to exit","Sabah özeti":"Morning summary","günün ilk açılışında görevler, etkinlikler ve hava":"tasks, events and weather on the first open of the day","Kısayollar":"Shortcuts","Ctrl+F ara · Ctrl+N yeni öğe · Ctrl+, ayarlar · F5 yenile":"Ctrl+F search · Ctrl+N new item · Ctrl+, settings · F5 refresh","Göreve çift tık: düzenle · Sağ tık: menü · Alt+↑/↓: görevi taşı":"Task double-click: edit · Right-click: menu · Alt+↑/↓: move task","Notlarda Ctrl+Enter: yapılacak kutusu ekle / işaretle":"In notes Ctrl+Enter: add / tick a checkbox","Google Takvim":"Google Calendar","Kimlikler":"Credentials","Bağla":"Connect","Gelişmiş":"Advanced","kimlikleri config.json dosyasında elle düzenle":"edit the credentials in config.json by hand","Dosyayı aç":"Open file","Yedekten geri yükle":"Restore from backup","her gün otomatik, son 14 gün":"automatic every day, last 14 days","Yükle":"Load","OneDrive ile eşitle":"Sync with OneDrive","kapalı":"off","Çöz…":"Resolve…","Yedek klasörü":"Backup folder","Klasörü aç":"Open folder","Dışa / içe aktar":"Export / import","tüm veriler tek bir JSON dosyasında, şifresiz: güvenli bir yerde sakla":"all data in a single JSON file, not encrypted: keep it somewhere safe","Şifreleme":"Encryption","veriler bu Windows hesabına kilitli; Windows yeniden kurulursa yalnız dışa aktarılan dosya açılır":"the data is locked to this Windows account; after a Windows reinstall only an exported file opens","Parola…":"Password…","Dışa aktar":"Export","İçe aktar":"Import","Simge durumuna küçült":"Minimize","Önceki boyutuna getir":"Restore down","Kapat (tepside çalışmaya devam eder)":"Close (keeps running in the tray)","Yenile":"Refresh","Yenile (F5)":"Refresh (F5)","Profil":"Profile","Hızlı bağlantılar":"Quick links","Ara ya da komut yaz (Ctrl+F)":"Search or type a command (Ctrl+F)","Uygulamalar, görevler, notlar, etkinlikler, bağlantılar ve komutlar":"Apps, tasks, notes, events, links and commands","Ara":"Search","Ayarlar (Ctrl+,)":"Settings (Ctrl+,)","Saat":"Clock","Takvim görünümü":"Calendar view","Bugüne dön":"Back to today","Önceki":"Previous","Sonraki":"Next","Uygulama ekle":"Add app","Uygulama ya da oyun ekle":"Add an app or game","Uygulama ara…  Enter: ilkini aç":"Search apps…  Enter: open the first","Uygulama ara":"Search apps","Yapılacaklar ve alışkanlıklar":"Tasks and habits","Liste":"List","Süzgeci kaldır":"Remove filter","Liste seçenekleri":"List options","Yeni görev (Ctrl+N)":"New task (Ctrl+N)","Yeni görev":"New task","Hatırlatma zamanı ekle":"Add a reminder time","Hatırlatma zamanı":"Reminder time","Notlar":"Notes","Not listesi":"Note list","Aklındakini yaz…  Ctrl+Enter: yapılacak kutusu":"Write what's on your mind…  Ctrl+Enter: checkbox","Not":"Note","Haberleri yenile":"Refresh news","Haber kategorisi":"News category","Hava durumu":"Weather","Ses düzeyi":"Volume","Başlat":"Start","Sıfırla":"Reset","Mailleri yenile":"Refresh mail","Pano geçmişi":"Clipboard history","Geçmişi temizle":"Clear history","Ayar kategorileri":"Settings categories","Kapat":"Close","Kapat (Esc)":"Close (Esc)","Otomatik tema geçişi":"Automatic theme switch","Gündüz teması":"Day theme","Gece teması":"Night theme","Arka plan animasyonu":"Background animation","Uygulama simgelerinin boyutu":"App icon size","Kayıtlı yerleşim":"Saved layout","Etkinlikten 10 dakika önce bildir":"Notify 10 minutes before events","Ad":"Name","Kurulum adımları ve istemci kimliği":"Setup steps and client ID"},c=v=>{const t=v.trim();return T[t]?v.replace(t,T[t]):v};
   for(const w=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT),_=0;w.nextNode();)if(w.currentNode.nodeValue.trim())w.currentNode.nodeValue=c(w.currentNode.nodeValue);
   for(const e of document.querySelectorAll('[title],[aria-label],[placeholder],[alt]'))for(const k of ['title','aria-label','placeholder','alt'])if(e.hasAttribute(k))e.setAttribute(k,c(e.getAttribute(k)));}
 // the window is shown at once (on hidden start Rust does not show it): the user sees the splash screen in the first frame
@@ -1020,9 +1023,26 @@ async function api(p,b){
   try{const s=b===undefined?null:JSON.stringify(b);return await (await fetch(p,s===null?{headers}:{method:'POST',headers,body:s,keepalive:s.length<30000})).json()}
   catch(e){return{durum:L('Sunucuya ulaşılamadı','Could not reach the server')}}
 }
-// Do not disturb: while a focus work round runs, notifications are held and arrive as one notification when the round ends or stops (localStorage: if the app closes, they arrive at the next start)
-let bekleyen=[];try{bekleyen=JSON.parse(localStorage.bekleyen||'[]');if(!Array.isArray(bekleyen))bekleyen=[]}catch{bekleyen=[]}
-const bekSakla=()=>{try{bekleyen.length?localStorage.bekleyen=JSON.stringify(bekleyen.slice(-50)):localStorage.removeItem('bekleyen')}catch{}};
+// Do not disturb: while a focus work round runs, notifications are held and arrive as one notification when the round ends or stops (kept in the cache: if the app closes, they arrive at the next start)
+let bekleyen=[];
+const bekSakla=()=>onbSakla();
+// Calendar events and held notifications are cached for a fast start in RYOCS's DPAPI-encrypted onbellek.json, not in localStorage (plain text on disk)
+// Weather (with the place and its coordinates), the last Spotify track and the user's name are kept there too.
+let onbT=0,havaO=null,spO=null,adO='';
+const onbSakla=()=>{onbT||=setTimeout(()=>{onbT=0;api('/api/onbellek',{ileri,tCache:[...tCache].slice(-6).map(([k,v])=>[k,v.r]),bekleyen:bekleyen.slice(-50),hava:havaO,sp:spO,ad:adO})},500)}; // at most one write per 0.5 s, with the state at that moment
+async function onbYukle(){
+  const r=await api('/api/onbellek');const o=r.durum==='ok'&&r.veri||{};
+  try{ // older versions kept these in localStorage (plain text on disk): moved once, then removed from there
+    for(const k of ['ileri','tCache','bekleyen','hava','sp','ad'])if(localStorage[k]!==undefined){if(o[k]==null)o[k]=k==='ad'?localStorage[k]:JSON.parse(localStorage[k]);localStorage.removeItem(k)}
+  }catch{}
+  if(o.hava?.v)havaO=o.hava;
+  if(o.sp?.veri){spO=o.sp;if(!spSon){const s=structuredClone(o.sp);s.veri.is_playing=false;spCiz(s)}} // the last track shows without waiting
+  if(typeof o.ad==='string'&&!adO){adO=o.ad;const e=$('#acSelam');if(e&&adO)e.textContent=selamAd(selamYazi(new Date(),gunesO()),adO)} // splash greeting with the name
+  if(Array.isArray(o.ileri))ileri=o.ileri;
+  if(Array.isArray(o.tCache))for(const [k,v] of o.tCache)if(!tCache.has(k))tCache.set(k,{t:0,r:v});
+  if(Array.isArray(o.bekleyen))bekleyen=[...o.bekleyen.filter(x=>typeof x==='string'),...bekleyen];
+  if(r.durum==='ok')onbSakla();
+}
 const bildir=(baslik,metin,metin2)=>odakSessiz()?(bekleyen.push(baslik+': '+metin),bekSakla(),Promise.resolve({durum:'ok'})):api('/api/notify',{baslik,metin,metin2});
 const bekleyenYazi=()=>{const b=bekleyen;bekleyen=[];bekSakla();return b.length>2?b.slice(0,2).join(' · ')+`${L(' ve ',' and ')}${b.length-2}${L(' bildirim daha',' more notifications')}`:b.join(' · ')};
 // UI errors are written to %APPDATA%\RYOCS\hata.log (at most 20 per session)
@@ -1057,6 +1077,7 @@ const tekCoz=m=>{const g=[...new Set(String(m).toLocaleLowerCase(LOC).split(/[\s
 // Shared "connect" state of service cards; if the status is not ok, fills the card and returns true.
 // Offline: a plain message; cards marked .ag refresh by themselves when the connection is back (polling below)
 const AG_YOK='No internet connection';
+const tekrarB=()=>L('<button class="btn k" onclick="hepsi()">Tekrar dene</button>','<button class="btn k" onclick="hepsi()">Try again</button>');
 const agYok=()=>L('<p class="m ag">İnternet bağlantısı yok. Bağlantı gelince kendiliğinden yenilenecek.</p>','<p class="m ag">No internet connection. It will refresh automatically when the connection is back.</p>');
 function baglan(el,r,ad,p){
   if(r.durum==='ok')return false;
@@ -1064,7 +1085,7 @@ function baglan(el,r,ad,p){
     ?`<div><p class="m">${ad}${L(' henüz bağlanmadı. Bir kerelik kurulum birkaç dakika sürer.</p><button class="btn ana" onclick="kurulum(\'',' is not connected yet. The one-time setup takes a few minutes.</p><button class="btn ana" onclick="kurulum(\'')}${p}${L('\')">Bağla</button></div>','\')">Connect</button></div>')}`
     :r.durum==='bagli_degil'
     ?`<div><p class="m">${ad}${L(' bağlantısı yok ya da süresi doldu.</p><button class="btn ana" onclick="bagla(\'',' connection is missing or has expired.</p><button class="btn ana" onclick="bagla(\'')}${p}${L('\')">Yeniden bağla</button></div>','\')">Reconnect</button></div>')}`
-    :r.durum===AG_YOK?agYok():`<p class="m">${esc(r.durum).slice(0,300)}</p>`;
+    :r.durum===AG_YOK?agYok():`<div><p class="m">${esc(r.durum).slice(0,300)}</p>${tekrarB()}</div>`;
   return true;
 }
 
@@ -1274,7 +1295,6 @@ function takvimEk(){
 
 // Top panel and clock card: events of the next 6 months (independent of the month shown)
 let ileri=[],ileriT=0,sonGuncel=0,ustSon='';
-try{const o=JSON.parse(localStorage.ileri||'null');if(o)ileri=o}catch{}
 async function ileriAl(zorla){
   if(!zorla&&Date.now()-ileriT<6e5)return;
   const b=new Date();b.setHours(0,0,0,0);const s=new Date(b);s.setDate(s.getDate()+183);
@@ -1282,7 +1302,7 @@ async function ileriAl(zorla){
   takvimDenendi=true;
   if(r.durum!=='ok'){if(r.durum==='kimlik_yok'||r.durum==='bagli_degil'){ileri=[];ileriT=0}return}
   ileriT=Date.now();ileri=r.veri.items||[];
-  try{localStorage.ileri=JSON.stringify(ileri)}catch{}
+  onbSakla();
   takvimEk();
 }
 const SAAT2={'':L('Kapalı','Off'),'America/Los_Angeles':'Los Angeles','America/Denver':'Denver','America/Chicago':L('Şikago','Chicago'),'America/Mexico_City':L('Meksiko','Mexico City'),'America/New_York':'New York','America/Toronto':'Toronto','America/Sao_Paulo':'São Paulo','America/Argentina/Buenos_Aires':'Buenos Aires','UTC':'UTC','Europe/London':L('Londra','London'),'Africa/Lagos':'Lagos','Europe/Paris':'Paris','Europe/Berlin':'Berlin','Europe/Amsterdam':'Amsterdam','Europe/Rome':L('Roma','Rome'),'Europe/Madrid':'Madrid','Europe/Warsaw':L('Varşova','Warsaw'),'Europe/Athens':L('Atina','Athens'),'Africa/Cairo':L('Kahire','Cairo'),'Africa/Johannesburg':'Johannesburg','Europe/Kiev':L('Kiev','Kyiv'),'Europe/Istanbul':L('Türkiye','Turkey'),'Europe/Moscow':L('Moskova','Moscow'),'Asia/Tehran':L('Tahran','Tehran'),'Asia/Dubai':'Dubai','Asia/Baku':L('Bakü','Baku'),'Asia/Karachi':L('Karaçi','Karachi'),'Asia/Kolkata':L('Hindistan','India'),'Asia/Bangkok':'Bangkok','Asia/Singapore':L('Singapur','Singapore'),'Asia/Shanghai':L('Pekin','Beijing'),'Asia/Hong_Kong':'Hong Kong','Asia/Seoul':L('Seul','Seoul'),'Asia/Tokyo':'Tokyo','Australia/Sydney':L('Sidney','Sydney'),'Pacific/Auckland':'Auckland'};
@@ -1459,9 +1479,9 @@ $('#hava').onclick=async e=>{
   const v=e.target.dataset.hg;if(v===undefined||!S)return;S.ayar.havaGun=!!v;kaydet();havaCiz()};
 async function hava(){
   // at startup the last forecast (if newer than 12 h) is drawn without waiting and updated when the network answers
-  if(!havaV)try{const o=JSON.parse(localStorage.hava||'null');if(o&&Date.now()-o.t<432e5&&(o.v?.birim==='f')===FAH()){havaV=o.v;havaCiz()}}catch{} // a cache in the other unit is not drawn
+  if(!havaV){const o=havaO;if(o&&Date.now()-o.t<432e5&&(o.v?.birim==='f')===FAH()){havaV=o.v;havaCiz()}} // a cache in the other unit is not drawn
   const r=await api('/api/weather'+birimQ(1));havaDenendi=true;
-  if(r.durum==='ok'){havaV=r.veri;try{localStorage.hava=JSON.stringify({t:Date.now(),v:r.veri})}catch{}havaCiz();return havaDiger()}
+  if(r.durum==='ok'){havaV=r.veri;havaO={t:Date.now(),v:r.veri};onbSakla();const d=r.veri.daily;try{localStorage.gunes=JSON.stringify({time:d?.time,sunrise:d?.sunrise,sunset:d?.sunset})}catch{}havaCiz();return havaDiger()}
   if(havaV)return; // network error: keep the last known forecast
   const h=`${L('<h2>Hava durumu</h2>','<h2>Weather</h2>')}${r.durum===AG_YOK?agYok():`<p class="m">${esc(r.durum).slice(0,200)}</p>`}`;havaSerit='';
   if(h!==havaSon)$('#hava').innerHTML=havaSon=h;
@@ -2237,7 +2257,7 @@ async function sehirKaydet(sehir){
 }
 // the card updates itself when a value changes
 const KART_SONRA={saatBicim:()=>{ustSon='';tick();ciz();havaSerit='';havaCiz();$('#grid').dataset.ay='';takvim()},haftaBasi:()=>{secili=null;$('#grid').dataset.ay='';takvim()},
-  birim:()=>{havaC={};try{localStorage.removeItem('hava')}catch{}hava()},tatil:()=>takvimYenile(),saatModel:()=>{saatYuz();tick()},saniye:()=>saatYuz(),saat2:()=>{ustSon='';ustCiz()},gorunum:v=>{gorunum=v;secili=null;takvim()},
+  birim:()=>{havaC={};havaO=null;onbSakla();hava()},tatil:()=>takvimYenile(),saatModel:()=>{saatYuz();tick()},saniye:()=>saatYuz(),saat2:()=>{ustSon='';ustCiz()},gorunum:v=>{gorunum=v;secili=null;takvim()},
   uygBoyut:()=>ayarUygula(),bitenGizle:()=>ciz(),notYazi:()=>kartAyarUygula(),havaGun:()=>havaCiz(),hedef:()=>odakIstat(),haberKat:()=>{$('#haberler').scrollTop=0;haber()},haberKelime:()=>haberCiz(),kurTaban:()=>kur(true),kurListe:()=>{kurCiz();if(kurKodlar().some(c=>kurV&&!kurV.k[c]))kur(true)},kurTur:()=>kurCiz(),altinBirim:()=>kurCiz(),gumus:v=>v?kur(true):kurCiz(),kurDegisim:()=>kurCiz(),
   calisma:()=>{if(!O.bitis)O={mod:'calisma',kalan:sure('calisma'),bitis:0};odakCiz()},mola:()=>{if(!O.bitis)O={mod:'calisma',kalan:sure('calisma'),bitis:0};odakCiz()}};
 function kartAyar(k){
@@ -2393,7 +2413,7 @@ $('#aLog').onclick=()=>api('/api/log/open',{});
 $('#aYedek').onclick=async()=>{await kaydetSimdi();api('/api/backups',{})};
 $('#aDis').onclick=async()=>{
   await kaydetSimdi();const r=await api('/api/export',{});
-  tost(r.durum==='ok'?L('İndirilenler klasörüne kaydedildi','Saved to the Downloads folder'):String(r.durum).slice(0,120));
+  tost(r.durum==='ok'?L('İndirilenler klasörüne kaydedildi (şifresiz)','Saved to the Downloads folder (not encrypted)'):String(r.durum).slice(0,120));
 };
 // Operations that replace all data: the current state is saved first, then the page reloads
 async function veriDegistir(yol,govde){
@@ -2418,8 +2438,8 @@ $('#aDosya').onchange=async e=>{
 
 // Focus timer; the end time is stored, so timers slowed down in the background do not drift
 const VARS={calisma:25,mola:5},dk=m=>A(m)||VARS[m],sure=m=>dk(m)*60;
-let O={mod:'calisma',kalan:sure('calisma'),bitis:0};
-try{const o=JSON.parse(localStorage.odakO||'null');if((o?.mod==='calisma'||o?.mod==='mola')&&o.kalan>=0&&o.bitis>=0)O={mod:o.mod,kalan:+o.kalan,bitis:+o.bitis}}catch{}
+let O={mod:'calisma',kalan:sure('calisma'),bitis:0},odakGeri=false;
+try{const o=JSON.parse(localStorage.odakO||'null');if((o?.mod==='calisma'||o?.mod==='mola')&&o.kalan>=0&&o.bitis>=0){O={mod:o.mod,kalan:+o.kalan,bitis:+o.bitis};odakGeri=true}}catch{}
 function odakSessiz(){return A('rahatsiz')!==false&&O.mod==='calisma'&&O.bitis>Date.now()}
 // mode names: the user's own (card settings) or Work / Break
 const modAd=m=>String(A(m==='calisma'?'calismaAd':'molaAd')||'').trim().slice(0,20)||(m==='calisma'?L('Çalışma','Work'):L('Mola','Break'));
@@ -2718,8 +2738,7 @@ $('#olay').addEventListener('keydown',e=>{
 // Calendar cache: a known period is drawn at once while navigating and refreshed in the background if older than 1 minute.
 // Recent periods are kept on disk too: at startup and on a slow network the calendar shows without waiting (t:0 = refresh now)
 const tCache=new Map(),tAnahtar=(b,s)=>b.getTime()+'|'+s.getTime();
-try{for(const[k,r]of JSON.parse(localStorage.tCache||'[]'))tCache.set(k,{t:0,r})}catch{}
-const tSakla=()=>{try{localStorage.tCache=JSON.stringify([...tCache].slice(-6).map(([k,v])=>[k,v.r]))}catch{}};
+const tSakla=()=>onbSakla();
 async function takvimAl(bas,son,zorla){
   const k=tAnahtar(bas,son),c=tCache.get(k);
   if(c&&!zorla&&Date.now()-c.t<6e4)return c.r;
@@ -2797,7 +2816,7 @@ async function spotify(hata){
   if(spMesgul&&hata===undefined)return; // a slow response must not undo the optimistic view of a command given meanwhile
   if(r.durum===AG_YOK&&spPos&&hata===undefined){spPos.on=false;return} // offline: keep the last track in its paused state
   spCiz(r,hata);
-  if(r.durum==='ok')try{localStorage.sp=JSON.stringify(r)}catch{}
+  if(r.durum==='ok'&&r.veri?.item?.id!==spO?.veri?.item?.id){spO=r;onbSakla()} // written when the track changes, not every 5 s
 }
 function spCiz(r,hata){
   const el=$('#sp');
@@ -2842,7 +2861,7 @@ async function haber(zorla){
     const zt=x=>Date.parse(x.t)||0;l.sort((a,b)=>zt(b)-zt(a));
     haberT[k]=Date.now();haberV[k]=l.slice(0,30);
     try{localStorage['haber_'+k]=JSON.stringify(haberV[k]);localStorage.hbT=JSON.stringify(haberT)}catch{}
-  }else if(!haberV[k])return ekYaz('#haberler',r.durum===AG_YOK?agYok():`${L('<p class="m">Haberler alınamadı. ','<p class="m">Could not load the news. ')}${hKaynak(k)}${L(' akışı değişmiş olabilir.</p>',' feed may have changed.</p>')}`);
+  }else if(!haberV[k])return ekYaz('#haberler',r.durum===AG_YOK?agYok():`${L('<p class="m">Haberler alınamadı. ','<p class="m">Could not load the news. ')}${hKaynak(k)}${L(' akışı değişmiş olabilir.</p>',' feed may have changed.</p>')}${tekrarB()}`);
   haberCiz();
 }
 // tr-TR lowercasing: İ→i, I→ı; "MAGAZİN" matches "magazin"
@@ -2900,7 +2919,7 @@ async function kur(zorla){
 }
 function kurCiz(){
   const B=kurTaban(),V=kurUygun(kurV)?kurV:null;
-  if(!V)return ekYaz('#kur',kurHata==='ag'?agYok():kurHata?L('<p class="m">Kurlar alınamadı. Kaynak geçici olarak kapalı ya da değişmiş olabilir.</p>','<p class="m">Could not load the rates. The source may be down or may have changed.</p>'):L('<p class="m yuk">Kurlar yükleniyor…</p>','<p class="m yuk">Loading rates…</p>'));
+  if(!V)return ekYaz('#kur',kurHata==='ag'?agYok():kurHata?L('<p class="m">Kurlar alınamadı. Kaynak geçici olarak kapalı ya da değişmiş olabilir.</p>','<p class="m">Could not load the rates. The source may be down or may have changed.</p>')+tekrarB():L('<p class="m yuk">Kurlar yükleniyor…</p>','<p class="m yuk">Loading rates…</p>'));
   const tr=!V.ecb,k=V.k;
   if(!tr&&!(k[B]>0)){$('#kurAlt').textContent='';return ekYaz('#kur',`<p class="m">${L('Ana para birimi bulunamadı: ','Home currency not found: ')}${esc(B)}</p>`)}
   const tur=tr?A('kurTur')||'':'',gram=(A('altinBirim')||ONS0)==='gram',ad=new Intl.DisplayNames([LOC],{type:'currency'}),yok=[];
@@ -2999,12 +3018,13 @@ $('#aYerSilB').onclick=()=>{const l=yerListe(),i=+$('#aYerSec').value;if(!l[i])r
 let esDurum='';
 function esitleYaz(r){
   const v=r.durum==='ok'&&r.veri?r.veri:{durum:'hata'};esDurum=v.durum;
-  $('#aEs').setAttribute('aria-checked',!!v.acik);$('#aEsCoz').hidden=v.durum!=='catisma';
-  $('#aEsD').textContent={kapali:L('kapalı','off')+(v.klasor?' · '+v.klasor:''),ok:L('açık · ','on · ')+v.klasor+'\\RYOCS',guncellendi:L('açık · ','on · ')+v.klasor+'\\RYOCS',uzak_yeni:L('OneDrive\'da daha yeni veri var; RYOCS yeniden açılınca alınır','OneDrive has newer data; it will be loaded when RYOCS restarts'),
+  $('#aEs').setAttribute('aria-checked',!!v.acik);$('#aEsCoz').hidden=v.durum!=='catisma';$('#aEsPar').hidden=!v.acik;
+  const sif=v.parola?L(' · parolayla şifreli',' · password-encrypted'):L(' · kopya şifresiz (Parola…)',' · copy not encrypted (Password…)');
+  $('#aEsD').textContent={kapali:L('kapalı','off')+(v.klasor?' · '+v.klasor:''),ok:L('açık · ','on · ')+v.klasor+'\\RYOCS'+sif,guncellendi:L('açık · ','on · ')+v.klasor+'\\RYOCS'+sif,parola:L('OneDrive kopyası parolalı: bu bilgisayarda parolayı gir','The OneDrive copy has a password: enter it on this computer'),uzak_yeni:L('OneDrive\'da daha yeni veri var; RYOCS yeniden açılınca alınır','OneDrive has newer data; it will be loaded when RYOCS restarts'),
     klasor_yok:L('OneDrive klasörü bulunamadı','OneDrive folder not found'),catisma:L('iki bilgisayarda farklı değişiklik var: eşitleme bekliyor','different changes on two computers: sync is waiting')}[v.durum]||L('durum okunamadı: ','could not read status: ')+String(r.durum).slice(0,80);
   return v;
 }
-function esitleBildir(){const d=esDurum;esDurum='';if(d==='guncellendi')tost(L('OneDrive\'daki daha yeni veri alındı','Loaded the newer data from OneDrive'));else if(d==='catisma')esitleSor()} // once at startup
+function esitleBildir(){const d=esDurum;esDurum='';if(d==='guncellendi')tost(L('OneDrive\'daki daha yeni veri alındı','Loaded the newer data from OneDrive'));else if(d==='catisma')esitleSor();else if(d==='parola')tost(L('OneDrive kopyası parolalı: Ayarlar → Veri → Parola…','The OneDrive copy has a password: Settings → Data → Password…'))} // once at startup
 async function esitleSor(){
   const d=pencere(`${L('<div class="ic"><h1>Eşitleme çakışması</h1><p class="m">Bu bilgisayardaki veri ile OneDrive\'daki veri birbirinden farklı değişmiş. Hangisi kalsın? Diğeri silinmez: Ayarlar → Veri → "Yedekten geri yükle" listesinde durur.</p>','<div class="ic"><h1>Sync conflict</h1><p class="m">The data on this computer and on OneDrive changed differently. Which one should stay? The other is not deleted: it stays in Settings → Data → "Restore from backup".</p>')}`
     +`${L('<div class="db"><button class="btn" data-kapat>Sonra</button><button class="btn" data-es="uzak">OneDrive\'daki</button><button class="btn ana" data-es="yerel">Bu bilgisayardaki</button></div></div>','<div class="db"><button class="btn" data-kapat>Later</button><button class="btn" data-es="uzak">The OneDrive one</button><button class="btn ana" data-es="yerel">This computer\'s</button></div></div>')}`);
@@ -3013,6 +3033,16 @@ async function esitleSor(){
     await kaydetSimdi();const v=esitleYaz(await api('/api/esitle',{sec:'yerel'}));tost(v.durum==='ok'?L('Bu bilgisayardaki veri OneDrive\'a yazıldı','Wrote this computer\'s data to OneDrive'):L('Eşitlenemedi','Could not sync'))};
 }
 $('#aEsCoz').onclick=esitleSor;
+// OneDrive copy password: the same on every computer; this PC keeps it encrypted. Empty = the copy is written without encryption again.
+$('#aEsPar').onclick=async()=>{
+  const k=await sor(L('OneDrive parolası','OneDrive password'),[{ad:L('Parola (en az 8 karakter; boş: şifreleme kapalı)','Password (at least 8 characters; empty: no encryption)'),tip:'password'}],L('Kaydet','Save'),
+    L('OneDrive\'daki kopya bu parolayla şifrelenir. Diğer bilgisayarda da aynı parolayı gir. Parolayı unutursan OneDrive kopyası açılmaz; bu bilgisayardaki veri etkilenmez.','The copy on OneDrive is encrypted with this password. Enter the same password on the other computer. If you forget it the OneDrive copy cannot be opened; the data on this computer is not affected.'));
+  if(!k)return;
+  await kaydetSimdi();const r=await api('/api/esitle',{parola:k[0]});
+  if(r.durum!=='ok')return tost(String(r.durum).slice(0,120));
+  const v=esitleYaz(r);tost(k[0]?L('OneDrive parolası kaydedildi','OneDrive password saved'):L('OneDrive kopyası artık şifresiz','The OneDrive copy is no longer encrypted'));
+  if(v.durum==='uzak_yeni'||v.durum==='catisma')esitleSor();
+};
 dugmeSw('#aEs',async on=>{
   let v=esitleYaz(await api('/api/esitle',{acik:on}));
   if(on&&v.durum==='klasor_yok'){
@@ -3211,6 +3241,16 @@ function boyBitir(iptal){
   boyutla();if(JSON.stringify([A('kartBoy')||null,A('sutunEn')||null,A('yanOran')||null,A('kartMin')||null])===b.eski)return;
   kaydet();tost(L('Boyut değişti','Size changed'),L('Geri al','Undo'),geri);
 }
+// Keyboard: Alt+Shift+↑/↓ makes the focused card taller/shorter, Alt+Shift+←/→ the side column narrower/wider (same settings as dragging)
+addEventListener('keydown',e=>{
+  if(!S||!e.altKey||!e.shiftKey||e.ctrlKey||!/^Arrow(Up|Down|Left|Right)$/.test(e.key))return;
+  const el=document.activeElement?.closest?.('main [data-kart]');if(!el)return;e.preventDefault();
+  const k=kartAd(el),yan=Object.keys(KOLON).find(x=>(x==='sol'||x==='sag')&&el.parentElement===$(KOLON[x]));
+  if(e.key==='ArrowUp'||e.key==='ArrowDown'){(S.ayar.kartBoy??={})[k]=+Math.min(8,Math.max(.1,kb(k)+(e.key==='ArrowUp'?.25:-.25))).toFixed(3);delete S.ayar.kartMin?.[k]}
+  else if(yan){const en=$(KOLON[yan]).getBoundingClientRect().width-12,d=(e.key==='ArrowRight')===(yan==='sol')?20:-20;(S.ayar.sutunEn??={})[yan]=Math.round(Math.max(240,Math.min(420,en+d)))}
+  else return;
+  boyutla();kaydet();
+});
 addEventListener('pointerup',()=>boyBitir());addEventListener('pointercancel',()=>boyBitir(true));
 addEventListener('keydown',e=>{if(e.key==='Escape'&&boyS)boyBitir(true)});
 function boyutla(){
@@ -3305,21 +3345,32 @@ let tasBitti=0;addEventListener('click',e=>{if(performance.now()-tasBitti<80){e.
 addEventListener('pointerup',tasBitir);addEventListener('pointercancel',tasBitir);
 addEventListener('keydown',e=>{if(e.key==='Escape'&&tas?.basladi){const t=tas;tas=null;t.hedef?.classList.remove('degisHedef');t.k.classList.remove('tasinan');K.classList.remove('tasiyor');t.k.style.cssText='';t.yer.remove();yerlesimUygula()}});
 
+// data.json does not open (damaged, locked, or encrypted in another Windows account). Settings need the data, so the way out is offered here.
+async function veriKurtar(m){
+  $('#todos').innerHTML=`<p class="m">${esc(m)}</p>`;
+  const y=await api('/api/backups/list?acilan=1'),l=y.durum==='ok'?y.veri:[]; // only backups that open here (after a Windows reinstall none do)
+  const d=pencere(`<div class="ic" id="kurtar"><h1>${L('Veriler açılamadı','Could not open the data')}</h1><p class="m">${esc(m)}</p>`
+    +(l.length?`<label>${L('Yedekten geri yükle','Restore from backup')}<select class="in" id="kurtarSec">${l.map(a=>`<option value="${esc(a)}">${esc(yedekAd(a))}</option>`).join('')}</select></label>`
+      :`<p class="m">${L('Bu Windows hesabında açılabilen yedek yok. Dışa aktardığın bir dosya varsa içe aktar.','No backup opens in this Windows account. If you have an exported file, import it.')}</p>`)
+    +`<div class="db"><button class="btn" data-k="klasor">${L('Klasörü aç','Open folder')}</button><button class="btn" data-k="ice">${L('Dosyadan içe aktar','Import a file')}</button>`
+    +(l.length?`<button class="btn ana" data-k="yedek">${L('Geri yükle','Restore')}</button>`:'')+'</div></div>');
+  d.onclick=e=>{const k=e.target.dataset?.k;if(k==='klasor')api('/api/klasor',{});else if(k==='ice')$('#aDosya').click();else if(k==='yedek')veriDegistir('/api/backups/restore',{ad:$('#kurtarSec').value})};
+}
 async function yukle(){
   const es=await api('/api/esitle',{baslangic:true});esDurum=es.veri?.durum||''; // if sync is off or fails, continue with the local data
-  const r=await api('/api/state');
-  if(r.durum!=='ok')$('#todos').innerHTML=`<p class="m">${esc(r.durum)}</p>`; // S stays null: do not overwrite data that failed to load
+  const [r]=await Promise.all([api('/api/state'),onbYukle()]);
+  if(r.durum!=='ok')veriKurtar(r.durum); // S stays null: do not overwrite data that failed to load
   else{
-    S=normal(r.veri);try{localStorage.ad=A('ad')||''}catch{}
+    S=normal(r.veri);if(adO!==(A('ad')||'')){adO=A('ad')||'';onbSakla()}
     profilCiz();if(A('pin'))kilitle();
     if(A('gorunum')==='hafta'){gorunum='hafta';takvim()}
-    O.kalan=sure('calisma');
+    if(!odakGeri)O.kalan=sure('calisma'); // the work length is in the settings; a round restored from the last run keeps its time
     yerlesimUygula();ciz();notCiz();linkCiz();uygCiz();ayarUygula();hatirlat();odakCiz();odakIstat();
   }
   // let the splash animation finish (at least ~1.7 s), then it fades while the panel entrance plays
   setTimeout(()=>{K.classList.add('hazir');$('#acilis').classList.add('bitti');setTimeout(()=>$('#acilis').remove(),600);if(S&&A('ad')===undefined&&!kilitli)adSor();else if(S&&!kilitli){esitleBildir();turGoster()}},Math.max(0,(K.dataset.anim==='off'?300:1700)-(performance.now()-acilisT)));
 }
-function adKaydet(a){a=String(a||'').trim().slice(0,40);S.ayar.ad=a;try{localStorage.ad=a}catch{};kaydet();tick();profilCiz()}
+function adKaydet(a){a=String(a||'').trim().slice(0,40);S.ayar.ad=a;adO=a;onbSakla();kaydet();tick();profilCiz()}
 // A few tips, once (S.ayar.tur); people updating from an older version see them once too
 function turGoster(){
   if(!S||A('tur')||kilitli||$('#sor').open)return;S.ayar.tur=1;kaydet();
@@ -3389,7 +3440,6 @@ addEventListener('keydown',e=>{
 });
 addEventListener('focus',()=>{takvim();spotify();if($('#ayarlar').open)ayarCiz()}); // cards refresh after returning from the OAuth consent in the browser
 addEventListener('pagehide',kaydetSimdi);
-try{const s=JSON.parse(localStorage.sp||'null');if(s?.veri){s.veri.is_playing=false;spCiz(s)}}catch{} // at startup the last track shows without waiting
 // Update check: once a day (also while running in the tray for days) and from Settings → General. Only a notice; the user installs it.
 let gunV=null;
 const gunYaz=m=>{$('#aGunD').textContent=m||(gunV?gunV.yeni?L('yeni sürüm var: ','new version available: ')+gunV.son:L('güncel · ','up to date · ')+gunV.surum:'');$('#aGunB').textContent=gunV?.yeni?L('İndir','Download'):L('Şimdi denetle','Check now')};
@@ -3403,7 +3453,7 @@ async function guncelle(elle){
 const gunDenetle=()=>{let t=0;try{t=+localStorage.gunT||0}catch{}if(Date.now()-t>864e5)guncelle()};
 $('#aGunB').onclick=()=>gunV?.yeni?api('/api/open',{url:gunV.url}):guncelle(true);
 tick();setInterval(tick,1000);yukle().then(hepsi).then(gunDenetle);setInterval(gunDenetle,36e5);
-addEventListener('online',hepsi);setInterval(()=>{if($('#hava .ag,#olay .ag'))hepsi()},3e4);
+addEventListener('online',hepsi);setInterval(()=>{if($('main .ag'))hepsi()},3e4);
 setInterval(sistem,3000);setInterval(()=>gizliMi()||mail(),6e4);setInterval(pano,2000);setInterval(kur,18e5);setInterval(()=>gizliMi()||spotify(),5000);setInterval(hava,9e5);setInterval(()=>gizliMi()||haber(),18e4);setInterval(()=>{takvim(true);ileriAl()},6e5);addEventListener('offline',()=>ustSon='');setInterval(hatirlat,15e3);
 </script>
 </body>

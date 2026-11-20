@@ -151,7 +151,8 @@ fn l(tr: &'static str, en: &'static str) -> &'static str {
 fn read_json(name: &str) -> Value {
     fs::read_to_string(dir().join(name))
         .ok()
-        .and_then(|s| serde_json::from_str(s.trim_start_matches('\u{feff}')).ok())
+        .and_then(|s| dpapi_ac(&s))
+        .and_then(|s| serde_json::from_str(&s).ok())
         .unwrap_or_else(|| json!({}))
 }
 
@@ -165,8 +166,8 @@ fn veri_coz(r: std::io::Result<String>) -> Result<Value, String> {
     match r {
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(json!({})),
         Err(e) => Err(format!("{} ({e})", l("Veri dosyası (data.json) okunamadı. RYOCS'u yeniden başlatın.", "Could not read the data file (data.json). Restart RYOCS."))),
-        Ok(s) => serde_json::from_str::<Value>(s.trim_start_matches('\u{feff}')).ok().filter(Value::is_object)
-            .ok_or(l("Veri dosyası (data.json) bozuk. Ayarlar → Veri'den bir yedeği geri yükleyin.", "The data file (data.json) is corrupt. Restore a backup from Settings → Data.").into()),
+        Ok(s) => serde_json::from_str::<Value>(&dpapi_coz(&s)?).ok().filter(Value::is_object)
+            .ok_or(l("Veri dosyası (data.json) bozuk. Bir yedeği geri yükleyin.", "The data file (data.json) is corrupt. Restore a backup.").into()),
     }
 }
 
@@ -206,37 +207,158 @@ fn dpapi(veri: &[u8], sifrele: bool) -> Option<Vec<u8>> {
 
 /// tokens.json is DPAPI-encrypted (base64); a plain JSON file from an older version is still read and encrypted on the next write.
 fn tokens_oku() -> Value {
-    use base64::Engine;
-    let s = fs::read_to_string(dir().join("tokens.json")).unwrap_or_default();
-    let s = s.trim().trim_start_matches('\u{feff}');
-    let duz = if s.starts_with('{') {
-        Some(s.as_bytes().to_vec())
-    } else {
-        base64::engine::general_purpose::STANDARD.decode(s).ok().and_then(|b| dpapi(&b, false))
-    };
-    duz.and_then(|b| serde_json::from_slice(&b).ok()).unwrap_or_else(|| json!({}))
+    read_json("tokens.json")
+}
+fn tokens_yaz(v: &Value) -> Result<(), String> {
+    write_json("tokens.json", v)
 }
 
-fn tokens_yaz(v: &Value) -> Result<(), String> {
+/// Files with personal data are stored DPAPI-encrypted with this prefix: data.json, its backups, the calendar/notification cache.
+/// Only this Windows user on this PC can open them; config.json keeps only its secrets encrypted (it stays editable by hand).
+const DPAPI_ONEK: &str = "RYOCS-DPAPI1:";
+fn sifreli_dosya(name: &str) -> bool {
+    matches!(name, "data.json" | "onbellek.json" | "tokens.json") || name.starts_with("yedekler")
+}
+fn dpapi_sar(s: &str) -> Result<String, String> {
     use base64::Engine;
-    let sifreli = dpapi(v.to_string().as_bytes(), true).ok_or("DPAPI")?;
-    write_text("tokens.json", &base64::engine::general_purpose::STANDARD.encode(sifreli))
+    let b = dpapi(s.as_bytes(), true).ok_or("DPAPI")?;
+    Ok(format!("{DPAPI_ONEK}{}", base64::engine::general_purpose::STANDARD.encode(b)))
+}
+/// Plain text of a stored file or value: DPAPI-encrypted (prefix), or plain as an older version or the user wrote it.
+/// An encrypted file that does not open here is an error, never "empty": it belongs to another Windows account or PC.
+fn dpapi_coz(s: &str) -> Result<String, String> {
+    dpapi_ac(s).ok_or_else(|| l("Veri dosyası bu Windows hesabında açılamıyor (başka bir hesapta ya da bilgisayarda şifrelenmiş). Dışa aktarılmış bir yedek yükleyin.",
+                 "The data file cannot be opened in this Windows account (it was encrypted in another account or on another PC). Load an exported backup.").into())
+}
+/// Same without a message: read_json uses it, and l() itself reads data.json through read_json (a message there would recurse).
+fn dpapi_ac(s: &str) -> Option<String> {
+    use base64::Engine;
+    let s = s.trim().trim_start_matches('\u{feff}');
+    let ac = |b: &str| base64::engine::general_purpose::STANDARD.decode(b).ok().and_then(|b| dpapi(&b, false)).and_then(|b| String::from_utf8(b).ok());
+    match s.strip_prefix(DPAPI_ONEK) {
+        Some(b) => ac(b),
+        None if s.starts_with('{') || s.is_empty() => Some(s.to_string()),
+        // tokens.json up to 1.0.7: DPAPI base64 without the prefix
+        None => ac(s).or_else(|| Some(s.to_string())),
+    }
 }
 
 fn write_json(name: &str, v: &Value) -> Result<(), String> {
     write_text(name, &v.to_string())
 }
 
-/// Temporary file first, then rename: a half-finished write must not corrupt the file.
 fn write_text(name: &str, s: &str) -> Result<(), String> {
-    static YAZ: Mutex<()> = Mutex::new(());
-    let _y = kilit(&YAZ); // two saves at once must not write the same temporary file together
-    let p = dir().join(name);
-    let tmp = p.with_extension("tmp");
+    let veri = if sifreli_dosya(name) { dpapi_sar(s)? } else { s.to_string() };
     if name == "data.json" {
         DIL.store(0, std::sync::atomic::Ordering::Relaxed);
     }
-    fs::write(&tmp, s).and_then(|_| fs::rename(&tmp, &p)).map_err(|e| e.to_string())
+    dayanikli_yaz(&dir().join(name), veri.as_bytes())
+}
+/// Temporary file, flushed to disk, then rename: neither a half-finished write nor a power cut leaves a broken or empty file.
+/// Every write of RYOCS files goes through here (also the OneDrive copy), under one lock: two writers never share a temporary file.
+fn dayanikli_yaz(p: &std::path::Path, b: &[u8]) -> Result<(), String> {
+    use std::io::Write;
+    static YAZ: Mutex<()> = Mutex::new(());
+    let _y = kilit(&YAZ);
+    let tmp = p.with_extension("tmp");
+    let yaz = || -> std::io::Result<()> {
+        let mut f = fs::File::create(&tmp)?;
+        f.write_all(b)?;
+        f.sync_all()?;
+        drop(f);
+        fs::rename(&tmp, p)
+    };
+    yaz().map_err(|e| e.to_string())
+}
+
+/// OneDrive copy with a password: AES-256-GCM, key from PBKDF2-HMAC-SHA256, both from Windows CNG (no extra crate).
+/// File: prefix + base64(salt 16 | nonce 12 | tag 16 | ciphertext). Opens on any PC that knows the password.
+const PAROLA_ONEK: &str = "RYOCS-PAROLA1:";
+fn aes_gcm(anahtar: &[u8; 32], nonce: &mut [u8; 12], etiket: &mut [u8; 16], girdi: &[u8], sifrele: bool) -> Option<Vec<u8>> {
+    use windows_sys::Win32::Security::Cryptography::*;
+    let mut h = std::ptr::null_mut();
+    unsafe {
+        if BCryptGenerateSymmetricKey(BCRYPT_AES_GCM_ALG_HANDLE, &mut h, std::ptr::null_mut(), 0, anahtar.as_ptr(), 32, 0) != 0 {
+            return None;
+        }
+        let bilgi = BCRYPT_AUTHENTICATED_CIPHER_MODE_INFO {
+            cbSize: size_of::<BCRYPT_AUTHENTICATED_CIPHER_MODE_INFO>() as u32,
+            dwInfoVersion: BCRYPT_AUTHENTICATED_CIPHER_MODE_INFO_VERSION,
+            pbNonce: nonce.as_mut_ptr(),
+            cbNonce: 12,
+            pbTag: etiket.as_mut_ptr(),
+            cbTag: 16,
+            ..Default::default()
+        };
+        let (mut cikti, mut n) = (vec![0u8; girdi.len()], 0u32);
+        let bp = &bilgi as *const _ as *const core::ffi::c_void;
+        let r = if sifrele {
+            BCryptEncrypt(h, girdi.as_ptr(), girdi.len() as u32, bp, std::ptr::null_mut(), 0, cikti.as_mut_ptr(), cikti.len() as u32, &mut n, 0)
+        } else {
+            BCryptDecrypt(h, girdi.as_ptr(), girdi.len() as u32, bp, std::ptr::null_mut(), 0, cikti.as_mut_ptr(), cikti.len() as u32, &mut n, 0)
+        };
+        BCryptDestroyKey(h);
+        (r == 0).then_some(cikti)
+    }
+}
+fn parola_anahtar(parola: &str, tuz: &[u8]) -> Option<[u8; 32]> {
+    use windows_sys::Win32::Security::Cryptography::{BCryptDeriveKeyPBKDF2, BCRYPT_HMAC_SHA256_ALG_HANDLE};
+    let mut k = [0u8; 32];
+    let r = unsafe { BCryptDeriveKeyPBKDF2(BCRYPT_HMAC_SHA256_ALG_HANDLE, parola.as_ptr(), parola.len() as u32, tuz.as_ptr(), tuz.len() as u32, 310_000, k.as_mut_ptr(), 32, 0) };
+    (r == 0).then_some(k)
+}
+/// PBKDF2 takes a noticeable fraction of a second: the key is derived once per password and salt and kept for the session.
+/// Encrypting reuses that salt (the nonce is new every time, which is what AES-GCM needs).
+type ParolaAnahtari = (String, [u8; 16], [u8; 32]); // password, salt, key
+static PAROLA_ANAHTARI: Mutex<Option<ParolaAnahtari>> = Mutex::new(None);
+fn parola_anahtari(parola: &str, tuz: Option<&[u8]>) -> Option<([u8; 16], [u8; 32])> {
+    let mut o = kilit(&PAROLA_ANAHTARI);
+    if let Some((p, t, k)) = o.as_ref() {
+        if p == parola && tuz.is_none_or(|x| x == t) { return Some((*t, *k)); }
+    }
+    let mut t = [0u8; 16];
+    match tuz { Some(x) => t.copy_from_slice(x.get(..16)?), None => getrandom::getrandom(&mut t).ok()? }
+    let k = parola_anahtar(parola, &t)?;
+    *o = Some((parola.to_string(), t, k));
+    Some((t, k))
+}
+fn parola_sifrele(parola: &str, metin: &str) -> Option<String> {
+    use base64::Engine;
+    let (mut nonce, mut etiket) = ([0u8; 12], [0u8; 16]);
+    getrandom::getrandom(&mut nonce).ok()?;
+    let (tuz, anahtar) = parola_anahtari(parola, None)?;
+    let ct = aes_gcm(&anahtar, &mut nonce.clone(), &mut etiket, metin.as_bytes(), true)?;
+    Some(format!("{PAROLA_ONEK}{}", base64::engine::general_purpose::STANDARD.encode([&tuz[..], &nonce, &etiket, &ct].concat())))
+}
+/// None: not this format, or a wrong password / damaged file (GCM checks the tag).
+fn parola_coz(parola: &str, s: &str) -> Option<String> {
+    use base64::Engine;
+    let b = base64::engine::general_purpose::STANDARD.decode(s.trim().strip_prefix(PAROLA_ONEK)?).ok()?;
+    if b.len() < 44 { return None; }
+    let (mut nonce, mut etiket) = (<[u8; 12]>::try_from(&b[16..28]).ok()?, <[u8; 16]>::try_from(&b[28..44]).ok()?);
+    String::from_utf8(aes_gcm(&parola_anahtari(parola, Some(&b[..16]))?.1, &mut nonce, &mut etiket, &b[44..], false)?).ok()
+}
+
+/// Encrypts files an older version left plain: data.json, backups, the secrets in config.json. Runs once per start, cheap when done.
+fn sifrele_goc() {
+    let eski = |name: &str| fs::read_to_string(dir().join(name)).ok().filter(|s| !s.trim_start_matches('\u{feff}').trim_start().starts_with(DPAPI_ONEK));
+    let yedekler = yedek_listesi();
+    let adlar = ["data.json", "tokens.json"].map(String::from).into_iter().chain(yedekler.as_array().into_iter().flatten().filter_map(|v| v.as_str().map(|s| format!("yedekler/{s}"))));
+    for ad in adlar {
+        // only valid JSON is rewritten: a damaged file stays as it is for the user to inspect
+        if let Some(s) = eski(&ad).and_then(|s| dpapi_ac(&s)).filter(|s| serde_json::from_str::<Value>(s).is_ok()) {
+            if let Err(e) = write_text(&ad, &s) { hata_kaydet(&format!("encrypt {ad}: {e}")); }
+        }
+    }
+    if let Ok(mut c) = config_oku() {
+        let mut degisti = false;
+        for p in ["google", "spotify"] {
+            if let Some(g) = c[p]["client_secret"].as_str().filter(|g| !g.trim().is_empty() && !g.starts_with(DPAPI_ONEK)) {
+                if let Ok(s) = dpapi_sar(g.trim()) { c[p]["client_secret"] = json!(s); degisti = true; }
+            }
+        }
+        if degisti { config_yaz(&c).ok(); }
+    }
 }
 
 fn now() -> u64 {
@@ -401,16 +523,22 @@ fn guncelleme() -> Result<Value, String> {
 /// English currency card: ECB daily reference rates (raw XML, parsed in the UI) + gold-api.com gold and silver ounce (USD).
 /// ag / dunya: silver and world rates only when the card shows them (silver row on, a code the bank does not publish).
 fn kur_ecb(ag: bool, dunya_da: bool) -> Result<Value, String> {
-    let ecb = metin("https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml")?;
-    Ok(json!({ "ecb": ecb, "ons": maden("XAU"), "ag": ag.then(|| maden("XAG")).flatten(), "dunya": dunya_da.then(dunya).flatten() }))
+    kur_topla("ecb", "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml", ag, dunya_da)
+}
+/// The bank feed, gold, silver and world rates are fetched at the same time: in a row they took up to 4 × 15 s on a slow network.
+fn kur_topla(ad: &str, banka: &str, ag: bool, dunya_da: bool) -> Result<Value, String> {
+    thread::scope(|k| {
+        let (o, a, d) = (k.spawn(|| maden("XAU")), k.spawn(move || ag.then(|| maden("XAG")).flatten()), k.spawn(move || dunya_da.then(dunya).flatten()));
+        let b = metin(banka)?;
+        Ok(json!({ ad: b, "ons": o.join().ok().flatten(), "ag": a.join().ok().flatten(), "dunya": d.join().ok().flatten() }))
+    })
 }
 
 /// Currency and gold: TCMB daily rates XML (raw text, parsed by the UI) + gold-api.com gold and silver ounce (USD).
 /// If gold cannot be fetched the rates still return; the UI computes gram gold as ounce × dollar ÷ 31.1035.
 /// shortcut: gold-api.com is a documented but unguaranteed free service; if it closes the gold row shows "—".
 fn kur(ag: bool, dunya_da: bool) -> Result<Value, String> {
-    let tcmb = metin("https://www.tcmb.gov.tr/kurlar/today.xml")?;
-    Ok(json!({ "tcmb": tcmb, "ons": maden("XAU"), "ag": ag.then(|| maden("XAG")).flatten(), "dunya": dunya_da.then(dunya).flatten() }))
+    kur_topla("tcmb", "https://www.tcmb.gov.tr/kurlar/today.xml", ag, dunya_da)
 }
 /// World rates (units per 1 USD, about 160 currencies, daily) for codes the central bank feed lacks, e.g. PLN in TCMB.
 /// shortcut: open.er-api.com is free without a key but asks for attribution (shown in the card) and may rate-limit; on failure those rows are skipped.
@@ -547,11 +675,31 @@ fn esitle_karar(yerel: Option<&str>, uzak: Option<&str>, son: Option<&str>) -> &
         _ => "catisma",
     }
 }
+/// Plain JSON text of local data.json (decrypted); None if missing or not openable.
+fn yerel_metin() -> Option<String> {
+    fs::read_to_string(dir().join("data.json")).ok().and_then(|s| dpapi_coz(&s).ok())
+}
+/// Password of the OneDrive copy on this PC (kept DPAPI-encrypted in esitle.json).
+fn onedrive_parola() -> Option<String> {
+    read_json("esitle.json")["parola"].as_str().and_then(dpapi_ac).filter(|p| !p.is_empty())
+}
+/// Plain text of the OneDrive copy: None if there is none; Err if it is password-encrypted and the password here is missing or wrong.
+fn uzak_metin(k: &std::path::Path) -> Option<Result<String, ()>> {
+    let b = fs::read(k.join("RYOCS").join("data.json")).ok()?;
+    let s = String::from_utf8_lossy(b.strip_prefix(b"\xef\xbb\xbf").unwrap_or(&b)).into_owned();
+    Some(if s.trim_start().starts_with(PAROLA_ONEK) { onedrive_parola().and_then(|p| parola_coz(&p, &s)).ok_or(()) } else { Ok(s) })
+}
+/// Hashes are over the plain JSON: encrypted bytes differ at every write. (Older versions hashed the plain file, so old "oz" values still match.)
 fn esitle_durum() -> (&'static str, Option<PathBuf>) {
     let e = read_json("esitle.json");
     if e["acik"] != true { return ("kapali", onedrive()); }
     let Some(k) = onedrive() else { return ("klasor_yok", None) };
-    let (y, u) = (fs::read(dir().join("data.json")).ok().map(|b| oz(&b)), fs::read(k.join("RYOCS").join("data.json")).ok().map(|b| oz(&b)));
+    let u = match uzak_metin(&k) {
+        None => None,
+        Some(Ok(s)) => Some(oz(s.as_bytes())),
+        Some(Err(())) => return ("parola", Some(k)), // encrypted with a password this PC does not have
+    };
+    let y = yerel_metin().map(|s| oz(s.as_bytes()));
     (esitle_karar(y.as_deref(), u.as_deref(), e["oz"].as_str()), Some(k))
 }
 fn esitle_oz_yaz(o: &str) {
@@ -563,35 +711,58 @@ fn esitle_oz_yaz(o: &str) {
 fn esitle_gonder() {
     let (d, Some(k)) = esitle_durum() else { return };
     if d != "ok" { return; }
-    let Ok(b) = fs::read(dir().join("data.json")) else { return };
+    let Some(duz) = yerel_metin() else { return };
     let hedef = k.join("RYOCS");
-    let tmp = hedef.join("data.json.tmp");
-    let sonuc = fs::create_dir_all(&hedef).and_then(|_| fs::write(&tmp, &b)).and_then(|_| fs::rename(&tmp, hedef.join("data.json")));
+    // with a password the copy is encrypted; without one it stays plain JSON as before (the UI warns about that)
+    let Some(veri) = (match onedrive_parola() { Some(p) => parola_sifrele(&p, &duz), None => Some(duz.clone()) }) else { return };
+    let sonuc = fs::create_dir_all(&hedef).map_err(|e| e.to_string()).and_then(|_| dayanikli_yaz(&hedef.join("data.json"), veri.as_bytes()));
     match sonuc {
-        Ok(()) => esitle_oz_yaz(&oz(&b)),
+        Ok(()) => esitle_oz_yaz(&oz(duz.as_bytes())),
         Err(e) => hata_kaydet(&format!("OneDrive sync write failed: {e}")),
     }
 }
 /// Replaces local with the remote data; local stays as the "State before restore" backup.
 fn esitle_cek(k: &std::path::Path) -> Result<(), String> {
-    let b = fs::read(k.join("RYOCS").join("data.json")).map_err(|e| e.to_string())?;
-    let v: Value = serde_json::from_slice(b.strip_prefix(b"\xef\xbb\xbf").unwrap_or(&b)).map_err(|_| l("OneDrive'daki veri dosyası bozuk", "The data file on OneDrive is corrupt"))?;
-    if !v.is_object() { return Err(l("OneDrive'daki veri dosyası bozuk", "The data file on OneDrive is corrupt").into()); }
-    let (yedek, yerel) = (dir().join("yedekler"), dir().join("data.json"));
+    let bozuk = || l("OneDrive'daki veri dosyası bozuk", "The data file on OneDrive is corrupt").to_string();
+    let s = uzak_metin(k).ok_or_else(bozuk)?.map_err(|_| l("OneDrive kopyasının parolası gerekli", "The OneDrive copy needs its password").to_string())?;
+    if !serde_json::from_str::<Value>(&s).is_ok_and(|v| v.is_object()) { return Err(bozuk()); }
+    let yedek = dir().join("yedekler");
     fs::create_dir_all(&yedek).ok();
-    fs::copy(&yerel, yedek.join("data-geri-alma.json")).ok();
-    // written byte for byte: the local hash becomes the last synced hash, so the next remote change is not mistaken for a "conflict"
-    let tmp = yerel.with_extension("tmp");
-    fs::write(&tmp, &b).and_then(|_| fs::rename(&tmp, &yerel)).map_err(|e| e.to_string())?;
-    DIL.store(0, std::sync::atomic::Ordering::Relaxed);
-    esitle_oz_yaz(&oz(&b));
+    fs::copy(dir().join("data.json"), yedek.join("data-geri-alma.json")).ok();
+    // the same plain text is written (encrypted): its hash becomes the last synced hash, so the next remote change is not a "conflict"
+    write_text("data.json", &s)?;
+    esitle_oz_yaz(&oz(s.as_bytes()));
     Ok(())
 }
 fn esitle(b: &str) -> Result<Value, String> {
     let r: Value = serde_json::from_str(b).unwrap_or_default();
-    if r["acik"].is_boolean() || r["klasor"].is_string() {
+    if r["acik"].is_boolean() || r["klasor"].is_string() || r["parola"].is_string() {
         let mut e = read_json("esitle.json");
         if let Some(a) = r["acik"].as_bool() { e["acik"] = json!(a); }
+        if let Some(p) = r["parola"].as_str() {
+            if !p.is_empty() && p.chars().count() < 8 { return Err(l("Parola en az 8 karakter olmalı", "The password needs at least 8 characters").into()); }
+            // A copy already password-encrypted on OneDrive is opened with the password this PC has (or the one typed: the first time
+            // on a second PC) and written again under the new setting. Otherwise removing or changing the password would leave a copy
+            // that this PC can no longer open, and sync would stop. A password that opens nothing is refused (a typo would split the PCs).
+            if let Some(k) = onedrive() {
+                let yol = k.join("RYOCS").join("data.json");
+                let uzak = fs::read_to_string(&yol).unwrap_or_default();
+                if uzak.trim_start().starts_with(PAROLA_ONEK) {
+                    let duz = onedrive_parola().and_then(|o| parola_coz(&o, &uzak)).or_else(|| parola_coz(p, &uzak)).ok_or(if p.is_empty() {
+                        l("OneDrive kopyası bu bilgisayarın bilmediği bir parolayla şifreli; önce o parolayı gir", "The OneDrive copy uses a password this computer does not know; enter that password first")
+                    } else {
+                        l("Bu parola OneDrive'daki kopyayı açmıyor", "This password does not open the copy on OneDrive")
+                    })?;
+                    let yeni = if p.is_empty() { Some(duz) } else { parola_sifrele(p, &duz) }.ok_or("AES-GCM")?;
+                    dayanikli_yaz(&yol, yeni.as_bytes())?; // same plain text: the sync fingerprints do not change
+                }
+            }
+            if p.is_empty() {
+                e.as_object_mut().map(|o| o.remove("parola"));
+            } else {
+                e["parola"] = json!(dpapi_sar(p)?);
+            }
+        }
         if let Some(k) = r["klasor"].as_str() {
             if !k.is_empty() && !PathBuf::from(k).is_dir() { return Err(l("Klasör bulunamadı", "Folder not found").into()); }
             e["klasor"] = json!(k);
@@ -605,10 +776,10 @@ fn esitle(b: &str) -> Result<Value, String> {
                 esitle_cek(k)?;
             } else if sec == "yerel" {
                 // the losing side is backed up, then overwritten
-                let uzak = fs::read(k.join("RYOCS").join("data.json")).map_err(|e| e.to_string())?;
+                let uzak = uzak_metin(k).and_then(Result::ok).ok_or(l("OneDrive kopyası okunamadı", "Could not read the OneDrive copy"))?;
                 fs::create_dir_all(dir().join("yedekler")).ok();
-                fs::write(dir().join("yedekler").join("data-onedrive.json"), &uzak).map_err(|e| e.to_string())?;
-                esitle_oz_yaz(&oz(&uzak));
+                write_text("yedekler/data-onedrive.json", &uzak)?;
+                esitle_oz_yaz(&oz(uzak.as_bytes()));
             }
             d = if sec == "uzak" { "guncellendi" } else { "ok" };
         }
@@ -616,7 +787,7 @@ fn esitle(b: &str) -> Result<Value, String> {
         if let Some(k) = k.as_ref() { esitle_cek(k)?; d = "guncellendi"; }
     }
     if d == "ok" { esitle_gonder(); }
-    Ok(json!({ "durum": d, "klasor": k, "acik": read_json("esitle.json")["acik"] == true }))
+    Ok(json!({ "durum": d, "klasor": k, "acik": read_json("esitle.json")["acik"] == true, "parola": onedrive_parola().is_some() }))
 }
 
 fn b64(b: &[u8]) -> String {
@@ -680,9 +851,13 @@ fn creds_set(p: &Provider, b: &str) -> Result<Value, String> {
     if !c[p.name].is_object() {
         c[p.name] = json!({});
     }
+    // a secret encrypted on another PC (config.json copied over) cannot be kept: without a new one Google asks for it below
+    if c[p.name]["client_secret"].as_str().is_some_and(|g| dpapi_ac(g).is_none()) {
+        c[p.name]["client_secret"] = json!("");
+    }
     c[p.name]["client_id"] = json!(id);
     if !yeni_gizli.is_empty() {
-        c[p.name]["client_secret"] = json!(yeni_gizli); // if left empty the old one is kept
+        c[p.name]["client_secret"] = json!(dpapi_sar(yeni_gizli)?); // if left empty the old one is kept
     }
     if p.name == "google" && c["google"]["client_secret"].as_str().unwrap_or("").is_empty() {
         return Err(l("Google için gizli anahtar (client secret) da gerekli", "Google also needs the client secret").into());
@@ -698,7 +873,8 @@ fn creds(p: &str) -> Result<(String, String), String> {
     if id.is_empty() {
         return Err("kimlik_yok".into());
     }
-    Ok((id.into(), c[p]["client_secret"].as_str().unwrap_or("").trim().into()))
+    // DPAPI-encrypted by RYOCS, or plain as the user typed it into the file (encrypted at the next start)
+    Ok((id.into(), dpapi_coz(c[p]["client_secret"].as_str().unwrap_or(""))?))
 }
 
 /// For the settings dialog: city and account states (credential/token values are never returned).
@@ -994,6 +1170,12 @@ fn aumid_kaydet() {
 }
 
 /// YYYY-MM-DD from a day count (since 1970) (Howard Hinnant civil_from_days).
+/// Today's local date for backup and export names: a save at 01:00 in Istanbul belongs to that day, not to yesterday in UTC.
+fn bugun() -> String {
+    let mut t: windows_sys::Win32::Foundation::SYSTEMTIME = unsafe { std::mem::zeroed() };
+    unsafe { windows_sys::Win32::System::SystemInformation::GetLocalTime(&mut t) };
+    format!("{:04}-{:02}-{:02}", t.wYear, t.wMonth, t.wDay)
+}
 fn ymd(days: i64) -> String {
     let z = days + 719_468;
     let era = z.div_euclid(146_097);
@@ -1009,7 +1191,7 @@ fn ymd(days: i64) -> String {
 fn backup() {
     let b = dir().join("yedekler");
     fs::create_dir_all(&b).ok();
-    let f = b.join(format!("data-{}.json", ymd((now() / 86_400) as i64)));
+    let f = b.join(format!("data-{}.json", bugun()));
     if !f.exists() && fs::copy(dir().join("data.json"), &f).is_err() {
         return;
     }
@@ -1108,12 +1290,7 @@ fn mail() -> Result<Value, String> {
         })}).collect();
         isler.into_iter().filter_map(|h| h.join().ok()?.ok()).collect()
     });
-    let mailler: Vec<Value> = {
-        let mut o = kilit(&ONBELLEK);
-        for m in gelen { if let Some(i) = m["id"].as_str() { o.insert(i.into(), m); } }
-        o.retain(|i, _| idler.contains(i));
-        idler.iter().filter_map(|i| o.get(i).cloned()).collect()
-    };
+    let mailler = mail_birlestir(&mut kilit(&ONBELLEK), gelen, &idler);
     let baslik = |m: &Value, ad: &str| m["payload"]["headers"].as_array().into_iter().flatten()
         .find(|h| h["name"].as_str().is_some_and(|n| n.eq_ignore_ascii_case(ad))).and_then(|h| h["value"].as_str()).unwrap_or("").to_string();
     let liste: Vec<Value> = mailler.iter().map(|m| json!({
@@ -1122,6 +1299,12 @@ fn mail() -> Result<Value, String> {
     Ok(json!({ "okunmamis": kutu["messagesUnread"], "liste": liste }))
 }
 
+/// Adds the newly fetched messages to the memory, drops the ones no longer unread, returns them in the order of `idler`.
+fn mail_birlestir(o: &mut HashMap<String, Value>, gelen: Vec<Value>, idler: &[String]) -> Vec<Value> {
+    for m in gelen { if let Some(i) = m["id"].as_str() { o.insert(i.into(), m); } }
+    o.retain(|i, _| idler.contains(i));
+    idler.iter().filter_map(|i| o.get(i).cloned()).collect()
+}
 fn google_tam_izin() -> bool {
     tokens_oku()["google"]["scope"].as_str().is_some_and(|s| s.contains("calendar.calendarlist"))
 }
@@ -1312,7 +1495,7 @@ fn yedekten(b: &str) -> Result<Value, String> {
     let ad = r["ad"].as_str().filter(|s| yedek_adi(s)).ok_or(l("Geçersiz yedek adı", "Invalid backup name"))?;
     // read first: geri_yukle overwrites the "undo" file
     let s = fs::read_to_string(dir().join("yedekler").join(ad)).map_err(|e| e.to_string())?;
-    geri_yukle(serde_json::from_str(s.trim_start_matches('\u{feff}')).map_err(|e| e.to_string())?)
+    geri_yukle(serde_json::from_str(&dpapi_coz(&s)?).map_err(|e| e.to_string())?)
 }
 
 /// The user's Downloads folder, also when it was moved (Known Folder API); None if Windows cannot tell.
@@ -1334,8 +1517,9 @@ fn disa_aktar() -> Result<Value, String> {
         Some(k) => k,
         None => PathBuf::from(std::env::var("USERPROFILE").map_err(|e| e.to_string())?).join("Downloads"),
     };
-    let hedef = klasor.join(format!("RYOCS-yedek-{}.json", ymd((now() / 86_400) as i64)));
-    fs::copy(dir().join("data.json"), &hedef).map_err(|e| e.to_string())?;
+    let hedef = klasor.join(format!("RYOCS-yedek-{}.json", bugun()));
+    // plain JSON on purpose: the only copy that still opens after a Windows reinstall or on another PC (the UI says it is not encrypted)
+    fs::write(&hedef, serde_json::to_string_pretty(&veri_oku()?).unwrap_or_default()).map_err(|e| e.to_string())?;
     quiet("explorer").raw_arg(format!("/select,\"{}\"", hedef.display())).spawn().ok();
     Ok(json!(hedef))
 }
@@ -1374,6 +1558,35 @@ fn send(req: Request, code: u16, ctype: &str, text: String) {
     req.respond(Response::from_string(text).with_status_code(code).with_header(h)).ok();
 }
 
+/// Saves in progress and the time the last one started or ended (ms): quitting waits for them instead of a fixed time.
+static KAYIT_SAYI: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+static KAYIT_SON: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+fn simdi_ms() -> u64 {
+    SystemTime::now().duration_since(UNIX_EPOCH).map_or(0, |d| d.as_millis() as u64)
+}
+struct KayitSuruyor;
+impl KayitSuruyor {
+    fn basla() -> Self {
+        KAYIT_SAYI.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        KAYIT_SON.store(simdi_ms(), std::sync::atomic::Ordering::SeqCst);
+        KayitSuruyor
+    }
+}
+impl Drop for KayitSuruyor {
+    fn drop(&mut self) {
+        KAYIT_SON.store(simdi_ms(), std::sync::atomic::Ordering::SeqCst);
+        KAYIT_SAYI.fetch_sub(1, std::sync::atomic::Ordering::SeqCst);
+    }
+}
+/// Quit only when no save runs and none started or ended in the last 400 ms (the UI sends queued saves one after another), at most 5 s.
+fn kayitlari_bekle() {
+    use std::sync::atomic::Ordering::SeqCst;
+    let bas = simdi_ms();
+    while simdi_ms() - bas < 5000 && (KAYIT_SAYI.load(SeqCst) > 0 || simdi_ms().saturating_sub(KAYIT_SON.load(SeqCst)) < 400) {
+        thread::sleep(Duration::from_millis(50));
+    }
+}
+
 fn handle(mut req: Request) {
     let hdr = |n: &'static str| req.headers().iter().find(|h| h.field.equiv(n)).map(|h| h.value.as_str().to_string());
     let (host, origin) = (hdr("Host"), hdr("Origin"));
@@ -1405,6 +1618,7 @@ fn handle(mut req: Request) {
     let out: Result<Value, String> = if !post && path == "/api/state" {
         veri_oku()
     } else if post && path == "/api/state" {
+        let _k = KayitSuruyor::basla();
         serde_json::from_str::<Value>(&b).map_err(|e| e.to_string())
             .and_then(|v| { backup(); write_json("data.json", &v)?; esitle_gonder(); Ok(Value::Null) })
     } else if post && path == "/api/calendar/add" {
@@ -1438,7 +1652,11 @@ fn handle(mut req: Request) {
     } else if post && path == "/api/calendar/delete" {
         calendar_delete(&b)
     } else if !post && path == "/api/backups/list" {
-        Ok(yedek_listesi())
+        // ?acilan=1 (recovery screen): only backups this Windows account can decrypt
+        let l = yedek_listesi();
+        if !url.contains("acilan=1") { Ok(l) } else {
+            Ok(l.as_array().into_iter().flatten().filter(|a| a.as_str().is_some_and(|a| fs::read_to_string(dir().join("yedekler").join(a)).ok().and_then(|s| dpapi_ac(&s)).is_some_and(|s| serde_json::from_str::<Value>(&s).is_ok()))).cloned().collect())
+        }
     } else if post && path == "/api/backups/restore" {
         yedekten(&b)
     } else if post && path == "/api/import" {
@@ -1484,6 +1702,13 @@ fn handle(mut req: Request) {
         Ok(pano(&b))
     } else if post && path == "/api/esitle" {
         esitle(&b)
+    } else if !post && path == "/api/onbellek" {
+        Ok(read_json("onbellek.json"))
+    } else if post && path == "/api/onbellek" {
+        // calendar and held-notification cache for a fast start (was localStorage, which is plain text on disk)
+        serde_json::from_str::<Value>(&b).ok().filter(Value::is_object).ok_or("geçersiz".to_string()).and_then(|v| write_json("onbellek.json", &v)).map(|_| Value::Null)
+    } else if post && path == "/api/klasor" {
+        quiet("explorer").arg(dir()).spawn().map(|_| Value::Null).map_err(|e| e.to_string())
     } else if post && path == "/api/haber" {
         haber(&b)
     } else if post && path == "/api/calendar" {
@@ -1694,10 +1919,6 @@ fn main() {
     if !cfg.exists() {
         fs::write(&cfg, CONFIG_SABLON.replace("Istanbul", varsayilan_sehir())).ok();
     }
-    // tokens.json from an older version is plain JSON: encrypt it now
-    if fs::read_to_string(dir().join("tokens.json")).is_ok_and(|s| s.trim_start_matches('\u{feff}').trim_start().starts_with('{')) {
-        tokens_yaz(&tokens_oku()).ok();
-    }
     // If the port is taken the app is already running: bring the existing window to front instead of a second one.
     let server = match Server::http(ADDR) {
         Ok(s) => s,
@@ -1713,6 +1934,9 @@ fn main() {
             return;
         }
     };
+
+    // only the instance that owns the port encrypts older files: two at once would write the same temporary files (the write lock is per process)
+    sifrele_goc();
 
     use tao::event::{Event, WindowEvent};
     use tao::event_loop::{ControlFlow, EventLoopBuilder};
@@ -1775,8 +1999,22 @@ fn main() {
             m if m.len() < 20 => olay(Olay::Pencere(m.into())),
             _ => {}
         })
-        .build(&window)
-        .expect("WebView2");
+        .build(&window);
+    let webview = match webview {
+        Ok(w) => w,
+        Err(e) => {
+            // usually the WebView2 Runtime is missing (some Windows 10 LTSC / N installs): say so instead of closing silently
+            hata_kaydet(&format!("WebView2: {e}"));
+            let m = tepsi::w(l("RYOCS açılamadı: Microsoft Edge WebView2 Runtime gerekli.\n\nTamam'a basınca indirme sayfası açılır; kurduktan sonra RYOCS'u yeniden açın.",
+                               "RYOCS could not start: Microsoft Edge WebView2 Runtime is required.\n\nPress OK to open the download page; start RYOCS again after installing it."));
+            unsafe {
+                use windows_sys::Win32::UI::WindowsAndMessaging::{MessageBoxW, MB_ICONERROR};
+                MessageBoxW(std::ptr::null_mut(), m.as_ptr(), tepsi::w("RYOCS").as_ptr(), MB_ICONERROR);
+            }
+            open_url("https://developer.microsoft.com/microsoft-edge/webview2/").ok();
+            return;
+        }
+    };
     let mut kapaniyor = false;
     event_loop.run(move |event, _, control_flow| {
         *control_flow = ControlFlow::Wait;
@@ -1801,7 +2039,8 @@ fn main() {
                 pencere_kaydet(&window);
                 window.set_visible(false);
                 thread::spawn(|| {
-                    thread::sleep(Duration::from_millis(700));
+                    thread::sleep(Duration::from_millis(400)); // the UI's last save starts
+                    kayitlari_bekle();
                     olay(Olay::Cik);
                 });
             }
@@ -1902,19 +2141,57 @@ mod tests {
         let _ = pano_oku(); // must return without crashing (whatever the content)
     }
 
+    /// Tests that use files point APPDATA at their own folder: they run one at a time, holding this lock.
+    static DOSYA_TESTI: Mutex<()> = Mutex::new(());
+    fn test_klasoru(ad: &str) -> (std::sync::MutexGuard<'static, ()>, PathBuf) {
+        let k = kilit(&DOSYA_TESTI);
+        let kok = std::env::temp_dir().join(format!("ryocs-test-{ad}-{}", simdi_ms()));
+        fs::create_dir_all(kok.join("RYOCS")).unwrap();
+        unsafe { std::env::set_var("APPDATA", &kok) }; // dir() reads from here
+        (k, kok)
+    }
+
+    #[test]
+    fn eski_dosyalar_sifrelenir() {
+        let (_k, kok) = test_klasoru("goc");
+        let r = kok.join("RYOCS");
+        fs::create_dir_all(r.join("yedekler")).unwrap();
+        fs::write(r.join("data.json"), "\u{feff}{\"todos\":[{\"t\":\"süt\"}]}").unwrap();
+        fs::write(r.join("yedekler").join("data-2026-01-01.json"), r#"{"a":1}"#).unwrap();
+        fs::write(r.join("yedekler").join("data-2026-01-02.json"), "bozuk").unwrap();
+        fs::write(r.join("config.json"), r#"{"google":{"client_id":"x.apps.googleusercontent.com","client_secret":"gizli1"},"spotify":{"client_id":"","client_secret":""}}"#).unwrap();
+        use base64::Engine;
+        let eski_belirtec = base64::engine::general_purpose::STANDARD.encode(dpapi(br#"{"google":{"refresh_token":"r"}}"#, true).unwrap());
+        fs::write(r.join("tokens.json"), eski_belirtec).unwrap(); // 1.0.7 format: no prefix
+        sifrele_goc();
+        let oku = |p: &str| fs::read_to_string(r.join(p)).unwrap();
+        assert!(oku("data.json").starts_with(DPAPI_ONEK) && oku("yedekler/data-2026-01-01.json").starts_with(DPAPI_ONEK) && oku("tokens.json").starts_with(DPAPI_ONEK));
+        assert_eq!(veri_oku().unwrap()["todos"][0]["t"], "süt");
+        assert_eq!(oku("yedekler/data-2026-01-02.json"), "bozuk"); // damaged: left alone
+        assert_eq!(tokens_oku()["google"]["refresh_token"], "r");
+        assert!(oku("config.json").contains(DPAPI_ONEK) && !oku("config.json").contains("gizli1"));
+        assert_eq!(creds("google").unwrap().1, "gizli1");
+        assert_eq!(creds("spotify"), Err("kimlik_yok".into()));
+        let once = oku("data.json");
+        sifrele_goc(); // second start: nothing to do
+        assert_eq!(oku("data.json"), once);
+        fs::remove_dir_all(&kok).ok();
+    }
+
     #[test]
     fn esitleme_uctan_uca() {
-        let kok = std::env::temp_dir().join(format!("ryocs-test-{}", now()));
+        let (_k, kok) = test_klasoru("esitle");
         let (od, yerel) = (kok.join("od"), kok.join("RYOCS").join("data.json"));
         fs::create_dir_all(&od).unwrap();
-        unsafe { std::env::set_var("APPDATA", &kok) }; // dir() reads from here; the other tests do not touch the file
         let uzak = od.join("RYOCS").join("data.json");
         let d = |b: &str| esitle(b).unwrap()["durum"].as_str().unwrap().to_string();
+        let duz = || dpapi_coz(&fs::read_to_string(&yerel).unwrap()).unwrap();
         write_json("data.json", &json!({"a": 1})).unwrap();
+        assert!(fs::read_to_string(&yerel).unwrap().starts_with(DPAPI_ONEK)); // encrypted on disk
         assert_eq!(d("{}"), "kapali");
         assert!(esitle(&json!({"acik": true, "klasor": kok.join("yok")}).to_string()).is_err());
         assert_eq!(d(&json!({"acik": true, "klasor": od}).to_string()), "ok"); // first start: no remote, send
-        assert_eq!(fs::read(&uzak).unwrap(), fs::read(&yerel).unwrap());
+        assert_eq!(fs::read_to_string(&uzak).unwrap(), duz()); // no password: plain copy as before
         fs::write(&uzak, r#"{"a":2}"#).unwrap(); // another computer wrote, local unchanged
         assert_eq!(d("{}"), "uzak_yeni"); // not pulled without asking
         assert_eq!(d(r#"{"baslangic":true}"#), "guncellendi");
@@ -1929,12 +2206,75 @@ mod tests {
         esitle_gonder(); // does not overwrite on conflict
         assert_eq!(fs::read_to_string(&uzak).unwrap(), r#"{"a":4}"#);
         assert_eq!(d(r#"{"sec":"yerel"}"#), "ok");
-        assert_eq!(fs::read(&uzak).unwrap(), fs::read(&yerel).unwrap());
-        assert_eq!(fs::read_to_string(dir().join("yedekler").join("data-onedrive.json")).unwrap(), r#"{"a":4}"#);
+        assert_eq!(fs::read_to_string(&uzak).unwrap(), duz());
+        assert_eq!(dpapi_coz(&fs::read_to_string(dir().join("yedekler").join("data-onedrive.json")).unwrap()).unwrap(), r#"{"a":4}"#);
+        // password: the copy is encrypted, nothing changes for the sync decision, the other PC needs the same password
+        assert!(esitle(r#"{"parola":"kisa"}"#).is_err());
+        assert_eq!(d(r#"{"parola":"uzun-parola-1"}"#), "ok");
+        assert!(fs::read_to_string(&uzak).unwrap().starts_with(PAROLA_ONEK));
+        assert_eq!(d("{}"), "ok"); // same plain text: no conflict
+        assert_eq!(d(r#"{"parola":"yeni-parola-22"}"#), "ok"); // change: the copy is written again with the new one
+        assert!(parola_coz("yeni-parola-22", &fs::read_to_string(&uzak).unwrap()).is_some());
+        let mut e = read_json("esitle.json");
+        e.as_object_mut().unwrap().remove("parola"); // like a second PC that has no password yet
+        write_json("esitle.json", &e).unwrap();
+        assert_eq!(d("{}"), "parola"); // no password on this PC: neither sends nor pulls
+        assert!(esitle(r#"{"parola":""}"#).is_err()); // cannot remove what it cannot open
+        assert!(esitle(r#"{"parola":"yanlis-parola"}"#).is_err()); // does not open the copy: refused
+        assert_eq!(d(r#"{"parola":"yeni-parola-22"}"#), "ok");
+        let v = esitle(r#"{"parola":""}"#).unwrap(); // removed: the copy is plain again and sync goes on
+        assert_eq!((v["durum"].as_str(), v["parola"].as_bool()), (Some("ok"), Some(false)));
+        assert_eq!(fs::read_to_string(&uzak).unwrap(), duz());
+        assert_eq!(d(r#"{"parola":"uzun-parola-1"}"#), "ok");
         fs::write(&uzak, "bozuk").unwrap(); // remote file corrupt: local is kept, an error returns
         assert!(esitle(r#"{"baslangic":true}"#).is_err());
         assert_eq!(veri_oku().unwrap()["a"], 3);
         fs::remove_dir_all(&kok).ok();
+    }
+
+    #[test]
+    fn kapanis_kayitlari_bekler() {
+        let k = KayitSuruyor::basla();
+        let t = thread::spawn(|| { let b = simdi_ms(); kayitlari_bekle(); simdi_ms() - b });
+        thread::sleep(Duration::from_millis(300));
+        drop(k); // the save ends; quitting still waits 400 ms for a queued one
+        let gecen = t.join().unwrap();
+        assert!((650..3000).contains(&gecen), "{gecen} ms");
+        thread::sleep(Duration::from_millis(450));
+        let b = simdi_ms();
+        kayitlari_bekle(); // nothing saving: returns at once
+        assert!(simdi_ms() - b < 200);
+    }
+
+    #[test]
+    fn mail_onbellegi() {
+        let mut o = HashMap::new();
+        let ids = |l: &[&str]| l.iter().map(|s| s.to_string()).collect::<Vec<_>>();
+        let r = mail_birlestir(&mut o, vec![json!({"id": "a"}), json!({"id": "b"})], &ids(&["b", "a"]));
+        assert_eq!(r, vec![json!({"id": "b"}), json!({"id": "a"})]); // Gmail's order, not the fetch order
+        let r = mail_birlestir(&mut o, vec![json!({"id": "c"})], &ids(&["c", "a"])); // b was read: gone from memory too
+        assert_eq!(r, vec![json!({"id": "c"}), json!({"id": "a"})]);
+        assert_eq!(o.len(), 2);
+    }
+
+    #[test]
+    fn sifreli_dosyalar() {
+        let s = dpapi_sar(r#"{"not":"gizli"}"#).unwrap();
+        assert!(s.starts_with(DPAPI_ONEK) && !s.contains("gizli"));
+        assert_eq!(dpapi_coz(&s).unwrap(), r#"{"not":"gizli"}"#);
+        assert_eq!(dpapi_coz("\u{feff}{\"a\":1}\n").unwrap(), r#"{"a":1}"#); // plain file of an older version
+        assert!(dpapi_coz(&format!("{DPAPI_ONEK}AAAA")).is_err()); // another account's file: an error, never empty data
+        assert!(veri_coz(Ok(format!("{DPAPI_ONEK}AAAA"))).is_err());
+        assert_eq!(veri_coz(Ok(s)).unwrap()["not"], "gizli");
+        assert!(sifreli_dosya("data.json") && sifreli_dosya("yedekler/data-2026-01-01.json") && !sifreli_dosya("config.json") && !sifreli_dosya("esitle.json"));
+        let p = parola_sifrele("doğru parola", "{\"ş\":1}").unwrap();
+        assert!(p.starts_with(PAROLA_ONEK) && p != parola_sifrele("doğru parola", "{\"ş\":1}").unwrap()); // new nonce each time
+        assert_eq!(parola_coz("doğru parola", &p).as_deref(), Some("{\"ş\":1}"));
+        assert!(parola_coz("yanlış", &p).is_none());
+        let mut b = p.clone().into_bytes();
+        let n = b.len() - 3;
+        b[n] = if b[n] == b'A' { b'B' } else { b'A' }; // a changed byte fails the GCM tag
+        assert!(parola_coz("doğru parola", &String::from_utf8(b).unwrap()).is_none());
     }
 
     #[test]
@@ -2048,6 +2388,7 @@ mod tests {
 
     #[test]
     fn tarih() {
+        assert!(yedek_adi(&format!("data-{}.json", bugun())));
         assert_eq!(ymd(0), "1970-01-01");
         assert_eq!(ymd(11017), "2000-03-01");
         assert_eq!(ymd(19782), "2024-02-29");

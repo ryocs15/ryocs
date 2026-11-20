@@ -13,6 +13,9 @@ permissions:
 jobs:
   check:
     runs-on: windows-latest
+    env:
+      # the Visual C++ runtime goes into the exe: RYOCS also starts on a PC without the VC++ Redistributable (same as .cargo/config.toml locally)
+      RUSTFLAGS: -C target-feature=+crt-static
     steps:
       - uses: actions/checkout@v5
 

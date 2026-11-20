@@ -4,16 +4,24 @@ Everything RYOCS stores lives in `%APPDATA%\RYOCS`. Nothing is sent anywhere exc
 
 | File | What it holds |
 |---|---|
-| `data.json` | Your tasks, notes, settings and layout (below). Written by the app on every change. |
-| `config.json` | Weather city and the Google / Spotify keys you created. |
+| `data.json` | Your tasks, notes, settings and layout (below). Written by the app on every change. Encrypted (see below). |
+| `config.json` | Weather city and the Google / Spotify keys you created. Plain JSON you can edit; only `client_secret` is stored encrypted. |
+| `onbellek.json` | Cached for a fast start: calendar events, held notifications, the last weather (with the place), the last Spotify track, your name for the start screen. Encrypted. |
 | `tokens.json` | Sign-in tokens for Google and Spotify, encrypted with Windows DPAPI (only your Windows account on this PC can read them; deleted by *Disconnect*). |
-| `esitle.json` | OneDrive sync: on/off, folder, last synced fingerprint. |
+| `esitle.json` | OneDrive sync: on/off, folder, last synced fingerprint, the OneDrive password (`parola`, encrypted). |
 | `pencere.json` | Window: maximized or not, and the normal position and size (`maks`, `x`, `y`, `w`, `h`, screen pixels). |
-| `yedekler\` | Backups: `data-YYYY-MM-DD.json` (one per day, last 14), `data-geri-alma.json` (the state before the last restore or import), `data-onedrive.json` (the OneDrive copy that lost a sync conflict). |
+| `yedekler\` | Backups (encrypted): `data-YYYY-MM-DD.json` (one per day, last 14), `data-geri-alma.json` (the state before the last restore or import), `data-onedrive.json` (the OneDrive copy that lost a sync conflict). |
 | `hata.log` | Error log (over 1 MB the old one becomes `hata.old`). |
 | `ryocs.png` | Notification icon. |
 
-Files are written to a temporary file first and then renamed, so a crash cannot leave half a file.
+Files are written to a temporary file, flushed to disk and then renamed, so neither a crash nor a power cut can leave half a file.
+
+## Encryption (since 1.1)
+
+- `data.json`, the backups, `onbellek.json` and `client_secret` in `config.json` are encrypted with Windows DPAPI: `RYOCS-DPAPI1:` followed by base64. Only your Windows account on this PC can open them; you can no longer read them with Notepad.
+- A plain file from an older version is still read and is encrypted at the next start. Version 1.0.7 and older cannot open the encrypted files (they show "corrupt" and do not overwrite them).
+- **After a Windows reinstall, an administrator password reset, or on another PC the encrypted files and backups cannot be opened.** *Settings → Data → Export* writes a plain JSON copy for exactly that case; keep it somewhere safe.
+- OneDrive copy (`<OneDrive>\RYOCS\data.json`): plain JSON unless you set a password in *Settings → Data → Password…*. With a password it is `RYOCS-PAROLA1:` + base64(salt 16 · nonce 12 · tag 16 · ciphertext): AES-256-GCM with a key from PBKDF2-HMAC-SHA256 (310 000 rounds), all from Windows CNG. Every computer needs the same password; the sync fingerprint is taken over the plain JSON.
 
 ## data.json
 
@@ -73,4 +81,4 @@ Missing keys mean the default.
 
 ## Per-computer settings (browser storage, not in data.json)
 
-Small conveniences kept by the app's web view and not synced: last settings tab, read news, cached weather / rates / news / calendar for a fast start, the free timer, the clipboard pause, the last version the update notice was shown for.
+Small conveniences kept by the app's web view (plain, not synced): last settings tab, read news, cached rates / news / site icons and the last sunrise and sunset times (start screen), the free timer, the focus round, the clipboard pause, the last version the update notice was shown for. Calendar events, held notifications, the weather with its place, the last track and your name are no longer kept here (they moved to `onbellek.json`; older entries are moved once and removed). Uninstalling RYOCS deletes this storage.

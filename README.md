@@ -151,7 +151,10 @@ Pushing a tag such as `v0.3.0` builds the installer on GitHub Actions and attach
 - Data, credentials and tokens are stored only in `%APPDATA%\RYOCS` ([what is in each file](docs/DATA.md)).
 - The local server answers only requests from its own page.
 - Clipboard history is kept in memory only and skips content that password managers mark as private.
-- The PIN lock is a privacy screen; `data.json` itself is not encrypted.
+- `data.json`, its backups and the client secrets are encrypted with Windows DPAPI: only your Windows account on this PC can open them. Use *Settings → Data → Export* for a plain copy (moving to another PC, Windows reinstall).
+- The OneDrive copy can be password-encrypted (*Settings → Data → Password…*); without a password it is plain JSON.
+- The PIN lock is a privacy screen on top of that.
+- The installer is not code-signed yet, so Windows SmartScreen may warn on first run ("More info → Run anyway").
 
 ## License
 

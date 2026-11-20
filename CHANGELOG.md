@@ -2,6 +2,31 @@
 
 All releases: [GitHub Releases](https://github.com/ryocs15/ryocs/releases). Your data (`%APPDATA%\RYOCS`) is kept by every update.
 
+## 1.1.0 (unreleased)
+
+**Security**
+- Your data is encrypted on disk with Windows DPAPI: data.json, its backups, the calendar / notification cache and the client secrets in config.json. Older plain files are encrypted at the first start. **You cannot go back to 1.0.7 or older after this version.** Export keeps a plain copy for moving to another PC or after a Windows reinstall.
+- The OneDrive copy can be password-encrypted (Settings → Data → Password…; AES-256-GCM from Windows). Without a password it stays plain, as before, and the settings say so.
+- Calendar events, held notifications, the weather (with your place), the last Spotify track and your name are no longer cached in the web view's plain storage.
+- The installer refuses Windows versions older than Windows 10 1709, where RYOCS cannot start.
+
+**Fixed**
+- Saves are flushed to disk before replacing the file: a power cut no longer leaves an empty data.json.
+- Loading newer data from OneDrive could collide with a save happening at the same moment.
+- The currency card fetches the bank, gold, silver and world rates at the same time (on a slow network this took up to a minute).
+- A focus round restored after a restart lost its remaining time when the data loaded.
+- Without the WebView2 Runtime RYOCS showed nothing; it now says what is missing and opens the download page.
+- Uninstalling removes the web view's cache folder.
+- Quitting waits for saves in progress (up to 5 s) instead of a fixed 0.7 s, so the last change is not lost.
+- Daily backups and the export file are named by the local date (they used the UTC date).
+- RYOCS starts on a PC without the Visual C++ Redistributable (the runtime is now inside the exe).
+
+**Improved**
+- If the data cannot be opened, a recovery screen offers the backups, import and the data folder (Settings could not open without data).
+- Rates, news and failed connections have a "Try again" button; every card that shows "no internet" refreshes by itself.
+- Keyboard resizing: Alt+Shift+↑/↓ on a card, Alt+Shift+←/→ for the side columns.
+- Small text (chart labels, calculator key hints, source lines) is at least 10–11 px.
+
 ## 1.0.7 (2026-11-19)
 
 **Fixed**

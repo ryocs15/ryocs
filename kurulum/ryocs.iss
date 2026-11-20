@@ -25,6 +25,8 @@ Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
 ArchitecturesAllowed=x64compatible
+; Windows 10 1709 or newer: the app calls GetUserDefaultGeoName (1709) and Windows CNG pseudo-handles; on older Windows the exe would not start
+MinVersion=10.0.16299
 ArchitecturesInstallIn64BitMode=x64compatible
 ; the installer language follows the Windows UI language (English unless Turkish)
 ShowLanguageDialog=no
@@ -61,6 +63,11 @@ Filename: "{app}\ryocs.exe"; Description: "{cm:Baslat}"; Flags: nowait postinsta
 [UninstallRun]
 ; no "Start with Windows" entry is left behind; personal data (%APPDATA%\RYOCS) is deliberately not deleted
 Filename: "{sys}\reg.exe"; Parameters: "delete HKCU\Software\Microsoft\Windows\CurrentVersion\Run /v RYOCS /f"; Flags: runhidden; RunOnceId: "baslat"
+
+[UninstallDelete]
+; the web view's own folder (browser cache and per-computer conveniences) and copies left by manual updates
+Type: filesandordirs; Name: "{app}\ryocs.exe.WebView2"
+Type: files; Name: "{app}\ryocs.*.exe"
 
 [Code]
 // A RYOCS running in the tray locks the file: it is closed before install and uninstall
