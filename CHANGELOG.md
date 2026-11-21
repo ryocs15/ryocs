@@ -2,6 +2,11 @@
 
 All releases: [GitHub Releases](https://github.com/ryocs15/ryocs/releases). Your data (`%APPDATA%\RYOCS`) is kept by every update.
 
+## 1.1.4 (unreleased)
+
+**Changed**
+- Works on a fresh PC without installing anything else: the installer adds Microsoft's WebView2 Runtime when it is missing (needs internet for that step), and the Poppins font is now part of the app, so the interface looks the same everywhere.
+
 ## 1.1.3 (2026-11-21)
 
 **Fixed**

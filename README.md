@@ -41,7 +41,7 @@ The interface is in **English** and **Turkish**. It follows the Windows display 
 
 ## Install
 
-Download `RYOCS-Setup-x.y.z.exe` from [Releases](https://github.com/ryocs15/ryocs/releases) and run it. It installs for the current user only (no admin rights) and needs Windows 10 or 11 with the WebView2 runtime (included in Windows 11).
+Download `RYOCS-Setup-x.y.z.exe` from [Releases](https://github.com/ryocs15/ryocs/releases) and run it. It installs for the current user only (no admin rights) and runs on Windows 10 (1709 or later) and 11. Nothing else needs to be installed: the Visual C++ runtime and the Poppins font are inside the app, and the installer adds Microsoft's WebView2 Runtime when the PC lacks it (included in Windows 11; this one step needs an internet connection).
 
 The installer is not code-signed yet, so Windows SmartScreen may warn on first run: choose *More info → Run anyway*.
 
@@ -158,4 +158,4 @@ Pushing a tag such as `v0.3.0` builds the installer on GitHub Actions and attach
 
 ## License
 
-[MIT](LICENSE)
+[MIT](LICENSE). The bundled Poppins font is under the [SIL Open Font License](assets/yazi/OFL.txt).

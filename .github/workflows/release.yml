@@ -36,6 +36,15 @@ jobs:
       - name: Install Inno Setup
         run: choco install innosetup -y --no-progress
 
+      - name: WebView2 bootstrapper
+        shell: pwsh
+        run: |
+          # Microsoft's Evergreen bootstrapper goes into the installer (installs the WebView2 Runtime on PCs that lack it); only a valid Microsoft signature is accepted
+          $f = "target\MicrosoftEdgeWebview2Setup.exe"
+          Invoke-WebRequest "https://go.microsoft.com/fwlink/p/?LinkId=2124703" -OutFile $f
+          $s = Get-AuthenticodeSignature $f
+          if ($s.Status -ne "Valid" -or $s.SignerCertificate.Subject -notmatch "O=Microsoft Corporation") { throw "WebView2 bootstrapper signature: $($s.Status) $($s.SignerCertificate.Subject)" }
+
       - name: Build installer
         shell: pwsh
         run: |

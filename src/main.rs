@@ -1610,6 +1610,20 @@ fn anahtar_gerekli(path: &str) -> bool {
     path.starts_with("/api/") && path != "/api/show"
 }
 
+/// Poppins (SIL Open Font License, assets/yazi/OFL.txt) inside the exe: the UI looks the same on a PC without the font.
+const YAZILAR: [(&str, &[u8]); 10] = [
+    ("poppins-300-latin.woff2", include_bytes!("../assets/yazi/poppins-300-latin.woff2")),
+    ("poppins-300-ext.woff2", include_bytes!("../assets/yazi/poppins-300-ext.woff2")),
+    ("poppins-400-latin.woff2", include_bytes!("../assets/yazi/poppins-400-latin.woff2")),
+    ("poppins-400-ext.woff2", include_bytes!("../assets/yazi/poppins-400-ext.woff2")),
+    ("poppins-500-latin.woff2", include_bytes!("../assets/yazi/poppins-500-latin.woff2")),
+    ("poppins-500-ext.woff2", include_bytes!("../assets/yazi/poppins-500-ext.woff2")),
+    ("poppins-600-latin.woff2", include_bytes!("../assets/yazi/poppins-600-latin.woff2")),
+    ("poppins-600-ext.woff2", include_bytes!("../assets/yazi/poppins-600-ext.woff2")),
+    ("poppins-700-latin.woff2", include_bytes!("../assets/yazi/poppins-700-latin.woff2")),
+    ("poppins-700-ext.woff2", include_bytes!("../assets/yazi/poppins-700-ext.woff2")),
+];
+
 fn send(req: Request, code: u16, ctype: &str, text: String) {
     let h = Header::from_bytes(&b"Content-Type"[..], ctype.as_bytes()).unwrap();
     req.respond(Response::from_string(text).with_status_code(code).with_header(h)).ok();
@@ -1663,6 +1677,12 @@ fn handle(mut req: Request) {
 
     if !post && path == "/" {
         return send(req, 200, HTML, include_str!("ui.html").replace("__BOLGE__", &bolge()));
+    }
+    if let (false, Some(ad)) = (post, path.strip_prefix("/yazi/")) {
+        let Some((_, b)) = YAZILAR.iter().find(|y| y.0 == ad) else { return send(req, 404, "text/plain", "yok".into()) };
+        let h = |a: &str, d: &str| Header::from_bytes(a.as_bytes(), d.as_bytes()).unwrap();
+        req.respond(Response::from_data(b.to_vec()).with_header(h("Content-Type", "font/woff2")).with_header(h("Cache-Control", "max-age=31536000"))).ok();
+        return;
     }
     if let (false, Some(name)) = (post, path.strip_prefix("/callback/")) {
         let sonuc = provider(name).and_then(|p| callback(&p, &url));
@@ -2164,6 +2184,15 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn yazilar_gomulu() {
+        let ui = include_str!("ui.html");
+        for (ad, b) in YAZILAR {
+            assert!(b.starts_with(b"wOF2") && ui.contains(&format!("/yazi/{ad}")), "{ad}");
+        }
+        assert_eq!(ui.matches("url(/yazi/").count(), YAZILAR.len());
+    }
 
     #[test]
     fn iptal_edilen_jeton() {

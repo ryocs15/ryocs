@@ -47,6 +47,10 @@ Name: "masaustu"; Description: "{cm:Masaustu}"; Flags: unchecked
 
 [Files]
 Source: "..\target\release\ryocs.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\assets\yazi\OFL.txt"; DestDir: "{app}"; DestName: "Poppins-OFL.txt"; Flags: ignoreversion
+; WebView2 Runtime: Windows 11 has it, some Windows 10 (LTSC, N) do not. CI puts Microsoft's bootstrapper next to the exe;
+; it downloads and installs the runtime only when it is missing (needs internet). A local build without the file still compiles.
+Source: "..\target\MicrosoftEdgeWebview2Setup.exe"; DestDir: "{tmp}"; Flags: deleteafterinstall skipifsourcedoesntexist; Check: WebView2Yok
 
 [Icons]
 ; The app ID makes notifications show under the "RYOCS" name and groups correctly on the taskbar
@@ -58,6 +62,7 @@ Name: "{autodesktop}\RYOCS"; Filename: "{app}\ryocs.exe"; AppUserModelID: "RYOCS
 Root: HKCU; Subkey: "Software\Classes\AppUserModelId\RYOCS"; Flags: uninsdeletekey
 
 [Run]
+Filename: "{tmp}\MicrosoftEdgeWebview2Setup.exe"; Parameters: "/silent /install"; StatusMsg: "Microsoft Edge WebView2 Runtime..."; Flags: waituntilterminated; Check: WebView2Kur
 Filename: "{app}\ryocs.exe"; Description: "{cm:Baslat}"; Flags: nowait postinstall skipifsilent
 ; one-click update in the app runs this installer with /SILENT: start RYOCS again afterwards
 Filename: "{app}\ryocs.exe"; Flags: nowait; Check: WizardSilent
@@ -72,6 +77,22 @@ Type: filesandordirs; Name: "{app}\ryocs.exe.WebView2"
 Type: files; Name: "{app}\ryocs.*.exe"
 
 [Code]
+// WebView2 Runtime installed (per machine or per user)? Microsoft's documented check: the "pv" version under EdgeUpdate\Clients
+function WebView2Var(Kok: Integer; Anahtar: String): Boolean;
+var V: String;
+begin
+  Result := RegQueryStringValue(Kok, Anahtar, 'pv', V) and (V <> '') and (V <> '0.0.0.0');
+end;
+function WebView2Yok(): Boolean;
+begin
+  Result := not (WebView2Var(HKLM, 'SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}')
+    or WebView2Var(HKLM, 'SOFTWARE\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}')
+    or WebView2Var(HKCU, 'Software\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}'));
+end;
+function WebView2Kur(): Boolean;
+begin
+  Result := WebView2Yok() and FileExists(ExpandConstant('{tmp}\MicrosoftEdgeWebview2Setup.exe'));
+end;
 // A RYOCS running in the tray locks the file: it is closed before install and uninstall
 procedure Kapat();
 var Sonuc: Integer;
