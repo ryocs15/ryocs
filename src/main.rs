@@ -1137,9 +1137,17 @@ fn uygulama_gecerli(yol: &str) -> Result<(), String> {
     Ok(())
 }
 
-fn uygulama_ac(yol: &str) -> Result<Value, String> {
+fn uygulama_ac(yol: &str, yonetici: bool) -> Result<Value, String> {
     uygulama_gecerli(yol)?;
     let p = std::path::Path::new(yol);
+    if yonetici {
+        // "runas": Windows asks for permission (UAC); a value above 32 means it started
+        use windows_sys::Win32::UI::Shell::ShellExecuteW;
+        let g = |s: &std::ffi::OsStr| -> Vec<u16> { use std::os::windows::ffi::OsStrExt; s.encode_wide().chain([0]).collect() };
+        let (fiil, dosya, klasor) = (g("runas".as_ref()), g(p.as_os_str()), g(p.parent().unwrap_or(p).as_os_str()));
+        let r = unsafe { ShellExecuteW(std::ptr::null_mut(), fiil.as_ptr(), dosya.as_ptr(), std::ptr::null(), klasor.as_ptr(), 1) } as isize;
+        return if r > 32 { Ok(Value::Null) } else { Err(l("Yönetici olarak açılamadı (izin verilmedi ya da dosya yok)", "Could not open as administrator (not allowed or the file is missing)").into()) };
+    }
     // .exe runs in its own folder (games look for their files there); if it needs admin rights the shell handles it
     if p.extension().is_some_and(|e| e.eq_ignore_ascii_case("exe"))
         && std::process::Command::new(p).current_dir(p.parent().unwrap_or(p)).spawn().is_ok()
@@ -1838,7 +1846,7 @@ fn handle(mut req: Request) {
     } else if post && path == "/api/open" {
         serde_json::from_str::<Value>(&b).map_err(|e| e.to_string()).and_then(|v| open_url(v["url"].as_str().unwrap_or("")))
     } else if post && path == "/api/uygulama" {
-        serde_json::from_str::<Value>(&b).map_err(|e| e.to_string()).and_then(|v| uygulama_ac(v["yol"].as_str().unwrap_or("")))
+        serde_json::from_str::<Value>(&b).map_err(|e| e.to_string()).and_then(|v| uygulama_ac(v["yol"].as_str().unwrap_or(""), v["yonetici"] == true))
     } else if post && path == "/api/simgeler" {
         simgeler(&b)
     } else if !post && path == "/api/favicon" {

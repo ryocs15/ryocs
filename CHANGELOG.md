@@ -4,6 +4,12 @@ All releases: [GitHub Releases](https://github.com/ryocs15/ryocs/releases). Your
 
 ## Unreleased
 
+**Apps**
+- Drag an app icon onto another to reorder.
+- Alt+1 … Alt+9 open the first nine apps while RYOCS is in front.
+- Right-click an .exe → Open as administrator.
+- When an app cannot be opened (moved or uninstalled), the message offers to remove it.
+
 **Calendar**
 - Event reminders can come 5, 10, 15 or 30 minutes before (calendar card settings).
 - An event's details have "Join the meeting" for Google Meet and other video links, and "Open in Maps" for its place.
