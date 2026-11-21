@@ -2,7 +2,7 @@
 
 All releases: [GitHub Releases](https://github.com/ryocs15/ryocs/releases). Your data (`%APPDATA%\RYOCS`) is kept by every update.
 
-## 1.1.0 (unreleased)
+## 1.1.0 (2026-11-21)
 
 **Added**
 - Currency alerts: click (or right-click) a rate to get a notification once it reaches your target; a bell marks rates with an alert.
