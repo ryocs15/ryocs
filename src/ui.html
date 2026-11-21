@@ -1471,7 +1471,7 @@ function havaCiz(){
   let serit='';
   const j=sec>0&&s?s.time.findIndex(t=>t.startsWith(d.time[sec])):-1;
   if(j>=0)serit='<div class="saatlik gunSaat">'+[0,4,8,12,16,20].filter(k=>s.time[j+k]).map(k=>hucre(j+k,k?saatEt(j+k):new Date(d.time[sec]+'T00:00').toLocaleDateString(LOC,{weekday:'short'}))).join('')+'</div>';
-  else if(gun)serit='<div class="saatlik gunluk">'+[1,2,3].map(i=>`<div data-g7="${i}" role="button" tabindex="0" title="${esc(WMO[d.weather_code[i]]||'')}${L(' · saatlik için tıkla',' · click for hours')}"><small>${new Date(d.time[i]+'T00:00').toLocaleDateString(LOC,{weekday:'short'})}</small>${havaIkon(d.weather_code[i])}<b>${T(d.temperature_2m_max[i])}</b> <small style="display:inline">${T(d.temperature_2m_min[i])}</small></div>`).join('')+'</div>';
+  else if(gun)serit='<div class="saatlik gunluk">'+[1,2,3].map(i=>`<div data-g7="${i}" role="button" tabindex="0" aria-pressed="false" title="${esc(WMO[d.weather_code[i]]||'')}${L(' · saatlik için tıkla',' · click for hours')}"><small>${new Date(d.time[i]+'T00:00').toLocaleDateString(LOC,{weekday:'short'})}</small>${havaIkon(d.weather_code[i])}<b>${T(d.temperature_2m_max[i])}</b> <small style="display:inline">${T(d.temperature_2m_min[i])}</small></div>`).join('')+'</div>';
   else{
     const su=yerSaat(w),bas=c.time.slice(0,13)>su?c.time.slice(0,13):su; // past hours are skipped when drawing from the cache
     const i=s?s.time.findIndex(t=>t.slice(0,13)>=bas):-1;
@@ -1509,9 +1509,12 @@ function havaNot(w){
   const c=w.current,s=w.hourly,p=[],yag=k=>(s.precipitation_probability[k]??0)>=50&&/yagmur|kar|firtina/.test(havaTur(s.weather_code[k]));
   const i=s?.time?s.time.findIndex(t=>t.slice(0,13)>=yerSaat(w)):-1;
   if(i>=0){const simdi=c.precipitation>0;
-    for(let k=i+1;k<Math.min(s.time.length,i+13);k++){
-      if(simdi?(s.precipitation_probability[k]??0)<30:yag(k)){const sa=saatS(s.time[k].slice(11,16));
-        p.push(simdi?L(`Yağış ${sa} civarı diniyor`,`Rain stops around ${sa}`):havaTur(s.weather_code[k])==='kar'?L(`Kar ${sa} civarı başlıyor`,`Snow starts around ${sa}`):L(`Yağmur ${sa} civarı başlıyor`,`Rain starts around ${sa}`));break}}}
+    // not raining yet but likely within this hour: "soon"; a stop is looked for from the next hour on
+    for(let k=simdi?i+1:i;k<Math.min(s.time.length,i+13);k++){
+      if(simdi?(s.precipitation_probability[k]??0)<30:yag(k)){const sa=k===i?null:saatS(s.time[k].slice(11,16)),kar=havaTur(s.weather_code[k])==='kar';
+        p.push(simdi?L(`Yağış ${sa} civarı diniyor`,`Rain stops around ${sa}`)
+          :!sa?(kar?L('Kar yakında başlıyor','Snow starting soon'):L('Yağmur yakında başlıyor','Rain starting soon'))
+          :kar?L(`Kar ${sa} civarı başlıyor`,`Snow starts around ${sa}`):L(`Yağmur ${sa} civarı başlıyor`,`Rain starts around ${sa}`));break}}}
   if(typeof w.dun==='number'){const f=Math.round(c.temperature_2m-w.dun),a=Math.abs(f);
     p.push(!f?L('Dünle aynı','Same as yesterday'):L(`Dünden ${a}° daha ${f>0?'sıcak':'soğuk'}`,`${a}° ${f>0?'warmer':'colder'} than yesterday`))}
   return p.join(' · ');
@@ -1548,7 +1551,7 @@ function havaEk(w){
   if(d.time.length>=7){
     const mn=Math.min(...d.temperature_2m_min.slice(0,7)),mx=Math.max(...d.temperature_2m_max.slice(0,7)),r=(mx-mn)||1;
     const hRenk=f=>`color-mix(in oklab,var(--tu) ${Math.round(f*100)}%,var(--ma))`; // colour from the week's coldest (blue) to its warmest (orange)
-    h+=L('<div class="hv7 kirp"><h3>7 gün</h3>','<div class="hv7 kirp"><h3>7 days</h3>')+d.time.slice(0,7).map((g,k)=>`<div data-g7="${k}" role="button" tabindex="0"${havaSec?.k===havaSehir&&havaSec.g===g&&k?' class="sec"':''} title="${esc(WMO[d.weather_code[k]]||'')}${d.precipitation_probability_max?.[k]?L(' · yağış ',' · rain ')+yz(d.precipitation_probability_max[k]):''}"><span>${k?new Date(g+'T00:00').toLocaleDateString(LOC,{weekday:'short',day:'numeric'}):L('Bugün','Today')}</span>${havaIkon(d.weather_code[k])}<em>${T(d.temperature_2m_min[k])}</em><span class="cizgi"><i style="left:${(d.temperature_2m_min[k]-mn)/r*100}%;right:${(mx-d.temperature_2m_max[k])/r*100}%;background:linear-gradient(90deg,${hRenk((d.temperature_2m_min[k]-mn)/r)},${hRenk((d.temperature_2m_max[k]-mn)/r)})"></i></span><em>${T(d.temperature_2m_max[k])}</em></div>`).join('')+'</div>';
+    h+=L('<div class="hv7 kirp"><h3>7 gün</h3>','<div class="hv7 kirp"><h3>7 days</h3>')+d.time.slice(0,7).map((g,k)=>{const ac=havaSec?.k===havaSehir&&havaSec.g===g&&k>0;return `<div data-g7="${k}" role="button" tabindex="0" aria-pressed="${ac}"${ac?' class="sec"':''} title="${esc(WMO[d.weather_code[k]]||'')}${d.precipitation_probability_max?.[k]?L(' · yağış ',' · rain ')+yz(d.precipitation_probability_max[k]):''}"><span>${k?new Date(g+'T00:00').toLocaleDateString(LOC,{weekday:'short',day:'numeric'}):L('Bugün','Today')}</span>${havaIkon(d.weather_code[k])}<em>${T(d.temperature_2m_min[k])}</em><span class="cizgi"><i style="left:${(d.temperature_2m_min[k]-mn)/r*100}%;right:${(mx-d.temperature_2m_max[k])/r*100}%;background:linear-gradient(90deg,${hRenk((d.temperature_2m_min[k]-mn)/r)},${hRenk((d.temperature_2m_max[k]-mn)/r)})"></i></span><em>${T(d.temperature_2m_max[k])}</em></div>`}).join('')+'</div>';
   }
   // other cities (when the card is large): click to switch
   const l=['',...sehirler().map(yerAnahtar)].map(s=>[s,s?havaC[s]?.v:havaV]).filter(([,v])=>v&&v!==w);
@@ -1558,7 +1561,10 @@ function havaEk(w){
 let havaSerit='',havaSec=null;
 $('#hava').onclick=async e=>{
   const g7=e.target.closest('[data-g7]'),w=havaGoster();
-  if(g7&&w){const g=w.daily.time[+g7.dataset.g7];havaSec=+g7.dataset.g7&&!(havaSec?.k===havaSehir&&havaSec.g===g)?{k:havaSehir,g}:null;return havaCiz()} // the same day again: back to the normal strip
+  if(g7&&w){const g=w.daily.time[+g7.dataset.g7],yer=g7.closest('.hv7')?'.hv7':'.saatlik';
+    havaSec=+g7.dataset.g7&&!(havaSec?.k===havaSehir&&havaSec.g===g)?{k:havaSehir,g}:null;havaCiz(); // the same day again: back to the normal strip
+    // redrawn: keyboard focus stays on the row; the 3-day strip is replaced by the hours, so focus goes to "3 days" (which goes back)
+    return ($('#hava').querySelector(`${yer} [data-g7="${g7.dataset.g7}"]`)||$('#hava').querySelector('[data-hg="1"]'))?.focus()}
   const hs=e.target.closest('[data-hs]');
   if(hs){const s=hs.dataset.hs;if(s===havaSehir||havaYuk)return;
     if(s&&!havaC[s]){const y=sehirler().find(y=>yerAnahtar(y)===s);if(!y)return;

@@ -21,6 +21,10 @@ dogru('yesterday',not.endsWith('Dünden 4° daha soğuk'));
 // raining now: when it stops
 w.current.precipitation=1.2;w.hourly.precipitation_probability=w.hourly.precipitation_probability.map((v,k)=>new Date(w.hourly.time[k])<new Date(Date.now()+2.5*36e5)?90:10);ciz(w);
 dogru('rain stops',/^Yağış \S+ civarı diniyor/.test(q('#hava .hvNot').textContent));
+{const pp=w.hourly.precipitation_probability,wc=w.hourly.weather_code,i=w.hourly.time.findIndex(x=>x.slice(0,13)>=yerSaat(w));
+ w.current.precipitation=0;w.hourly.precipitation_probability=pp.map((v,k)=>k===i?70:0);w.hourly.weather_code=wc.map((v,k)=>k===i?61:1);ciz(w);
+ dogru('rain within this hour: soon',q('#hava .hvNot').textContent.startsWith('Yağmur yakında başlıyor'));
+ w.hourly.precipitation_probability=pp;w.hourly.weather_code=wc;w.current.precipitation=1.2;}
 w.dun=12;ciz(w);dogru('same as yesterday',q('#hava .hvNot').textContent.endsWith('Dünle aynı'));
 delete w.dun;w.current.precipitation=0;w.hourly.precipitation_probability=w.hourly.precipitation_probability.map(()=>0);ciz(w);
 esit('nothing to say: no line',q('#hava .hvNot'),null);
@@ -31,11 +35,13 @@ dogru('pollen shown when moderate',ek.includes('<small>Polen</small><b>orta</b>'
 dogru('no data: no block',!havaEk({...w,kalite:null}).includes('Hava kalitesi'));
 esit('index names',[aqiAd(10),aqiAd(55),aqiAd(120)],['İyi','Orta','Aşırı kötü']);
 // a day's hours: the 7-day row and the 3-day strip open it, the same day again closes it
-ciz(w);await bek(100);
+for(const x of document.querySelectorAll('dialog[open]'))x.close(); // the welcome dialog makes the page inert
+q('#hava').style.minHeight='1100px';ciz(w);await bek(300);
 const satir=q('#hava .hv7 [data-g7="2"]');dogru('7-day row is a button',satir?.getAttribute('role')==='button');
 satir.click();await bek(50);
 const gs=q('#hava .saatlik.gunSaat');
 esit('day hours',[!!gs,gs?.querySelector('small').textContent,gs?.querySelectorAll(':scope>div').length],[true,new Date(w.daily.time[2]+'T00:00').toLocaleDateString(LOC,{weekday:'short'}),6]);
+esit('focus stays on the row, it says pressed',[document.activeElement?.dataset.g7,document.activeElement?.closest('.hv7')!=null,q('#hava .hv7 [data-g7="2"]').getAttribute('aria-pressed'),q('#hava .hv7 [data-g7="3"]').getAttribute('aria-pressed')],['2',true,'true','false']);
 esit('buttons: none pressed, row marked',[[...q('#hava').querySelectorAll('[data-hg]')].map(b=>b.getAttribute('aria-pressed')),q('#hava .hv7 [data-g7="2"]').classList.contains('sec')],[['false','false'],true]);
 q('#hava .hv7 [data-g7="2"]').click();await bek(50);
 dogru('same day again: back',!q('#hava .gunSaat')&&!!q('#hava .saatlik'));
@@ -45,6 +51,7 @@ q('#hava [data-hg="1"]').click();await bek(50);
 dogru('3 days: strip back',!!q('#hava .saatlik.gunluk')&&!q('#hava .gunSaat'));
 q('#hava .saatlik.gunluk [data-g7="1"]').click();await bek(50);
 dogru('3-day strip opens a day',!!q('#hava .gunSaat'));
+esit('strip gone: focus on "3 days"',document.activeElement?.dataset.hg,'1');
 havaSec={k:'baska',g:w.daily.time[1]};ciz(w);havaSec={k:'baska',g:w.daily.time[1]};havaCiz();
 dogru('another city: dropped',!q('#hava .gunSaat'));
 // morning alert and evening note (the clock is moved for the test)
