@@ -1784,8 +1784,36 @@ const gorevMenu=(x,y,i)=>{
   menu(x,y,[[t.d?L('Geri al','Undo'):t.tek?L('Tamamla (sonrakine geç)','Complete (move to next)'):L('Tamamla','Complete'),()=>isaretle(i)],[L('Düzenle…','Edit…'),()=>duzenle(i)],null,
     ...P.map((p,k)=>[p.ad,oncelik(k),(t.p||0)===k?'sec':'']),null,
     i>0?[L('Yukarı taşı','Move up'),()=>tasi(i,i-1)]:0,i<S.todos.length-1?[L('Aşağı taşı','Move down'),()=>tasi(i,i+1)]:0,
+    t.due&&!t.d?[L('1 saat ertele','Snooze 1 hour'),()=>ertele(t,'saat')]:0,t.due&&!t.d?[L('Yarına ertele','Snooze until tomorrow'),()=>ertele(t,'yarin')]:0,
     t.due?[L('Hatırlatıcıyı kaldır','Remove reminder'),()=>{delete t.due;delete t.n;delete t.tek;ciz();kaydet()}]:0,null,[L('Sil','Delete'),()=>sil(i),'teh']]);
 };
+// Snooze: an hour from now, or tomorrow at the same time of day (09:00 if it had none); the reminder comes again
+function ertele(t,ne){
+  const d=ne==='saat'?new Date(Date.now()+36e5):(()=>{const z=t.due?new Date(t.due):new Date();const y=new Date();y.setDate(y.getDate()+1);y.setHours(t.due?z.getHours():9,t.due?z.getMinutes():0,0,0);return y})();
+  t.due=yerel(d);delete t.n;ciz();kaydet();tost(L('Ertelendi: ','Snoozed: ')+kisaTarih(d));
+}
+// Quick add with a date at the end of the text: "Dentist tomorrow 15:00", "Rapor cuma", "Call mom 18.30". Only the end is read, so
+// "Pazartesi raporu" stays a title. Only a day: 09:00; only a time: today, or tomorrow if it has passed; a weekday already past: next week.
+const GUN_AD=[['pazar','paz','sunday','sun'],['pazartesi','pzt','monday','mon'],['salı','sal','tuesday','tue'],['çarşamba','çar','wednesday','wed'],['perşembe','per','thursday','thu'],['cuma','cum','friday','fri'],['cumartesi','cmt','saturday','sat']];
+const GUN_RE=new RegExp(`\\s(bugün|today|yarın|tomorrow|${GUN_AD.flat().join('|')})$`,'i');
+function gorevCoz(metin,simdi=new Date()){
+  let t=' '+metin.trim(),gun=null,sa=null,hafta=false;
+  for(let k=0;k<2;k++){ // "yarın 15:00" or "15:00 yarın"
+    const z=!sa&&t.match(/\s(?:saat\s)?([01]?\d|2[0-3])[:.]([0-5]\d)$/i);
+    if(z){sa=[+z[1],+z[2]];t=t.slice(0,-z[0].length);continue}
+    const m=gun===null&&t.match(GUN_RE);
+    if(m){const w=m[1].toLocaleLowerCase('tr');t=t.slice(0,-m[0].length);
+      if(w==='bugün'||w==='today')gun=0;else if(w==='yarın'||w==='tomorrow')gun=1;
+      else{gun=(GUN_AD.findIndex(a=>a.includes(w))-simdi.getDay()+7)%7;hafta=true}}
+  }
+  t=t.trim();
+  if((gun===null&&!sa)||!t)return{t:metin};
+  const d=new Date(simdi);d.setSeconds(0,0);d.setHours(...(sa||[9,0]));
+  if(gun!==null)d.setDate(d.getDate()+gun);else if(d<=simdi)d.setDate(d.getDate()+1);
+  if(hafta&&d<=simdi)d.setDate(d.getDate()+7); // "friday 08:00" said on Friday at 10: next week
+  else if(gun===0&&d<=simdi&&!sa)d.setHours(Math.max(simdi.getHours()+1,9)); // "today" alone late in the day: within the next hour
+  return{t,due:yerel(d)};
+}
 // Habits: ticks of the last 7 days and streak length
 function seri(h){
   const d=new Date();let n=0;
@@ -1837,7 +1865,7 @@ $('#tmenu').onclick=e=>{
   const eski=S.todos,biten=eski.filter(t=>t.d).length;
   menu(b.right-190,b.bottom+6,[
     ...Object.keys(SUZ).map(v=>[L('Göster: ','Show: ')+SUZ[v],()=>{suz=v;ciz()},suz===v?'sec':'']),null,
-    [L('Tümünü tamamla','Complete all'),()=>{for(const t of S.todos)if(!t.tek)t.d=true;ciz();kaydet()}],
+    [L('Tümünü tamamla','Complete all'),()=>{let n=0;for(const t of S.todos)if(!t.tek&&!t.d){t.d=true;n++}bitenSay(n);ciz();kaydet()}], // counted for the 7-day chart like single ones
     [L('Önceliğe göre sırala','Sort by priority'),()=>{const o=S.todos.slice();S.todos.sort((a,b)=>(b.p||0)-(a.p||0)||(a.d-b.d));ciz();kaydet();tost(L('Sıralandı','Sorted'),L('Geri al','Undo'),()=>{S.todos=o;ciz();kaydet()})}],
     null,
     [`${L('Tamamlananları temizle (','Clear completed (')}${biten})`,()=>{
@@ -1859,7 +1887,9 @@ $('#tform').onsubmit=e=>{
   if(!t||!S)return;
   if(sekme==='aliskanlik'){S.aliskanlik.push({ad:t.slice(0,100),g:{}});$('#yeni').value='';ciz();kaydet();return}
   if(suz!=='tumu')suz='tumu'; // yeni görev süzgeçte gizli kalmasın
-  S.todos.push(yeniGorev=due?{t,d:false,due}:{t,d:false});
+  const c=due?{t}:gorevCoz(t); // a date typed in the text, unless one was picked
+  S.todos.push(yeniGorev=due?{t,d:false,due}:c.due?{t:c.t,d:false,due:c.due}:{t,d:false});
+  if(c.due)tost(L('Hatırlatma: ','Reminder: ')+kisaTarih(new Date(c.due)));
   $('#yeni').value='';sonAc(false);ciz();kaydet();
 };
 

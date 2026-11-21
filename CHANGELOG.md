@@ -4,6 +4,11 @@ All releases: [GitHub Releases](https://github.com/ryocs15/ryocs/releases). Your
 
 ## Unreleased
 
+**Tasks**
+- A day and time at the end of a new task set its reminder: "Dentist tomorrow 15:00", "Report friday", "Call mom 18.30" (Turkish or English day names).
+- Right-click a task with a reminder → Snooze 1 hour or Snooze until tomorrow.
+- Fixed: "Complete all" did not count the tasks for the 7-day chart.
+
 **Apps**
 - Drag an app icon onto another to reorder.
 - Alt+1 … Alt+9 open the first nine apps while RYOCS is in front.
