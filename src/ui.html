@@ -2922,19 +2922,20 @@ async function kur(zorla){
     kurV=v;try{localStorage.kur=JSON.stringify(v)}catch{}}
   kurCiz();
 }
-// Rate alert: S.ayar.kurAlarm = {CODE:{y:'>'|'<', v:number}}; the direction follows the target vs. the current rate; removed after it fires.
+// Rate alert: S.ayar.kurAlarm = {CODE:{y:'>'|'<', v:number, b:home currency}}; only alerts of the current home currency count; the direction follows the target vs. the current rate; removed after it fires.
 let kurDeg=()=>0;
-const kurAlarmlar=()=>Object.fromEntries(Object.entries(A('kurAlarm')||{}).filter(([,a])=>(a?.y==='<'||a?.y==='>')&&typeof a.v==='number'&&a.v>0));
+const kurAlarmlar=()=>Object.fromEntries(Object.entries(A('kurAlarm')||{}).filter(([,a])=>(a?.y==='<'||a?.y==='>')&&typeof a.v==='number'&&a.v>0&&a.b===kurTaban()));
+const kurAlarmSil=c=>{const a={...A('kurAlarm')};delete a[c];S.ayar.kurAlarm=a;kaydet()};
 async function kurAlarm(c){
   const al=kurAlarmlar(),su=kurDeg(c);
-  const v=await sor(`${c} ${L('alarmı','alert')}`,[{ad:L('Hedef kur','Target rate')+` (${kurTaban()})`,v:al[c]?.v??'',zorunlu:1}],L('Kur','Set'),su?L('Şu an: ','Now: ')+su.toLocaleString(LOC)+L('. Kur bu değere ulaşınca bildirim gelir.','. You get a notification when the rate reaches it.'):'');
+  const v=await sor(`${c} ${L('alarmı','alert')}`,[{ad:L('Hedef kur','Target rate')+` (${kurTaban()})`,v:al[c]?.v??'',zorunlu:1}],L('Kur','Set'),su?L('Şu an: ','Now: ')+su.toLocaleString(LOC)+L('. Kur bu değere ulaşınca bildirim gelir (kart açıkken, 30 dakikada bir kontrol edilir).','. You get a notification when the rate reaches it (checked every 30 minutes while the card is open).'):'');
   if(!v)return;const h=+v[0].replace(/\s/g,'').replace(',','.');
   if(!(h>0))return tost(L('Geçerli bir sayı gir','Enter a valid number'));
   if(h===su)return tost(L('Hedef şu anki kurdan farklı olmalı','The target must differ from the current rate'));
-  al[c]={y:h>=su?'>':'<',v:h};S.ayar.kurAlarm=al;kaydet();kurCiz();tost(L('Alarm kuruldu','Alert set'));
+  S.ayar.kurAlarm={...A('kurAlarm'),[c]:{y:h>=su?'>':'<',v:h,b:kurTaban()}};kaydet();kurCiz();tost(L('Alarm kuruldu','Alert set'));
 }
 function kurAlarmMenu(x,y,c){const al=kurAlarmlar();menu(x,y,[[al[c]?L('Alarmı değiştir…','Change alert…'):L('Alarm kur…','Set alert…'),()=>kurAlarm(c)],
-  al[c]?[L('Alarmı kaldır','Remove alert'),()=>{delete al[c];S.ayar.kurAlarm=al;kaydet();kurCiz()},'teh']:0])}
+  al[c]?[L('Alarmı kaldır','Remove alert'),()=>{kurAlarmSil(c);kurCiz()},'teh']:0])}
 $('#kur').onclick=e=>{const r=e.target.closest('[data-c]');if(r){const b=r.getBoundingClientRect();kurAlarmMenu(b.left+20,b.bottom,r.dataset.c)}};
 $('#kur').onkeydown=e=>{if((e.key==='Enter'||e.key===' ')&&e.target.dataset.c){e.preventDefault();e.target.click()}};
 function kurCiz(){
@@ -2953,7 +2954,7 @@ function kurCiz(){
   let h='',capr=0;for(const c of kurKodlar()){const v=deg(k,c);if(!k[c]){yok.push(c);continue}
     const cp=V.w?.includes(c);if(cp)capr=1;
     h+=sat(esc(ad.of(c)),c+' → '+B+(cp?L(' · çapraz',' · cross'):''),v?para(v):'—',fark(c,v),'',c);
-    if(v&&al[c]&&(al[c].y==='>'?v>=al[c].v:v<=al[c].v)){bildir(L('Kur alarmı','Rate alert'),`${c} → ${B}: ${para(v)} (${al[c].y} ${para(al[c].v)})`);delete al[c];S.ayar.kurAlarm=al;kaydet();return kurCiz()}}
+    if(v&&al[c]&&(al[c].y==='>'?v>=al[c].v:v<=al[c].v)){bildir(L('Kur alarmı','Rate alert'),`${c} → ${B}: ${para(v)} (${al[c].y} ${para(al[c].v)})`);kurAlarmSil(c);return kurCiz()}}
   kurDeg=c=>deg(k,c);
   const usd=tr?k.USD.s:k[B]/k.USD,maden=(o,a)=>sat(a,gram?L('gram · hesaplanan','gram · calculated'):L('ons','ounce'),o?para(o*usd/(gram?31.1035:1)):'—','',' kurAltin'); // usd: home currency per dollar
   h+=maden(V.ons,L('Altın','Gold'));if(A('gumus'))h+=maden(V.ag,L('Gümüş','Silver'));
