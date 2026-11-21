@@ -26,6 +26,8 @@ dogru('bad alerts ignored',!q('#kur .kurA')&&!q('#kur img')&&!q('#kur b b'));
 {const f1=window.fetch,eski=S;let sirada;window.fetch=async(p,a)=>{if(p==='/api/backups/restore'){sirada=S;return{json:async()=>({durum:'hata'})}}return f1(p,a)};
  await veriDegistir('/api/backups/restore',{ad:'x'});window.fetch=f1;
  dogru('S empty during the request',sirada===null);dogru('S back after a failure',S===eski);}
+// a rate that is not available: no dialog, so no alert with a guessed direction
+await kurAlarm('XYZ');dogru('unknown rate: no alert dialog',!q('#sor').textContent.includes('XYZ'));
 // clipboard row → task / note
 panoCiz({durum:'ok',veri:{liste:['Faturayı öde\nikinci satır','x']}});
 const n0=S.todos.length,b=q('#pano [data-p="0"]');

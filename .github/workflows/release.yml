@@ -17,8 +17,18 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
+      # the same checks as on every push: a tag on a commit that never went through them must not be released
+      - name: Clippy
+        run: cargo clippy --release --locked -- -D warnings
+
       - name: Test
         run: cargo test --release --locked
+
+      - name: Repeat logic
+        run: node test_sonraki.js
+
+      - name: UI tests (headless Edge)
+        run: python tests/ui/calis.py
 
       - name: Build
         run: cargo build --release --locked

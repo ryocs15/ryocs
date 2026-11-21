@@ -954,11 +954,23 @@ fn token(p: &Provider) -> Result<String, String> {
         }
     }
     let rt = t["refresh_token"].as_str().ok_or("bagli_degil")?;
-    let n = body(AGENT.post(p.token).send_form(&gizli_ekle(vec![
+    let n = match body(AGENT.post(p.token).send_form(&gizli_ekle(vec![
         ("grant_type", "refresh_token"), ("refresh_token", rt), ("client_id", &id),
-    ], &secret)))?;
+    ], &secret))) {
+        // the refresh token was revoked or expired (a Google project in "Testing" mode: after 7 days): retrying never helps, so the card offers to reconnect
+        Err(e) if iptal_edildi(&e) => {
+            disconnect(p).ok();
+            return Err("bagli_degil".into());
+        }
+        r => r?,
+    };
     save_token(p.name, n.clone());
     n["access_token"].as_str().map(String::from).ok_or("bagli_degil".into())
+}
+
+/// Token endpoint answer for a refresh token that no longer works (Google and Spotify: 400 invalid_grant).
+fn iptal_edildi(hata: &str) -> bool {
+    hata.starts_with("400:") && hata.contains("invalid_grant")
 }
 
 fn connect(p: &Provider) -> Result<Value, String> {
@@ -2095,6 +2107,12 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn iptal_edilen_jeton() {
+        assert!(iptal_edildi("400: {\n  \"error\": \"invalid_grant\",\n  \"error_description\": \"Token has been expired or revoked.\"\n}"));
+        assert!(!iptal_edildi("400: {\"error\": \"invalid_client\"}") && !iptal_edildi(AG_YOK) && !iptal_edildi("500: invalid_grant"));
+    }
 
     #[test]
     fn api_anahtarsiz_kapali() {

@@ -2928,6 +2928,7 @@ const kurAlarmlar=()=>Object.fromEntries(Object.entries(A('kurAlarm')||{}).filte
 const kurAlarmSil=c=>{const a={...A('kurAlarm')};delete a[c];S.ayar.kurAlarm=a;kaydet()};
 async function kurAlarm(c){
   const al=kurAlarmlar(),su=kurDeg(c);
+  if(!su)return tost(L('Bu kur şu an alınamıyor, alarm kurulamaz','This rate is not available right now, so no alert can be set'));
   const v=await sor(`${c} ${L('alarmı','alert')}`,[{ad:L('Hedef kur','Target rate')+` (${kurTaban()})`,v:al[c]?.v??'',zorunlu:1}],L('Kur','Set'),su?L('Şu an: ','Now: ')+su.toLocaleString(LOC)+L('. Kur bu değere ulaşınca bildirim gelir (kart açıkken, 30 dakikada bir kontrol edilir).','. You get a notification when the rate reaches it (checked every 30 minutes while the card is open).'):'');
   if(!v)return;const h=+v[0].replace(/\s/g,'').replace(',','.');
   if(!(h>0))return tost(L('Geçerli bir sayı gir','Enter a valid number'));
