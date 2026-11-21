@@ -5,6 +5,9 @@ All releases: [GitHub Releases](https://github.com/ryocs15/ryocs/releases). Your
 ## Unreleased
 
 **Fixed**
+- Weather: clear and partly cloudy nights show a moon instead of a sun (hourly strip, other cities).
+- Weather: for a city in another time zone the hourly strip and the 24-hour curve start at that city's current hour.
+- Weather: the rain chance next to the current temperature says "rain today", because it is the day's highest chance.
 - The daylight bar, the sunrise/sunset tips and the top line name the main city too, like the other cities (before, only the other cities were named).
 - Gmail card: a mail marked read in RYOCS and then marked unread again in Gmail shows as unread again (before, it stayed read until RYOCS restarted).
 

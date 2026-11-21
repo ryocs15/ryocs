@@ -81,3 +81,16 @@ inp.value='Yeşilova (Tufanbeyli / Adana), Yeşilova';inp.dispatchEvent(new Even
 esit('picker above settings',[q('#sor').open,q('#sor2').open],[true,true]);
 q('#sor2 select').value='0';q('#sor2 form').requestSubmit();await bek(900);
 esit('settings stay, field updated',[q('#sor').open,q('#sor2').open,inp.isConnected,inp.value],[true,false,true,'Yeşilova (Tufanbeyli / Adana), Yeşilova (Burdur)']);
+
+// 1.1.6: night icons, another time zone's hours, "rain today" wording
+esit('night: moon for clear and partly cloudy, older data: sun',[havaTur(0,true),havaTur(2,true),havaTur(3,true),havaTur(0,false),havaTur(0,undefined)],['ay','ayBulut','bulut','gunes','gunes']);
+{const w=JSON.parse(JSON.stringify(havaV)),n=new Date(),saat=x=>new Date(+n+x*1e3).toISOString().slice(0,13);
+  w.utc_offset_seconds=-5*3600;w.sehir='New York';w.current.time=saat(-5*3600-7200)+':00';w.current.precipitation=0;
+  w.hourly={time:Array.from({length:30},(_,k)=>new Date(+n+(k-3)*36e5-5*36e5).toISOString().slice(0,13)+':00'),temperature_2m:Array(30).fill(5),precipitation_probability:Array(30).fill(0),weather_code:Array(30).fill(0),is_day:Array(30).fill(0)};
+  w.daily.precipitation_probability_max[0]=70;
+  havaC['ny']={t:Date.now(),v:w};S.ayar.sehirler=[{ad:'New York',lat:40.7,lon:-74}];havaSehir='ny';S.ayar.havaGun=false;havaCiz();await bek(50);
+  const ilk=q('#hava .saatlik div:nth-child(2) small').textContent;
+  esit('other time zone: strip starts at that city\'s hour',ilk,SAAT12()?String((+saat(-5*3600+7200).slice(11,13))%12||12)+ampm(+saat(-5*3600+7200).slice(11,13)):saat(-5*3600+7200).slice(11,13));
+  dogru('night hours: moon icons',!!q('#hava .saatlik svg.hi-ay'));
+  dogru('rain wording: today',q('#hava .now .m').textContent.includes('rain today 70'));
+  havaSehir='';havaCiz();}

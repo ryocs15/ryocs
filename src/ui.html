@@ -1307,7 +1307,8 @@ function bar7(o,ad){
 // Forecast times ("2026-11-21T07:12") are on the place's own clock: with the offset they become real moments, so another
 // city's daylight is right too. An older cache without the offset: our own clock, as before.
 const yerAn=(w,t)=>w.utc_offset_seconds!=null?new Date(Date.parse(t+'Z')-w.utc_offset_seconds*1e3):new Date(t);
-const yerBugun=w=>w.utc_offset_seconds!=null?new Date(Date.now()+w.utc_offset_seconds*1e3).toISOString().slice(0,10):gunStr(new Date());
+const yerSaat=w=>{const n=new Date();return w.utc_offset_seconds!=null?new Date(+n+w.utc_offset_seconds*1e3).toISOString().slice(0,13):gunStr(n)+'T'+iki(n.getHours())}; // "2026-11-21T14" on the place's clock
+const yerBugun=w=>yerSaat(w).slice(0,10);
 // the city the weather card shows, with its name (the main city's too, so every city looks the same)
 const ustYer=()=>{const w=havaGoster();return{w,ad:String(w?.sehir||'')}};
 function saatEk(){
@@ -1394,15 +1395,18 @@ async function etkinlikAc(e){
 // Weather (Open-Meteo WMO codes)
 const WMO={0:L('Açık','Clear'),1:L('Az bulutlu','Mostly clear'),2:L('Parçalı bulutlu','Partly cloudy'),3:L('Kapalı','Overcast'),45:L('Sisli','Fog'),48:L('Kırağılı sis','Rime fog'),51:L('Hafif çisenti','Light drizzle'),53:L('Çisenti','Drizzle'),55:L('Yoğun çisenti','Dense drizzle'),56:L('Dondurucu çisenti','Freezing drizzle'),57:L('Dondurucu çisenti','Freezing drizzle'),61:L('Hafif yağmur','Light rain'),63:L('Yağmurlu','Rain'),65:L('Kuvvetli yağmur','Heavy rain'),66:L('Dondurucu yağmur','Freezing rain'),67:L('Dondurucu yağmur','Freezing rain'),71:L('Hafif kar','Light snow'),73:L('Karlı','Snow'),75:L('Yoğun kar','Heavy snow'),77:L('Kar taneleri','Snow grains'),80:L('Sağanak','Showers'),81:L('Sağanak','Showers'),82:L('Kuvvetli sağanak','Heavy showers'),85:L('Kar sağanağı','Snow showers'),86:L('Kar sağanağı','Snow showers'),95:L('Gök gürültülü fırtına','Thunderstorm'),96:L('Dolu','Hail'),99:L('Dolu','Hail')};
 // Weather icons (line): WMO code → kind
-const HS={gunes:'<circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/>',
+const HS={ay:'<path d="M19.5 14.6A8 8 0 0 1 9.4 4.5a8 8 0 1 0 10.1 10.1z"/>',
+  ayBulut:'<path d="M10.6 3.6a4 4 0 0 0 .9 6.9 4 4 0 0 1-5.6-3.6 4 4 0 0 1 4.7-3.3z"/><path d="M8 19.5h9.5a3.5 3.5 0 0 0 .3-7 5 5 0 0 0-9.6 1A3 3 0 0 0 8 19.5z"/>',
+  gunes:'<circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/>',
   parcali:'<path d="M8 3.5v1.5M3.5 8H5M4.8 4.8l1 1M11.2 4.8l-1 1"/><path d="M5.6 10.6A3 3 0 1 1 10.9 7.6"/><path d="M8 19.5h9.5a3.5 3.5 0 0 0 .3-7 5 5 0 0 0-9.6 1A3 3 0 0 0 8 19.5z"/>',
   bulut:'<path d="M7 19h10.5a4 4 0 0 0 .4-8 6 6 0 0 0-11.5 1.6A3.3 3.3 0 0 0 7 19z"/>',
   yagmur:'<path d="M7 15.5h10.5a4 4 0 0 0 .4-8 6 6 0 0 0-11.5 1.6A3.3 3.3 0 0 0 7 15.5z"/><path d="M9 18l-1 2.5M13 18l-1 2.5M17 18l-1 2.5"/>',
   kar:'<path d="M7 15.5h10.5a4 4 0 0 0 .4-8 6 6 0 0 0-11.5 1.6A3.3 3.3 0 0 0 7 15.5z"/><path d="M8.5 19h.01M12 20.5h.01M15.5 19h.01"/>',
   firtina:'<path d="M7 15.5h10.5a4 4 0 0 0 .4-8 6 6 0 0 0-11.5 1.6A3.3 3.3 0 0 0 7 15.5z"/><path d="M12.5 15.5l-2 3.5h3l-2 3"/>',
   sis:'<path d="M4 9h16M6 13h12M4 17h16"/>'};
-const havaTur=k=>k===0?'gunes':k<=2?'parcali':k===3?'bulut':k<=48?'sis':k>=95?'firtina':(k>=71&&k<=77)||k===85||k===86?'kar':'yagmur';
-const havaIkon=k=>`<svg class="hi-${havaTur(k)}" viewBox="0 0 24 24" aria-hidden="true">${HS[havaTur(k)]}</svg>`; // class: animates by kind on hover
+// gece: night (is_day 0): clear and partly cloudy get a moon. Older caches have no is_day: day icons as before.
+const havaTur=(k,gece)=>gece&&k<=2?(k===2?'ayBulut':'ay'):k===0?'gunes':k<=2?'parcali':k===3?'bulut':k<=48?'sis':k>=95?'firtina':(k>=71&&k<=77)||k===85||k===86?'kar':'yagmur';
+const havaIkon=(k,gece)=>`<svg class="hi-${havaTur(k,gece)}" viewBox="0 0 24 24" aria-hidden="true">${HS[havaTur(k,gece)]}</svg>`; // class: animates by kind on hover
 let havaSon='',havaV=null,havaDenendi=false;
 // Extra weather cities (S.ayar.sehirler, at most 4: {ad,bolge,lat,lon}; older saves: a name string). The card switches between them;
 // alerts and the greeting use the main city (havaV); the clock card and the top line follow the shown city (ustYer). havaSehir / havaC are keyed by yerAnahtar.
@@ -1457,17 +1461,17 @@ function havaCiz(){
   let serit='';
   if(gun)serit='<div class="saatlik gunluk">'+[1,2,3].map(i=>`<div title="${esc(WMO[d.weather_code[i]]||'')}"><small>${new Date(d.time[i]+'T00:00').toLocaleDateString(LOC,{weekday:'short'})}</small>${havaIkon(d.weather_code[i])}<b>${T(d.temperature_2m_max[i])}</b> <small style="display:inline">${T(d.temperature_2m_min[i])}</small></div>`).join('')+'</div>';
   else{
-    const n=new Date(),su=gunStr(n)+'T'+iki(n.getHours()),bas=c.time.slice(0,13)>su?c.time.slice(0,13):su; // past hours are skipped when drawing from the cache
+    const su=yerSaat(w),bas=c.time.slice(0,13)>su?c.time.slice(0,13):su; // past hours are skipped when drawing from the cache
     const i=s?s.time.findIndex(t=>t.slice(0,13)>=bas):-1;
     if(i>=0)serit='<div class="saatlik">'+[0,2,4,6,8,10].filter(k=>s.time[i+k]).map(k=>{
       const y=s.precipitation_probability[i+k]??0;
-      return `<div title="${esc(WMO[s.weather_code[i+k]]||'')}${y?L(' · yağış ',' · rain ')+yz(y):''}"><small>${k?(SAAT12()?(+s.time[i+k].slice(11,13)%12||12)+ampm(+s.time[i+k].slice(11,13)):s.time[i+k].slice(11,13)):L('Şimdi','Now')}</small>${havaIkon(s.weather_code[i+k])}<b>${T(s.temperature_2m[i+k])}</b><small class="${y>=50?'yag':''}">${y>=20?yz(y):' '}</small></div>`;
+      return `<div title="${esc(WMO[s.weather_code[i+k]]||'')}${y?L(' · yağış ',' · rain ')+yz(y):''}"><small>${k?(SAAT12()?(+s.time[i+k].slice(11,13)%12||12)+ampm(+s.time[i+k].slice(11,13)):s.time[i+k].slice(11,13)):L('Şimdi','Now')}</small>${havaIkon(s.weather_code[i+k],s.is_day?.[i+k]===0)}<b>${T(s.temperature_2m[i+k])}</b><small class="${y>=50?'yag':''}">${y>=20?yz(y):' '}</small></div>`;
     }).join('')+'</div>';
   }
   // the title and the Hourly/3 days buttons stay in place (the sliding indicator flickered when redrawn); only the body changes
   const sl=sehirler(),anaY={ad:havaV.sehir,bolge:havaV.bolge},cip=sl.length?`<div class="hvSehir" role="group" aria-label="${L('Şehir','City')}">${[null,...sl].map(y=>{const k=y?yerAnahtar(y):'';return `<button data-hs="${esc(k)}" title="${esc(yerEtiket(y||anaY))}">${esc(y?havaC[k]?.v?.sehir||y.ad:havaV.sehir)}</button>`}).join('')}</div>`:'';
   const bas=`<h2><span class="hvAd"></span>${L('<div class="seg k" role="group" aria-label="Tahmin"><button data-hg="">Saatlik</button><button data-hg="1">3 gün</button></div></h2>','<div class="seg k" role="group" aria-label="Forecast"><button data-hg="">Hourly</button><button data-hg="1">3 days</button></div></h2>')}${cip}<div class="havaGovde"></div><div class="ek" id="havaEk"></div>`;
-  const govde=`<div class="now"><b>${T(c.temperature_2m)}</b><span class="m">${esc(WMO[c.weather_code]||'')}${L(' · hissedilen ',' · feels like ')}${T(c.apparent_temperature)}${L('<br>rüzgâr ','<br>wind ')}${Math.round(c.wind_speed_10m)}${hizB(w)}${yagis>=30?L(' · yağış ',' · rain ')+yz(yagis):''}</span></div>`;
+  const govde=`<div class="now"><b>${T(c.temperature_2m)}</b><span class="m">${esc(WMO[c.weather_code]||'')}${L(' · hissedilen ',' · feels like ')}${T(c.apparent_temperature)}${L('<br>rüzgâr ','<br>wind ')}${Math.round(c.wind_speed_10m)}${hizB(w)}${yagis>=30?L(' · bugün yağış ',' · rain today ')+yz(yagis):''}</span></div>`;
   const el=$('#hava');
   if(havaSon!==bas||!el.querySelector('.havaGovde')){el.innerHTML=havaSon=bas;havaSerit=''}
   for(const b of el.querySelectorAll('[data-hg]'))b.setAttribute('aria-pressed',!!b.dataset.hg===!!gun);
@@ -1499,7 +1503,7 @@ function havaEk(w){
       +(uv!=null?`${L('<span title="Bugünkü en yüksek UV: ','<span title="Today\'s maximum UV: ')}${uv<3?L('düşük','low'):uv<6?L('orta','moderate'):uv<8?L('yüksek','high'):L('çok yüksek','very high')}"><small>UV</small><b>${Math.round(uv*10)/10}</b></span>`:'')
       +`${L('<span title="Rüzgâr ','<span title="Wind from the ')}${yon}${L(' yönünden esiyor"><small>Rüzgâr</small><b><svg viewBox="0 0 24 24" aria-hidden="true" style="transform:rotate(','"><small>Wind</small><b><svg viewBox="0 0 24 24" aria-hidden="true" style="transform:rotate(')}${c.wind_direction_10m+180}deg)"><path d="M12 20V4M6 10l6-6 6 6"/></svg>${yon} ${Math.round(c.wind_speed_10m)}${L('</b></span><span><small>Yağış</small><b>','</b></span><span><small>Rain</small><b>')}${c.precipitation}${yagisB(w)}</b></span></div>`;
   }
-  const n=new Date(),su=gunStr(n)+'T'+iki(n.getHours()),i=s?s.time.findIndex(t=>t.slice(0,13)>=su):-1;
+  const su=yerSaat(w),i=s?s.time.findIndex(t=>t.slice(0,13)>=su):-1;
   if(i>=0&&s.time.length>=i+24){
     const t=s.temperature_2m.slice(i,i+24),p=s.precipitation_probability.slice(i,i+24),mx=Math.max(...t),mn=Math.min(...t),x=k=>k*240/23,y=v=>6+(mx-v)/((mx-mn)||1)*36;
     h+=`<div class="hvEgri"><h3>${L('24 saat','24 hours')} · ${T(mn)} – ${T(mx)}</h3><svg viewBox="0 0 240 60" preserveAspectRatio="none" aria-hidden="true">`
@@ -1514,7 +1518,7 @@ function havaEk(w){
   }
   // other cities (when the card is large): click to switch
   const l=['',...sehirler().map(yerAnahtar)].map(s=>[s,s?havaC[s]?.v:havaV]).filter(([,v])=>v&&v!==w);
-  if(l.length>0&&sehirler().length)h+=L('<div class="hvDiger"><h3>Diğer şehirler</h3>','<div class="hvDiger"><h3>Other cities</h3>')+l.map(([s,v])=>`<button data-hs="${esc(s)}">${havaIkon(v.current.weather_code)}<span>${esc(v.sehir)}</span><small>${esc(WMO[v.current.weather_code]||'')}</small><b>${T(v.current.temperature_2m)}</b></button>`).join('')+'</div>';
+  if(l.length>0&&sehirler().length)h+=L('<div class="hvDiger"><h3>Diğer şehirler</h3>','<div class="hvDiger"><h3>Other cities</h3>')+l.map(([s,v])=>`<button data-hs="${esc(s)}">${havaIkon(v.current.weather_code,v.current.is_day===0)}<span>${esc(v.sehir)}</span><small>${esc(WMO[v.current.weather_code]||'')}</small><b>${T(v.current.temperature_2m)}</b></button>`).join('')+'</div>';
   return h;
 }
 let havaSerit='';
