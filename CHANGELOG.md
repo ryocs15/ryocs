@@ -5,6 +5,7 @@ All releases: [GitHub Releases](https://github.com/ryocs15/ryocs/releases). Your
 ## 1.1.4 (unreleased)
 
 **Changed**
+- Much less GPU use with the glass look: the background pattern behind glass cards moves in small steps instead of every frame (each frame made every card recompute its blur).
 - Works on a fresh PC without installing anything else: the installer adds Microsoft's WebView2 Runtime when it is missing (needs internet for that step), and the Poppins font is now part of the app, so the interface looks the same everywhere.
 
 ## 1.1.3 (2026-11-21)
