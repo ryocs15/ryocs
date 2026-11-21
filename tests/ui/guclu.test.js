@@ -16,6 +16,13 @@ dogru('alert removed after firing',!A('kurAlarm').USD&&!q('#kur .kurA'));
 kurCiz();esit('fires only once',giden.length,1);
 S.ayar.kurAlarm={EUR:{y:'<',v:45}};kurCiz();esit('below target not reached',giden.length,1);
 esit('current rate for the dialog',kurDeg('USD'),41.2);
+// alerts from a damaged or edited copy are ignored, nothing reaches the HTML unescaped
+S.ayar.kurAlarm={USD:{y:'"><img src=x onerror=alert(1)>',v:1},EUR:{y:'>',v:'<b>x</b>'}};kurCiz();
+dogru('bad alerts ignored',!q('#kur .kurA')&&!q('#kur img')&&!q('#kur b b'));
+// replacing all data: no autosave during the request; on failure the data stays
+{const f1=window.fetch,eski=S;let sirada;window.fetch=async(p,a)=>{if(p==='/api/backups/restore'){sirada=S;return{json:async()=>({durum:'hata'})}}return f1(p,a)};
+ await veriDegistir('/api/backups/restore',{ad:'x'});window.fetch=f1;
+ dogru('S empty during the request',sirada===null);dogru('S back after a failure',S===eski);}
 // clipboard row → task / note
 panoCiz({durum:'ok',veri:{liste:['Faturayı öde\nikinci satır','x']}});
 const n0=S.todos.length,b=q('#pano [data-p="0"]');

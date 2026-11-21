@@ -2422,9 +2422,10 @@ $('#aDis').onclick=async()=>{
 // Operations that replace all data: the current state is saved first, then the page reloads
 async function veriDegistir(yol,govde){
   await kaydetSimdi();
+  clearTimeout(kt);const eski=S;S=null; // S empty: no autosave during the request or on close writes the old data over the new
   const r=await api(yol,govde);
-  if(r.durum!=='ok')return tost(String(r.durum).slice(0,120));
-  S=null;location.reload(); // S empty: the old data must not be written again on close
+  if(r.durum!=='ok'){S=eski;return tost(String(r.durum).slice(0,120))}
+  location.reload();
 }
 $('#aGeri').onclick=async()=>{
   const ad=$('#aYedekSec').value;if(!ad)return;
@@ -2923,14 +2924,16 @@ async function kur(zorla){
 }
 // Rate alert: S.ayar.kurAlarm = {CODE:{y:'>'|'<', v:number}}; the direction follows the target vs. the current rate; removed after it fires.
 let kurDeg=()=>0;
+const kurAlarmlar=()=>Object.fromEntries(Object.entries(A('kurAlarm')||{}).filter(([,a])=>(a?.y==='<'||a?.y==='>')&&typeof a.v==='number'&&a.v>0));
 async function kurAlarm(c){
-  const al=A('kurAlarm')||{},su=kurDeg(c);
-  const v=await sor(`${c} ${L('alarmı','alert')}`,[{ad:L('Hedef kur','Target rate')+` (${kurTaban()})`,v:al[c]?.v??(su?+su.toFixed(4):''),zorunlu:1}],L('Kur','Set'),su?L('Şu an: ','Now: ')+su.toLocaleString(LOC)+L('. Kur bu değere ulaşınca bildirim gelir.','. You get a notification when the rate reaches it.'):'');
+  const al=kurAlarmlar(),su=kurDeg(c);
+  const v=await sor(`${c} ${L('alarmı','alert')}`,[{ad:L('Hedef kur','Target rate')+` (${kurTaban()})`,v:al[c]?.v??'',zorunlu:1}],L('Kur','Set'),su?L('Şu an: ','Now: ')+su.toLocaleString(LOC)+L('. Kur bu değere ulaşınca bildirim gelir.','. You get a notification when the rate reaches it.'):'');
   if(!v)return;const h=+v[0].replace(/\s/g,'').replace(',','.');
   if(!(h>0))return tost(L('Geçerli bir sayı gir','Enter a valid number'));
+  if(h===su)return tost(L('Hedef şu anki kurdan farklı olmalı','The target must differ from the current rate'));
   al[c]={y:h>=su?'>':'<',v:h};S.ayar.kurAlarm=al;kaydet();kurCiz();tost(L('Alarm kuruldu','Alert set'));
 }
-function kurAlarmMenu(x,y,c){const al=A('kurAlarm')||{};menu(x,y,[[al[c]?L('Alarmı değiştir…','Change alert…'):L('Alarm kur…','Set alert…'),()=>kurAlarm(c)],
+function kurAlarmMenu(x,y,c){const al=kurAlarmlar();menu(x,y,[[al[c]?L('Alarmı değiştir…','Change alert…'):L('Alarm kur…','Set alert…'),()=>kurAlarm(c)],
   al[c]?[L('Alarmı kaldır','Remove alert'),()=>{delete al[c];S.ayar.kurAlarm=al;kaydet();kurCiz()},'teh']:0])}
 $('#kur').onclick=e=>{const r=e.target.closest('[data-c]');if(r){const b=r.getBoundingClientRect();kurAlarmMenu(b.left+20,b.bottom,r.dataset.c)}};
 $('#kur').onkeydown=e=>{if((e.key==='Enter'||e.key===' ')&&e.target.dataset.c){e.preventDefault();e.target.click()}};
@@ -2945,8 +2948,8 @@ function kurCiz(){
   const para=x=>{const f=x<.1?6:x<10?4:2;return x.toLocaleString(LOC,{style:'currency',currency:B,minimumFractionDigits:f,maximumFractionDigits:f})};
   const fark=(c,v)=>{const o=deg(V.dun,c);if(A('kurDegisim')===false||!o||!v)return'';const p=(v-o)/o*100;
     return ` <small class="kurD" title="${L('önceki güne göre','since the previous day')}">${p>0?'▲':p<0?'▼':'='} ${Math.abs(p).toLocaleString(LOC,{minimumFractionDigits:2,maximumFractionDigits:2})}%</small>`};
-  const al=A('kurAlarm')||{};
-  const sat=(ad,alt,v,f='',s='',c='')=>`<div class="kurS${s}"${c?` data-c="${c}" tabindex="0" role="button" aria-label="${esc(ad)}: ${L('alarm kur','set an alert')}"`:''}><span>${ad} <small>${alt}</small></span><b>${c&&al[c]?`<span class="kurA" title="${L('Alarm: ','Alert: ')}${al[c].y} ${para(al[c].v)}">🔔</span> `:''}${v}${f}</b></div>`;
+  const al=kurAlarmlar();
+  const sat=(ad,alt,v,f='',s='',c='')=>`<div class="kurS${s}"${c?` data-c="${c}" tabindex="0" role="button" aria-label="${esc(ad)}: ${L('alarm kur','set an alert')}"`:''}><span>${ad} <small>${alt}</small></span><b>${c&&al[c]?`<span class="kurA" title="${esc(L('Alarm: ','Alert: ')+al[c].y+' '+para(al[c].v))}">🔔</span> `:''}${v}${f}</b></div>`;
   let h='',capr=0;for(const c of kurKodlar()){const v=deg(k,c);if(!k[c]){yok.push(c);continue}
     const cp=V.w?.includes(c);if(cp)capr=1;
     h+=sat(esc(ad.of(c)),c+' → '+B+(cp?L(' · çapraz',' · cross'):''),v?para(v):'—',fark(c,v),'',c);
