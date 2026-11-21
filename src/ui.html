@@ -2151,6 +2151,7 @@ $('#linkler').onclick=e=>{
 addEventListener('contextmenu',e=>{
   if(e.target.closest('input,textarea'))return;
   e.preventDefault();if(!S)return;
+  const om=e.target.closest('.odak');if(om){const r=om.getBoundingClientRect();return odakMenu(e.clientX||r.left+12,e.clientY||r.top+12)}
   const sk=e.target.closest('[data-kart=saat]');if(sk){const r=sk.getBoundingClientRect();return saatMenu(e.clientX||r.left+12,e.clientY||r.top+12)}
   const hb=e.target.closest('#haberler [data-h]'),hx=hb&&haberV[haberK()]?.[+hb.dataset.h];
   if(hx?.k){const r=hb.getBoundingClientRect();return menu(e.clientX||r.left+12,e.clientY||r.bottom,[[hx.k+L(' haberlerini gizle',' – hide its news'),()=>hbKaynakGizle(hx.k)]])}
@@ -2352,7 +2353,7 @@ const KART_AYAR={
       ['altinBirim',L('Altın ve gümüş birimi','Gold and silver unit'),'seg',{gram:'Gram',ons:L('Ons','Ounce')},ONS0],
       ['gumus',L('Gümüş satırı','Silver row'),'sw',0,false],['kurDegisim',L('Önceki güne göre değişim','Change since the previous day'),'sw',0,true]],
     gizle:[['altin',L('Altın ve gümüş satırları','Gold and silver rows'),'.kurAltin'],['kaynak',L('Kaynak ve güncelleme satırı','Source and update line'),'#kurAlt']]},sistem:{ayar:[],gizle:[]},pano:{ayar:[],gizle:[]},mail:{ayar:[],gizle:[]},
-  odak:{ayar:[['calisma',L('Çalışma süresi (dk)','Work time (min)'),'sayi',[1,180],25],['mola',L('Mola süresi (dk)','Break time (min)'),'sayi',[1,180],5],['hedef',L('Günlük hedef (tur)','Daily goal (rounds)'),'sayi',[1,20],4],['calismaAd',L('Çalışma adı (boşsa “Çalışma”)','Work label (empty: “Work”)'),'metin',0,''],['molaAd',L('Mola adı (boşsa “Mola”)','Break label (empty: “Break”)'),'metin',0,''],['odakOto',L('Tur bitince sonrakini kendiliğinden başlat','Start the next round automatically'),'sw',0,false],['rahatsiz',L('Çalışırken bildirimleri biriktir, tur bitince tek bildirimle göster','Hold notifications while working, show them in one notification when the round ends'),'sw',0,true]],
+  odak:{ayar:[['calisma',L('Çalışma süresi (dk)','Work time (min)'),'sayi',[1,180],25],['mola',L('Mola süresi (dk)','Break time (min)'),'sayi',[1,180],5],['uzunMola',L('Uzun mola (dk, 0: kapalı)','Long break (min, 0: off)'),'sayi',[0,60],15],['uzunAralik',L('Uzun mola kaç turda bir','Long break every … rounds'),'sayi',[2,10],4],['hedef',L('Günlük hedef (tur)','Daily goal (rounds)'),'sayi',[1,20],4],['calismaAd',L('Çalışma adı (boşsa “Çalışma”)','Work label (empty: “Work”)'),'metin',0,''],['molaAd',L('Mola adı (boşsa “Mola”)','Break label (empty: “Break”)'),'metin',0,''],['odakOto',L('Tur bitince sonrakini kendiliğinden başlat','Start the next round automatically'),'sw',0,false],['rahatsiz',L('Çalışırken bildirimleri biriktir, tur bitince tek bildirimle göster','Hold notifications while working, show them in one notification when the round ends'),'sw',0,true]],
     gizle:[['ne',L('Üzerinde çalışılan iş','What you are working on'),'#odakNe'],['hafta',L('Bu hafta neye çalıştın (kart büyükken)','This week by task (when the card is large)'),'.odNe'],['sayac',L('Serbest sayaç','Free timer'),'#serbest'],['spark',L('Başlıkta 7 günlük mini grafik','7-day mini chart in the title'),'#odakIst .spark'],['ek',L('Bugün, seri, hedef ve grafik (kart büyükken)','Today, streak, goal and chart (when the card is large)'),'#odakEk']]}};
 document.head.insertAdjacentHTML('beforeend','<style>'+Object.entries(KART_AYAR).flatMap(([k,a])=>a.gizle.filter(g=>g[2]).map(([id,,sel])=>`[data-kart=${k}][data-gizle~=${id}] ${sel}{display:none!important}`)).join('')+'</style>');
 $('#aKartlar').onclick=e=>{const b=e.target.closest('[data-ka],[data-kg]');if(!b)return;if(b.dataset.ka)return kartAyar(b.dataset.ka);kartAc(b.dataset.kg,b.getAttribute('aria-checked')!=='true')};
@@ -2408,7 +2409,7 @@ function kartAyar(k){
   d.onchange=e=>{
     const x=e.target,key=x.dataset.a;if(!key)return;
     if(key==='sehir'||key==='sehirler')return (key==='sehir'?sehirKaydet(x.value.trim()):sehirlerKaydet(x.value)).then(()=>{x.value=deger(key,'')});
-    if(x.type==='number'){const [lo,hi]=x.min?[+x.min,+x.max]:[1,180],n=Math.min(hi,Math.max(lo,Math.round(+x.value)||+x.defaultValue));x.value=n;return yaz(key,n)}
+    if(x.type==='number'){const [lo,hi]=x.min?[+x.min,+x.max]:[1,180],v=Math.round(+x.value),n=Math.min(hi,Math.max(lo,x.value.trim()!==''&&Number.isFinite(v)?v:+x.defaultValue)); /* 0 is a value (long break off) */x.value=n;return yaz(key,n)}
     yaz(key,x.value);
   };
 }
@@ -2563,31 +2564,40 @@ $('#aDosya').onchange=async e=>{
 // Focus timer; the end time is stored, so timers slowed down in the background do not drift
 const VARS={calisma:25,mola:5},dk=m=>A(m)||VARS[m],sure=m=>dk(m)*60;
 let O={mod:'calisma',kalan:sure('calisma'),bitis:0},odakGeri=false;
-try{const o=JSON.parse(localStorage.odakO||'null');if((o?.mod==='calisma'||o?.mod==='mola')&&o.kalan>=0&&o.bitis>=0){O={mod:o.mod,kalan:+o.kalan,bitis:+o.bitis};odakGeri=true}}catch{}
+try{const o=JSON.parse(localStorage.odakO||'null');if((o?.mod==='calisma'||o?.mod==='mola')&&o.kalan>=0&&o.bitis>=0){O={mod:o.mod,kalan:+o.kalan,bitis:+o.bitis,...o.uzun&&o.mod==='mola'?{uzun:1}:{}};odakGeri=true}}catch{}
+// Long break: after every N-th work round of the day (card settings; 0 minutes turns it off)
+const uzunDk=()=>{const v=A('uzunMola');return typeof v==='number'?v:15},uzunAra=()=>A('uzunAralik')||4;
+const sureO=()=>O.uzun?uzunDk()*60:sure(O.mod); // length of the current round
+// the next round after the current one ends or is skipped; a finished work round counts toward the long break
+function sonrakiTur(sayildi){
+  if(O.mod==='mola')return{mod:'calisma',kalan:sure('calisma'),bitis:0};
+  const n=S?.odak[gunStr(new Date())]||0,uzun=sayildi&&uzunDk()>0&&n>0&&n%uzunAra()===0;
+  return uzun?{mod:'mola',uzun:1,kalan:uzunDk()*60,bitis:0}:{mod:'mola',kalan:sure('mola'),bitis:0};
+}
 function odakSessiz(){return A('rahatsiz')!==false&&O.mod==='calisma'&&O.bitis>Date.now()}
 // mode names: the user's own (card settings) or Work / Break
-const modAd=m=>String(A(m==='calisma'?'calismaAd':'molaAd')||'').trim().slice(0,20)||(m==='calisma'?L('Çalışma','Work'):L('Mola','Break'));
+const modAd=(m,uzun)=>uzun?L('Uzun mola','Long break'):String(A(m==='calisma'?'calismaAd':'molaAd')||'').trim().slice(0,20)||(m==='calisma'?L('Çalışma','Work'):L('Mola','Break'));
 // notification when a round ends, with the "what I'm working on" text
-const odakMetin=yeni=>{const ne=A('odakNe')?` (${A('odakNe')})`:'';return yeni==='mola'?`${modAd('calisma')}${L(' bitti',' done')}${ne}. ${modAd('mola')}: ${dk('mola')}${L(' dakika.',' min.')}`:`${modAd('mola')}${L(' bitti. Sıradaki: ',' over. Next: ')}${modAd('calisma')}${ne}.`};
+const odakMetin=(yeni,uzun)=>{const ne=A('odakNe')?` (${A('odakNe')})`:'';return yeni==='mola'?`${modAd('calisma')}${L(' bitti',' done')}${ne}. ${modAd('mola',uzun)}: ${uzun?uzunDk():dk('mola')}${L(' dakika.',' min.')}`:`${modAd('mola')}${L(' bitti. Sıradaki: ',' over. Next: ')}${modAd('calisma')}${ne}.`};
 function odakCiz(){
   if(O.bitis){
     O.kalan=Math.max(0,Math.round((O.bitis-Date.now())/1000));
-    if(!O.kalan){
-      const yeni=O.mod==='calisma'?'mola':'calisma';
-      if(O.mod==='calisma'&&S){const g=gunStr(new Date(O.bitis));S.odak[g]=(S.odak[g]||0)+1;(S.odakLog??=[]).push(A('odakNe')?{g,dk:dk('calisma'),ne:A('odakNe')}:{g,dk:dk('calisma')});kaydet();odakIstat()}
+    // the data must be loaded first: a round that ended while RYOCS was closed is counted, not lost at startup
+    if(!O.kalan&&S){
+      if(O.mod==='calisma'){const g=gunStr(new Date(O.bitis));S.odak[g]=(S.odak[g]||0)+1;(S.odakLog??=[]).push(A('odakNe')?{g,dk:dk('calisma'),ne:A('odakNe')}:{g,dk:dk('calisma')});kaydet();odakIstat()}
       const hl=$('.halka');hl.classList.add('bitti');hl.onanimationend=()=>hl.classList.remove('bitti'); // tur bitti: halka parlar
-      const n=bekleyen.length;
-      api('/api/notify',{baslik:L('Odak','Focus'),metin:odakMetin(yeni),metin2:n?`${L('Odak sırasında ','During focus ')}${n}${L(' bildirim: ',' notifications: ')}`+bekleyenYazi():''});
-      O={mod:yeni,kalan:sure(yeni),bitis:A('odakOto')&&Date.now()-O.bitis<6e4?Date.now()+sure(yeni)*1000:0}; // card setting: the next round starts by itself (not after RYOCS was closed for a while)
+      const n=bekleyen.length,y=sonrakiTur(true),taze=Date.now()-O.bitis<6e4; // not fresh: ended while RYOCS was closed
+      if(taze)api('/api/notify',{baslik:L('Odak','Focus'),metin:odakMetin(y.mod,y.uzun),metin2:n?`${L('Odak sırasında ','During focus ')}${n}${L(' bildirim: ',' notifications: ')}`+bekleyenYazi():''});
+      O={...y,bitis:A('odakOto')&&taze?Date.now()+y.kalan*1000:0}; // card setting: the next round starts by itself (not after RYOCS was closed for a while)
     }
   }
   if(bekleyen.length&&!odakSessiz()){const n=bekleyen.length;api('/api/notify',{baslik:`${L('Odak sırasında ','During focus ')}${n}${L(' bildirim',' notifications')}`,metin:bekleyenYazi()})} // paused/reset/setting turned off
   const oS=JSON.stringify(O);if(oS!==odakCiz.son){odakCiz.son=oS;try{localStorage.odakO=oS}catch{}} // written only when it changes (not every second while paused)
   $('#sure').textContent=iki(O.kalan/60|0)+':'+iki(O.kalan%60);
-  $('#ilerleme').style.strokeDashoffset=289*(1-Math.min(1,O.kalan/sure(O.mod)));
+  $('#ilerleme').style.strokeDashoffset=289*(1-Math.min(1,O.kalan/sureO()));
   $('#ilerleme').style.stroke=O.mod==='calisma'?'var(--ye)':'#e9a25b';
-  $('#mod').textContent=modAd(O.mod);$('.halka').title=modAd(O.mod)+' · '+dk(O.mod)+L(' dakika',' min');odakNeCiz();
-  const et=O.bitis?L('Duraklat','Pause'):O.kalan<sure(O.mod)?L('Devam et','Resume'):L('Başlat','Start'),ob=$('#obas');
+  $('#mod').textContent=modAd(O.mod,O.uzun);$('.halka').title=modAd(O.mod,O.uzun)+' · '+sureO()/60+L(' dakika · sağ tıkla: atla, +5 dk',' min · right-click: skip, +5 min');odakNeCiz();
+  const et=O.bitis?L('Duraklat','Pause'):O.kalan<sureO()?L('Devam et','Resume'):L('Başlat','Start'),ob=$('#obas');
   if(ob.title!==et){ob.title=et;ob.setAttribute('aria-label',et);ob.innerHTML=SVG(O.bitis?IK.pause:IK.play)}
 }
 function odakIstat(){
@@ -2629,6 +2639,13 @@ $('#serbest').onclick=async e=>{
   SY={ad:v[0].slice(0,40),bitis:Date.now()+dk*6e4};sySakla();try{localStorage.sayacAd=SY.ad;localStorage.sayacDk=dk}catch{}serbestCiz();
 };
 $('#osif').onclick=()=>{O={mod:'calisma',kalan:sure('calisma'),bitis:0};odakCiz()};
+// Right-click on the timer: skip the round (a skipped work round is not counted) or add 5 minutes
+function odakMenu(x,y){
+  const y2=sonrakiTur(false);
+  menu(x,y,[[L('Turu atla → ','Skip round → ')+modAd(y2.mod,y2.uzun),()=>{const calis=!!O.bitis;O={...y2,bitis:calis?Date.now()+y2.kalan*1000:0};odakCiz()}],
+    [L('+5 dakika','+5 minutes'),()=>{if(O.bitis)O.bitis+=3e5;else O.kalan+=300;odakCiz()}],
+    O.bitis||O.kalan<sureO()||O.mod!=='calisma'?[L('Sıfırla','Reset'),()=>$('#osif').click()]:0]);
+}
 // "What are you working on?": stays until changed (several rounds on the same thing are common)
 function odakNeCiz(){const b=$('#odakNe'),t=A('odakNe')||'',y=t||L('+ Ne üzerinde çalışıyorsun?','+ What are you working on?');if(b.textContent!==y){b.textContent=y;b.classList.toggle('bos',!t);b.title=t?L('Değiştirmek için tıkla','Click to change'):''}}
 $('#odakNe').onclick=async()=>{if(!S)return;

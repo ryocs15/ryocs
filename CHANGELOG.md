@@ -5,6 +5,8 @@ All releases: [GitHub Releases](https://github.com/ryocs15/ryocs/releases). Your
 ## Unreleased
 
 **Added**
+- Focus: a long break (15 min) after every 4th work round of the day; both numbers are in the card settings, 0 minutes turns it off.
+- Focus: right-click the timer to skip the round (a skipped work round is not counted) or add 5 minutes.
 - Spotify: click on the progress bar (or use the arrow keys on it) to jump in the track.
 - Spotify: the device, shuffle and repeat show under the bar; click there or right-click the card to turn shuffle and repeat on or off, or move playback to another device.
 - Spotify: click the title to open the track in Spotify.
@@ -16,6 +18,8 @@ All releases: [GitHub Releases](https://github.com/ryocs15/ryocs/releases). Your
 - Weather: a note with tomorrow's weather once in the evening, after 6 pm (Settings → Notifications → Tomorrow's weather).
 
 **Fixed**
+- Focus: a round that ended while RYOCS was closed is counted when it opens again (before, it could be lost), without a late notification.
+- Card settings: a number field accepts 0 where 0 is allowed (before, it went back to the default).
 - Spotify: podcasts show the episode, the show and its cover (before, the card said nothing was playing).
 - Spotify: the next track shows right when a track ends, and the card asks Spotify only every 15 s while nothing plays (5 s while playing).
 - Weather: clear and partly cloudy nights show a moon instead of a sun (hourly strip, other cities).
