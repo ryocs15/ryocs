@@ -1792,14 +1792,16 @@ function ertele(t,ne){
   const d=ne==='saat'?new Date(Date.now()+36e5):(()=>{const z=t.due?new Date(t.due):new Date();const y=new Date();y.setDate(y.getDate()+1);y.setHours(t.due?z.getHours():9,t.due?z.getMinutes():0,0,0);return y})();
   t.due=yerel(d);delete t.n;ciz();kaydet();tost(L('Ertelendi: ','Snoozed: ')+kisaTarih(d));
 }
-// Quick add with a date at the end of the text: "Dentist tomorrow 15:00", "Rapor cuma", "Call mom 18.30". Only the end is read, so
+// Quick add with a date at the end of the text: "Dentist tomorrow 15:00", "Rapor cuma", "Call mom saat 18.30". Only the end is read, so
 // "Pazartesi raporu" stays a title. Only a day: 09:00; only a time: today, or tomorrow if it has passed; a weekday already past: next week.
-const GUN_AD=[['pazar','paz','sunday','sun'],['pazartesi','pzt','monday','mon'],['salı','sal','tuesday','tue'],['çarşamba','çar','wednesday','wed'],['perşembe','per','thursday','thu'],['cuma','cum','friday','fri'],['cumartesi','cmt','saturday','sat']];
+// No short forms that are words: "sat", "sun", "sal" are Turkish verbs ("Arabayı sat"), "per", "cum", "paz", "çar" are too close to words.
+const GUN_AD=[['pazar','sunday'],['pazartesi','pzt','monday','mon'],['salı','tuesday','tue'],['çarşamba','wednesday','wed'],['perşembe','thursday','thu'],['cuma','friday','fri'],['cumartesi','cmt','saturday']];
 const GUN_RE=new RegExp(`\\s(bugün|today|yarın|tomorrow|${GUN_AD.flat().join('|')})$`,'i');
 function gorevCoz(metin,simdi=new Date()){
   let t=' '+metin.trim(),gun=null,sa=null,hafta=false;
   for(let k=0;k<2;k++){ // "yarın 15:00" or "15:00 yarın"
-    const z=!sa&&t.match(/\s(?:saat\s)?([01]?\d|2[0-3])[:.]([0-5]\d)$/i);
+    // 18:30 is always a time; 18.30 only after "saat" (else "Fatura öde 12.50" would be a 12:50 reminder)
+    const z=!sa&&(t.match(/\s(?:saat\s)?([01]?\d|2[0-3]):([0-5]\d)$/i)||t.match(/\ssaat\s([01]?\d|2[0-3])\.([0-5]\d)$/i));
     if(z){sa=[+z[1],+z[2]];t=t.slice(0,-z[0].length);continue}
     const m=gun===null&&t.match(GUN_RE);
     if(m){const w=m[1].toLocaleLowerCase('tr');t=t.slice(0,-m[0].length);
