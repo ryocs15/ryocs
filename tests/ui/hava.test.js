@@ -64,7 +64,7 @@ el.querySelector('.hvSehir [data-hs=""]').click();await bek(30);
 const solma=q('#gunOzet').getAnimations();
 esit('switch: top line fades only',[solma.length-n0,solma.some(kaydi)],[1,false]);
 await bek(400);
-esit('switch back',[el.querySelector('.hvAd').textContent,h2===el.querySelector('h2'),q('#gunOzet').textContent.includes('Yeşilova')],['Köyceğiz',true,false]);
+esit('switch back',[el.querySelector('.hvAd').textContent,h2===el.querySelector('h2'),q('#gunOzet').textContent.includes('Köyceğiz '),q('#saatEk h3')?.textContent.includes('Köyceğiz')??true],['Köyceğiz',true,true,true]);
 const n1=q('#gunOzet').getAnimations().length;tick();await bek(1100);esit('next ticks: no new fade',q('#gunOzet').getAnimations().length,n1);
 // forecast times are the place's own clock
 esit('place time → moment',[yerAn({utc_offset_seconds:3600},'2026-11-21T08:00').toISOString(),+yerAn({},'2026-11-21T08:00')],['2026-11-21T07:00:00.000Z',+new Date('2026-11-21T08:00')]);

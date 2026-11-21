@@ -1308,8 +1308,8 @@ function bar7(o,ad){
 // city's daylight is right too. An older cache without the offset: our own clock, as before.
 const yerAn=(w,t)=>w.utc_offset_seconds!=null?new Date(Date.parse(t+'Z')-w.utc_offset_seconds*1e3):new Date(t);
 const yerBugun=w=>w.utc_offset_seconds!=null?new Date(Date.now()+w.utc_offset_seconds*1e3).toISOString().slice(0,10):gunStr(new Date());
-// the city the weather card shows: its name goes in front when it is not the main city
-const ustYer=()=>{const w=havaGoster();return{w,ad:w&&w!==havaV?String(w.sehir||''):''}};
+// the city the weather card shows, with its name (the main city's too, so every city looks the same)
+const ustYer=()=>{const w=havaGoster();return{w,ad:String(w?.sehir||'')}};
 function saatEk(){
   const n=new Date(),{w,ad}=ustYer(),d=w?.daily;let h='';
   const gd=d?.sunrise?.[0]&&yerAn(w,d.sunrise[0]),gb=d?.sunset?.[0]&&yerAn(w,d.sunset[0]);

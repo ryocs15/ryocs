@@ -5,6 +5,7 @@ All releases: [GitHub Releases](https://github.com/ryocs15/ryocs/releases). Your
 ## Unreleased
 
 **Fixed**
+- The daylight bar, the sunrise/sunset tips and the top line name the main city too, like the other cities (before, only the other cities were named).
 - Gmail card: a mail marked read in RYOCS and then marked unread again in Gmail shows as unread again (before, it stayed read until RYOCS restarted).
 
 ## 1.1.5 (2026-11-21)
