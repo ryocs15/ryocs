@@ -1532,7 +1532,7 @@ fn calendar(req_body: &str) -> Result<Value, String> {
                         .query("timeMin", min).query("timeMax", max)
                         .query("singleEvents", "true").query("orderBy", "startTime").query("maxResults", "250")
                         // only the fields the UI uses: on a slow network the response is several times smaller
-                        .query("fields", "nextPageToken,items(id,summary,start,end,recurringEventId,location,htmlLink,extendedProperties,description,eventType)");
+                        .query("fields", "nextPageToken,items(id,summary,start,end,recurringEventId,location,htmlLink,hangoutLink,conferenceData/entryPoints(uri,entryPointType),extendedProperties,description,eventType)");
                     if let Some(t) = &sayfa {
                         q = q.query("pageToken", t);
                     }

@@ -4,6 +4,11 @@ All releases: [GitHub Releases](https://github.com/ryocs15/ryocs/releases). Your
 
 ## Unreleased
 
+**Calendar**
+- Event reminders can come 5, 10, 15 or 30 minutes before (calendar card settings).
+- An event's details have "Join the meeting" for Google Meet and other video links, and "Open in Maps" for its place.
+- Arrow keys move between days in the month grid; past the edge the next or previous month opens.
+
 **Clock**
 - Alarms: right-click the clock → Alarms… (once or every day); they ring while RYOCS runs, in the tray and during a focus round too. An alarm missed while the PC was asleep rings on waking (up to 3 hours late), marked as missed. The next alarm shows under the time.
 - Click the date to open today in the calendar.
