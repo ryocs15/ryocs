@@ -3194,12 +3194,15 @@ $('#panoDur').onclick=()=>{panoDurdu=!panoDurdu;try{localStorage.panoDur=panoDur
 $('#panoSil').onclick=()=>panoAyar(true);
 // Gmail card (existing Google sign-in): the last 15 inbox messages, unread ones bold. Every 5 min while the card is open;
 // clicking opens the mail in the browser and marks it read, the right-click menu marks it read without opening.
-let mailV=null,mailHata='',mailT=0;const mailOkunan=new Set(); // marked read here until a refresh shows them read: an older refresh must not make them bold again
+let mailV=null,mailHata='',mailT=0;const mailOkunan=new Set(),mailArsiv=new Set(); // marked read here until a refresh shows them read: an older refresh must not make them bold again
 async function mail(zorla){
   if(!S||!kartAcik('mail'))return;
   if(!zorla&&mailV&&Date.now()-mailT<3e5)return mailCiz();
   const r=await api('/api/mail');mailT=Date.now();
-  if(r.durum==='ok'&&Array.isArray(r.veri?.liste)){mailV=r.veri;mailHata='';mailYeniBildir(mailV.liste);for(const m of mailV.liste)if(mailOkunan.has(m.id)&&!m.yeni)mailOkunan.delete(m.id);for(const m of mailV.liste)if(mailOkunan.has(m.id)&&m.yeni){m.yeni=false;mailV.okunmamis=Math.max(0,(+mailV.okunmamis||0)-1)}}else mailHata=String(r.durum);
+  if(r.durum==='ok'&&Array.isArray(r.veri?.liste)){mailV=r.veri;mailHata='';
+    // archived here: dropped from a refresh that started earlier, forgotten once a refresh no longer has them
+    for(const id of mailArsiv)if(!mailV.liste.some(m=>m.id===id))mailArsiv.delete(id);
+    mailV.liste=mailV.liste.filter(m=>!mailArsiv.has(m.id)||(m.yeni&&mailSay(-1),false));mailYeniBildir(mailV.liste);for(const m of mailV.liste)if(mailOkunan.has(m.id)&&!m.yeni)mailOkunan.delete(m.id);for(const m of mailV.liste)if(mailOkunan.has(m.id)&&m.yeni){m.yeni=false;mailV.okunmamis=Math.max(0,(+mailV.okunmamis||0)-1)}}else mailHata=String(r.durum);
   mailCiz();
 }
 // New mail: a notification for unread mail not seen before (card setting). The first fetch only remembers what is there.
@@ -3231,13 +3234,13 @@ async function mailIslem(m,islem,sessiz){
   const i=mailV.liste.indexOf(m),yeni=m.yeni;
   if(islem==='okundu'){m.yeni=false;mailOkunan.add(m.id);mailSay(-1)}
   else if(islem==='okunmadi'){m.yeni=true;mailOkunan.delete(m.id);mailSay(1)}
-  else{mailV.liste.splice(i,1);if(yeni)mailSay(-1)} // archive: out of the inbox (it stays in All Mail)
+  else{mailV.liste.splice(i,1);mailArsiv.add(m.id);if(yeni)mailSay(-1)} // archive: out of the inbox (it stays in All Mail)
   mailCiz();
   const r=await api('/api/mail_islem',{id:m.id,islem});if(r.durum==='ok'||sessiz)return;
   // back as it was, if the list was not refreshed meanwhile
   if(islem==='okundu')mailOkunan.delete(m.id);
   const g=mailV?.liste.find(x=>x.id===m.id);
-  if(islem==='arsiv'){if(!g&&i>=0){mailV.liste.splice(Math.min(i,mailV.liste.length),0,m);if(yeni)mailSay(1)}}
+  if(islem==='arsiv'){mailArsiv.delete(m.id);if(!g&&i>=0){mailV.liste.splice(Math.min(i,mailV.liste.length),0,m);if(yeni)mailSay(1)}}
   else if(g&&g.yeni!==yeni){g.yeni=yeni;mailSay(yeni?1:-1)}
   mailCiz();
   if(r.durum==='izin_yok')tost(L('Bunun için Google iznini güncelle','Update the Google permission for this'),L('İzni güncelle','Update permission'),()=>bagla('google'));

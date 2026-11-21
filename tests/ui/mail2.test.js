@@ -17,6 +17,10 @@ dogru('preview decoded in the tooltip',q('#mail [data-m="0"]').title.endsWith("D
 const sec=t=>[...q('#menu').querySelectorAll('button')].find(b=>b.textContent===t);
 mailMenu(10,10,mailV.liste[0]);sec('Arşivle').click();await bek(30);
 esit('archived',[istek.at(-1),mailV.liste.map(m=>m.id),q('#mailSay').textContent],[{id:'a',islem:'arsiv'},['b'],'']);
+// a refresh that started before the archive still has it: it stays out, the count does not come back
+cevap={durum:'ok',veri:{okunmamis:1,liste:liste()}};await mail(true);
+esit('late refresh: archived mail stays out',[mailV.liste.map(m=>m.id),q('#mailSay').textContent],[['b'],'']);
+cevap={durum:'ok',veri:{okunmamis:0,liste:[liste()[1]]}};await mail(true);esit('forgotten once gone',mailArsiv.size,0);
 // mark as unread
 mailMenu(10,10,mailV.liste[0]);sec('Okunmadı olarak işaretle').click();await bek(30);
 esit('unread',[istek.at(-1),mailV.liste[0].yeni,q('#mailSay').textContent],[{id:'b',islem:'okunmadi'},true,'1']);
