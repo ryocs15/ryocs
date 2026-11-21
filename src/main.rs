@@ -620,7 +620,8 @@ fn maden(kod: &str) -> Option<f64> {
 }
 
 /// System card: CPU (difference between two readings), memory, system disk, battery.
-static CPU_ONCEKI: Mutex<Option<(u64, u64)>> = Mutex::new(None);
+/// The previous reading and when it was taken: after a long pause (window hidden) it is too old to give the current load.
+static CPU_ONCEKI: Mutex<Option<((u64, u64), std::time::Instant)>> = Mutex::new(None);
 /// CPU percent: from the difference of the (idle, total) counters between two readings. None on the first reading or with no difference.
 fn cpu_yuzde(once: Option<(u64, u64)>, simdi: (u64, u64)) -> Option<f64> {
     let (b0, t0) = once?;
@@ -629,27 +630,41 @@ fn cpu_yuzde(once: Option<(u64, u64)>, simdi: (u64, u64)) -> Option<f64> {
 }
 fn sistem() -> Value {
     use windows_sys::Win32::Foundation::FILETIME;
-    use windows_sys::Win32::Storage::FileSystem::GetDiskFreeSpaceExW;
+    use windows_sys::Win32::Storage::FileSystem::{GetDiskFreeSpaceExW, GetDriveTypeW, GetLogicalDrives};
     use windows_sys::Win32::System::Power::{GetSystemPowerStatus, SYSTEM_POWER_STATUS};
-    use windows_sys::Win32::System::SystemInformation::{GlobalMemoryStatusEx, MEMORYSTATUSEX};
+    use windows_sys::Win32::System::SystemInformation::{GetTickCount64, GlobalMemoryStatusEx, MEMORYSTATUSEX};
     use windows_sys::Win32::System::Threading::GetSystemTimes;
     let ft = |f: FILETIME| (f.dwHighDateTime as u64) << 32 | f.dwLowDateTime as u64;
     let z = FILETIME { dwLowDateTime: 0, dwHighDateTime: 0 };
     let (mut bos, mut cek, mut kul) = (z, z, z);
     // kernel time includes idle time: total = kernel + user
     let cpu = (unsafe { GetSystemTimes(&mut bos, &mut cek, &mut kul) } != 0).then(|| (ft(bos), ft(cek) + ft(kul)))
-        .and_then(|simdi| cpu_yuzde(kilit(&CPU_ONCEKI).replace(simdi), simdi));
+        .and_then(|simdi| {
+            let once = kilit(&CPU_ONCEKI).replace((simdi, std::time::Instant::now()));
+            // older than 10 s: the average of the whole pause, not the load now; the next reading (3 s later) shows it
+            cpu_yuzde(once.filter(|(_, t)| t.elapsed() < Duration::from_secs(10)).map(|(o, _)| o), simdi)
+        });
     let mut m: MEMORYSTATUSEX = unsafe { std::mem::zeroed() };
     m.dwLength = std::mem::size_of::<MEMORYSTATUSEX>() as u32;
     let bellek = (unsafe { GlobalMemoryStatusEx(&mut m) } != 0).then(|| json!({ "toplam": m.ullTotalPhys, "bos": m.ullAvailPhys }));
-    let surucu: Vec<u16> = format!("{}\\", std::env::var("SystemDrive").unwrap_or_else(|_| "C:".into())).encode_utf16().chain([0]).collect();
-    let (mut db, mut dt) = (0u64, 0u64);
-    let disk = (unsafe { GetDiskFreeSpaceExW(surucu.as_ptr(), &mut db, &mut dt, std::ptr::null_mut()) } != 0).then(|| json!({ "toplam": dt, "bos": db }));
+    // every fixed drive (A–Z bits of GetLogicalDrives; type 3 = DRIVE_FIXED), the system drive first; at most 4
+    let sistem_surucu = std::env::var("SystemDrive").unwrap_or_else(|_| "C:".into()).to_ascii_uppercase();
+    let maske = unsafe { GetLogicalDrives() };
+    let mut diskler: Vec<Value> = (0..26u8).filter(|i| maske >> i & 1 == 1).filter_map(|i| {
+        let ad = format!("{}:", (b'A' + i) as char);
+        let kok: Vec<u16> = format!("{ad}\\").encode_utf16().chain([0]).collect();
+        let (mut db, mut dt) = (0u64, 0u64);
+        (unsafe { GetDriveTypeW(kok.as_ptr()) } == 3 && unsafe { GetDiskFreeSpaceExW(kok.as_ptr(), &mut db, &mut dt, std::ptr::null_mut()) } != 0 && dt > 0)
+            .then(|| json!({ "ad": ad, "toplam": dt, "bos": db }))
+    }).collect();
+    diskler.sort_by_key(|d| d["ad"].as_str() != Some(sistem_surucu.as_str()));
+    diskler.truncate(4);
     let mut g: SYSTEM_POWER_STATUS = unsafe { std::mem::zeroed() };
     // BatteryFlag 128: no battery (desktop); percent 255: unknown
     let pil = (unsafe { GetSystemPowerStatus(&mut g) } != 0 && g.BatteryFlag & 128 == 0 && g.BatteryLifePercent <= 100)
-        .then(|| json!({ "yuzde": g.BatteryLifePercent, "sarj": g.ACLineStatus == 1 }));
-    json!({ "cpu": cpu, "bellek": bellek, "disk": disk, "pil": pil })
+        .then(|| json!({ "yuzde": g.BatteryLifePercent, "sarj": g.ACLineStatus == 1,
+            "kalan": (g.BatteryLifeTime != u32::MAX && g.ACLineStatus != 1).then_some(g.BatteryLifeTime) })); // seconds; unknown while charging
+    json!({ "cpu": cpu, "bellek": bellek, "diskler": diskler, "pil": pil, "acik": unsafe { GetTickCount64() } / 1000 })
 }
 
 /// Clipboard history: kept in memory only, only while the card is open (PANO_ACIK); never written to disk.
@@ -2435,6 +2450,16 @@ mod tests {
         let b = simdi_ms();
         kayitlari_bekle(); // nothing saving: returns at once
         assert!(simdi_ms() - b < 200);
+    }
+
+    #[test]
+    fn sistem_bilgisi() {
+        let v = sistem();
+        let ilk = v["diskler"][0]["ad"].as_str().map(String::from);
+        assert_eq!(ilk, std::env::var("SystemDrive").ok().map(|d| d.to_ascii_uppercase())); // the system drive comes first
+        assert!(v["diskler"].as_array().is_some_and(|d| d.len() <= 4) && v["acik"].as_u64().is_some_and(|s| s > 0));
+        *kilit(&CPU_ONCEKI) = Some(((0, 0), std::time::Instant::now() - Duration::from_secs(60)));
+        assert_eq!(sistem()["cpu"], Value::Null); // a reading a minute old is not used
     }
 
     #[test]

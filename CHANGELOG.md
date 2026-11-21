@@ -4,6 +4,13 @@ All releases: [GitHub Releases](https://github.com/ryocs15/ryocs/releases). Your
 
 ## Unreleased
 
+**System**
+- Every fixed drive is shown (the system drive first, up to 4), not only the system drive.
+- A bar at 90 % or more (a nearly full disk, memory) turns red.
+- The battery shows the time left when it is not charging, and the card shows how long Windows has been running.
+- A small line next to CPU shows the last minute.
+- Fixed: after the window was hidden for a while, the first CPU value was the average of the whole hidden time; now it waits for a fresh reading.
+
 **Currency and gold**
 - Converter: the ⇄ button in the card title opens a small converter (an amount in a shown currency ⇄ the home currency, at the card's own rates).
 - Gold and silver alerts: click the gold or silver row; the alert keeps its unit (gram or ounce).

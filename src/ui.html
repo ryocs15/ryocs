@@ -274,6 +274,9 @@ main [data-kart][hidden]{display:none!important} /* a closed card (the card layo
 .kurCev input{width:5.5em;min-width:0;padding:4px 8px}.kurCev select{padding:4px 6px;min-width:0}
 .kurCev b{margin-left:auto;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.kurD{font-weight:400;margin-left:4px}.kurS small,.sisS small{color:var(--mu);font-size:11px}
 #sistem .cizgi{margin-bottom:6px}
+#sistem .cizgi.dolu i{background:#e58f9a}
+.sisEgri{width:57px;height:14px;margin-left:8px;vertical-align:-2px;overflow:visible}.sisEgri polyline{fill:none;stroke:var(--ye);stroke-width:1.5;stroke-linejoin:round;vector-effect:non-scaling-stroke}
+.sisAcik{display:block;color:var(--mu);font-size:11px;margin-top:2px}
 #pano,#mail{flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column;gap:2px;contain:size;min-height:90px}
 #mailSay:not(:empty){margin-left:8px;padding:1px 8px;border-radius:10px;background:var(--ye);color:#fff;font-size:11px;font-weight:600}
 #mailYenile,#kurCevB{width:28px;height:28px;margin-left:auto}
@@ -3139,15 +3142,24 @@ $('#kurCev').oninput=$('#kurCev').onchange=()=>kurCevCiz();
 $('#kurCevB').onclick=()=>{if(!S)return;S.ayar.kurCevir=A('kurCevir')!==true;kaydet();kurCevCiz();if(S.ayar.kurCevir)$('#kurCev input')?.focus()};
 $('#kurCev').onclick=e=>{if(e.target.closest('[data-yon]')){kurCevYon^=1;kurCevCiz()}};
 // System card: every 3 s while the card is open and the window visible. CPU percent is the difference of two readings: empty on the first read.
+// CPU of the last minute (20 readings, 3 s apart) for the small line next to the CPU value; cleared after a pause
+let cpuGecmis=[],cpuSonT=0;
 async function sistem(){
   if(!S||!kartAcik('sistem')||gizliMi())return;
   const r=await api('/api/sistem'),v=r.durum==='ok'&&r.veri;
   if(!v)return ekYaz('#sistem',L('<p class="m">Sistem bilgisi alınamadı.</p>','<p class="m">Could not read system info.</p>'));
-  const gb=b=>(b/2**30).toLocaleString(LOC,{maximumFractionDigits:b<1e10?1:0}),cubuk=(ad,yz,yazi)=>`<div class="sisS"><span>${ad}</span><small>${yazi}</small></div><div class="cizgi"><i style="width:${Math.min(100,Math.max(0,yz))}%"></i></div>`;
-  ekYaz('#sistem',(typeof v.cpu==='number'?cubuk(L('İşlemci','CPU'),v.cpu,yz(Math.round(v.cpu))):cubuk(L('İşlemci','CPU'),0,L('ölçülüyor…','measuring…')))
+  if(Date.now()-cpuSonT>1e4)cpuGecmis=[];cpuSonT=Date.now();
+  if(typeof v.cpu==='number')cpuGecmis=[...cpuGecmis,v.cpu].slice(-20);
+  const gb=b=>(b/2**30).toLocaleString(LOC,{maximumFractionDigits:b<1e10?1:0});
+  // a bar at 90 % or more (a full disk, memory) is drawn in the warning colour
+  const cubuk=(ad,yz,yazi,ek='')=>`<div class="sisS"><span>${ad}${ek}</span><small>${yazi}</small></div><div class="cizgi${yz>=90?' dolu':''}"><i style="width:${Math.min(100,Math.max(0,yz))}%"></i></div>`;
+  const egri=cpuGecmis.length>1?`<svg class="sisEgri" viewBox="0 0 57 14" preserveAspectRatio="none" aria-hidden="true"><polyline points="${cpuGecmis.map((c,i)=>`${(i+20-cpuGecmis.length)*3},${(13-c*.12).toFixed(1)}`).join(' ')}"/></svg>`:'';
+  const pil=v.pil,kalan=pil?.kalan>0?' · '+sureYaz(pil.kalan*1e3)+L(' kaldı',' left'):'';
+  ekYaz('#sistem',(typeof v.cpu==='number'?cubuk(L('İşlemci','CPU'),v.cpu,yz(Math.round(v.cpu)),egri):cubuk(L('İşlemci','CPU'),0,L('ölçülüyor…','measuring…')))
     +(v.bellek?cubuk(L('Bellek','Memory'),100*(1-v.bellek.bos/v.bellek.toplam),`${gb(v.bellek.toplam-v.bellek.bos)} / ${gb(v.bellek.toplam)} GB`):'')
-    +(v.disk?cubuk('Disk',100*(1-v.disk.bos/v.disk.toplam),`${gb(v.disk.bos)}${L(' GB boş / ',' GB free / ')}${gb(v.disk.toplam)} GB`):'')
-    +(v.pil?cubuk(L('Pil','Battery'),v.pil.yuzde,yz(v.pil.yuzde)+(v.pil.sarj?L(' · şarjda',' · charging'):'')):''));
+    +(Array.isArray(v.diskler)?v.diskler:v.disk?[{ad:'',...v.disk}]:[]).map(d=>cubuk('Disk'+(d.ad?' '+esc(d.ad):''),100*(1-d.bos/d.toplam),`${gb(d.bos)}${L(' GB boş / ',' GB free / ')}${gb(d.toplam)} GB`)).join('')
+    +(pil?cubuk(L('Pil','Battery'),pil.yuzde,yz(pil.yuzde)+(pil.sarj?L(' · şarjda',' · charging'):kalan)):'')
+    +(v.acik>0?`<small class="sisAcik">${L('Açık kalma süresi: ','Up for ')}${v.acik<864e2?sureYaz(v.acik*1e3):Math.floor(v.acik/864e2)+L(' gün ',' d ')+Math.floor(v.acik%864e2/3600)+L(' sa',' h')}</small>`:''));
 }
 // Clipboard history: the last 20 texts, in memory only (cleared when RYOCS closes), collected only while the card is open.
 // Copies that password managers mark "exclude from history" are skipped on the Rust side. Clicking a row copies the text again.
