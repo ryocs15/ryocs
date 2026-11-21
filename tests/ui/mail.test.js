@@ -1,9 +1,10 @@
 // dil: en
 // Gmail card states and layout backups
 const {esit,dogru,q,bek}=RT;
-let cevap={durum:'izin_yok'},acilan=null,durum=null;const f0=window.fetch;
+let cevap={durum:'izin_yok'},acilan=null,durum=null,okundu=[],okCevap={durum:'ok'};const f0=window.fetch;
 window.fetch=async(p,a)=>{
   if(p==='/api/mail')return{json:async()=>cevap};
+  if(p==='/api/mail_okundu'){okundu.push(JSON.parse(a.body).id);return{json:async()=>okCevap}}
   if(p==='/api/open'){acilan=JSON.parse(a.body).url;return{json:async()=>({durum:'ok'})}}
   if(p==='/api/state'&&a?.method==='POST'){durum=JSON.parse(a.body);return new Promise(()=>{})} // no reload after applying a layout
   return f0(p,a)};
@@ -17,17 +18,24 @@ dogru('API turned off',q('#mail').textContent.startsWith('The Gmail API is turne
 cevap={durum:'bagli_degil'};await mail(true);
 dogru('not connected',q('#mail').textContent.startsWith('Google connection is missing or has expired.'));
 
-cevap={durum:'ok',veri:{okunmamis:42,liste:[{id:'a1',konu:'Toplantı <b>notu</b>',kimden:'"Ali Veli" <ali@ornek.com>',zincir:'18c2ab',t:Date.now()-36e5},{id:'b2',konu:'',kimden:'yalniz@ornek.com',zincir:'kot/../x',t:null}]}};
+cevap={durum:'ok',veri:{okunmamis:42,liste:[{id:'a1',konu:'Toplantı <b>notu</b>',kimden:'"Ali Veli" <ali@ornek.com>',zincir:'18c2ab',t:Date.now()-36e5,yeni:true},{id:'b2',konu:'',kimden:'yalniz@ornek.com',zincir:'kot/../x',t:null,yeni:true},{id:'c3',konu:'Eski',kimden:'x@y',zincir:'c3',t:null,yeni:false}]}};
 await mail(true);
-esit('list',[...q('#mail').querySelectorAll('.hb')].map(b=>b.textContent),['Toplantı <b>notu</b>Ali Veli · 1 h ago','(no subject)yalniz@ornek.com']);
+esit('list',[...q('#mail').querySelectorAll('.hb')].map(b=>b.textContent),['Toplantı <b>notu</b>Ali Veli · 1 h ago','(no subject)yalniz@ornek.com','Eskix@y']);
 esit('unread badge',q('#mailSay').textContent,'42');
+esit('read mail is not bold',[...q('#mail').querySelectorAll('.hb')].map(b=>b.classList.contains('yeni')),[true,true,false]);
 dogru('subject is escaped',!q('#mail').innerHTML.includes('<b>notu'));
 q('#mail .hb').click();esit('opens the thread',acilan,'https://mail.google.com/mail/u/0/#inbox/18c2ab');
-acilan=null;q('#mail .hb:nth-child(2)').click();esit('bad thread id is not opened',acilan,null);
+await bek(50);esit('click marks it read',[okundu,q('#mail .hb').classList.contains('yeni'),q('#mailSay').textContent],[['a1'],false,'41']);
+acilan=null;q('#mail .hb:nth-child(2)').click();esit('bad thread id is not opened',[acilan,okundu.length],[null,1]);
+okCevap={durum:'izin_yok'};mailMenu(10,10,mailV.liste[1]);[...q('#menu').querySelectorAll('button')].find(b=>b.textContent==='Mark as read').click();await bek(50);
+esit('menu: no permission puts it back',[okundu.at(-1),mailV.liste[1].yeni,q('#mailSay').textContent,q('#tost').textContent.startsWith('Update the Google permission')],['b2',true,'41',true]);
+okCevap={durum:'ok'};mailMenu(10,10,mailV.liste[1]);[...q('#menu').querySelectorAll('button')].find(b=>b.textContent==='Mark as read').click();await bek(50);
+esit('menu: marked read',[mailV.liste[1].yeni,q('#mailSay').textContent],[false,'40']);
+mailMenu(10,10,mailV.liste[2]);esit('read mail: no mark item',[...q('#menu').querySelectorAll('button')].map(b=>b.textContent),['Open in Gmail']);q('#menu').hidePopover?.();
 cevap={durum:'İnternete bağlanılamadı'};await mail(true);
-esit('error keeps the last list',[q('#mail').querySelectorAll('.hb').length,q('#mailAlt').textContent.endsWith(' · could not refresh')],[2,true]);
+esit('error keeps the last list',[q('#mail').querySelectorAll('.hb').length,q('#mailAlt').textContent.endsWith(' · could not refresh')],[3,true]);
 cevap={durum:'ok',veri:{okunmamis:0,liste:[]}};await mail(true);
-esit('empty inbox',[q('#mail').textContent,q('#mailSay').textContent],['No unread mail.','']);
+esit('empty inbox',[q('#mail').textContent,q('#mailSay').textContent],['The inbox is empty.','']);
 
 // layout backups
 yerListe();esit('no backups yet',[q('#aYerSec').textContent,q('#aYerYukle').disabled],['No saved layouts',true]);

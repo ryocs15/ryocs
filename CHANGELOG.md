@@ -4,6 +4,9 @@ All releases: [GitHub Releases](https://github.com/ryocs15/ryocs/releases). Your
 
 ## Unreleased
 
+**Added**
+- Gmail card: the last 15 inbox messages, not only unread ones; unread ones are bold. Clicking a message opens it and marks it read; the right-click menu marks it read without opening. Marking needs the updated Google permission (RYOCS asks when you first try); it cannot delete or send mail.
+
 **Changed**
 - Less CPU and GPU in the tray and when minimized: the web view itself is now hidden too, so it stops drawing (before, only the window was hidden). Reminders and focus rounds stay on time while hidden.
 - The moving background and the Spotify bars pause after 5 minutes without mouse or keyboard input and start again on the next move or key press.

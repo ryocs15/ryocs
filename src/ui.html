@@ -274,6 +274,8 @@ main [data-kart][hidden]{display:none!important} /* a closed card (the card layo
 #pano,#mail{flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column;gap:2px;contain:size;min-height:90px}
 #mailSay:not(:empty){margin-left:8px;padding:1px 8px;border-radius:10px;background:var(--ye);color:#fff;font-size:11px;font-weight:600}
 #mailYenile{width:28px;height:28px;margin-left:auto}
+#mail .hb:not(.yeni) b{color:var(--mu)}
+#mail .hb.yeni b{font-weight:600}
 .yy{display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end}.yy select{max-width:200px}
 .pn{display:block;width:100%;flex:none;text-align:left;padding:6px;border-radius:10px;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pn:hover{background:var(--ln)}
@@ -2078,6 +2080,7 @@ addEventListener('contextmenu',e=>{
   if(hx?.k){const r=hb.getBoundingClientRect();return menu(e.clientX||r.left+12,e.clientY||r.bottom,[[hx.k+L(' haberlerini gizle',' – hide its news'),()=>hbKaynakGizle(hx.k)]])}
   const pb=e.target.closest('#pano [data-p]'),pm=pb&&panoL[+pb.dataset.p]?.trim();
   if(pm){const r=pb.getBoundingClientRect();return panoMenu(e.clientX||r.left+12,e.clientY||r.bottom,pm)}
+  const mb=e.target.closest('#mail [data-m]'),mm=mb&&mailV?.liste[+mb.dataset.m];if(mm){const r=mb.getBoundingClientRect();return mailMenu(e.clientX||r.left+12,e.clientY||r.bottom,mm)}
   const kr=e.target.closest('#kur [data-c]');if(kr){const r=kr.getBoundingClientRect();return kurAlarmMenu(e.clientX||r.left+12,e.clientY||r.bottom,kr.dataset.c)}
   const el=e.target.closest('[data-r],.row[data-h],[data-l],[data-n],[data-u]');
   if(!el){const kk=e.target.closest('main [data-kart]');if(kk){const r=kk.getBoundingClientRect(),k=kk.dataset.kart;menu(e.clientX||r.left+12,e.clientY||r.top+12,[[KART_AD[k]+L(' ayarları…',' settings…'),()=>kartAyar(k)],null,[L('Kartı büyüt','Enlarge card'),()=>kartBoyDeg(k,1.25)],[L('Kartı küçült','Shrink card'),()=>kartBoyDeg(k,.8)],A('kartBoy')?.[k]||A('kartMin')?.[k]?[L('Boyutu sıfırla','Reset size'),()=>kartBoyDeg(k,0)]:0,null,[L('Kartı kapat','Close card'),()=>kartAc(k,false)],k==='haber'&&A('haberGizli')?.length?[L('Gizlenen kaynakları göster (','Show hidden sources (')+A('haberGizli').length+')',()=>{delete S.ayar.haberGizli;kaydet();haberCiz()}]:0])}return} // empty space on a card: card settings
@@ -3036,7 +3039,8 @@ function panoMenu(x,y,m){
     [L('Nota ekle','Add to note'),()=>{const n=S.notlar[S.aktifNot];n.metin+=(n.metin&&!n.metin.endsWith('\n')?'\n':'')+m;n.t=Date.now();notCiz();kaydet();tost(`"${n.ad}" ${L('notuna eklendi','note updated')}`)}]])}
 $('#panoDur').onclick=()=>{panoDurdu=!panoDurdu;try{localStorage.panoDur=panoDurdu?'1':''}catch{}panoAyar()};
 $('#panoSil').onclick=()=>panoAyar(true);
-// Gmail card (read-only, existing Google sign-in): unread mail in the inbox. Every 5 min while the card is open; clicking opens the mail in the browser.
+// Gmail card (existing Google sign-in): the last 15 inbox messages, unread ones bold. Every 5 min while the card is open;
+// clicking opens the mail in the browser and marks it read, the right-click menu marks it read without opening.
 let mailV=null,mailHata='',mailT=0;
 async function mail(zorla){
   if(!S||!kartAcik('mail'))return;
@@ -3048,16 +3052,28 @@ async function mail(zorla){
 const mailAd=f=>{const m=String(f).match(/^\s*"?([^"<]*?)"?\s*<([^>]+)>/);return m?m[1].trim()||m[2]:String(f)}; // "Ali Veli <ali@x>" → Ali Veli
 function mailCiz(){
   const el=$('#mail');$('#mailSay').textContent=!mailHata&&mailV?.okunmamis>0?mailV.okunmamis:'';
-  if(mailHata==='izin_yok')return el.innerHTML=`${L('<div><p class="m">Gmail için Google iznini güncellemen gerekiyor. RYOCS maillerini yalnız okur, hiçbir şeyi değiştiremez.</p><button class="btn ana" onclick="bagla(\'google\')">İzni güncelle</button></div>','<div><p class="m">Update the Google permission for Gmail. RYOCS only reads your mail and cannot change anything.</p><button class="btn ana" onclick="bagla(\'google\')">Update permission</button></div>')}`;
+  if(mailHata==='izin_yok')return el.innerHTML=`${L('<div><p class="m">Gmail için Google iznini güncellemen gerekiyor. RYOCS maillerini okur ve yalnız okundu olarak işaretleyebilir; silemez, gönderemez.</p><button class="btn ana" onclick="bagla(\'google\')">İzni güncelle</button></div>','<div><p class="m">Update the Google permission for Gmail. RYOCS reads your mail and can only mark it as read; it cannot delete or send.</p><button class="btn ana" onclick="bagla(\'google\')">Update permission</button></div>')}`;
   if(mailHata&&/^403/.test(mailHata)&&/Gmail API|accessNotConfigured|has not been used/i.test(mailHata))
     return el.innerHTML=L('<p class="m">Gmail API, Google Cloud projende kapalı. console.cloud.google.com → APIs &amp; Services → Library → "Gmail API" → Enable, sonra yenile.</p>','<p class="m">The Gmail API is turned off in your Google Cloud project. console.cloud.google.com → APIs &amp; Services → Library → "Gmail API" → Enable, then refresh.</p>');
   if(mailHata&&!mailV)return baglan(el,{durum:mailHata},'Google','google');
   if(!mailV)return ekYaz('#mail',L('<p class="m yuk">Mailler yükleniyor…</p>','<p class="m yuk">Loading mail…</p>'));
-  ekYaz('#mail',mailV.liste.map((m,i)=>`<button class="hb" data-m="${i}" title="${esc(m.konu||L('(konusuz)','(no subject)'))} — ${esc(m.kimden)}"><span><b>${esc(m.konu||L('(konusuz)','(no subject)'))}</b><small>${esc(mailAd(m.kimden))}${m.t?' · '+oncesi(m.t):''}</small></span></button>`).join('')
-    ||L('<p class="m">Okunmamış mail yok.</p>','<p class="m">No unread mail.</p>'));
+  ekYaz('#mail',mailV.liste.map((m,i)=>`<button class="hb${m.yeni?' yeni':''}" data-m="${i}" title="${esc(m.konu||L('(konusuz)','(no subject)'))} — ${esc(m.kimden)}"><span><b>${esc(m.konu||L('(konusuz)','(no subject)'))}</b><small>${esc(mailAd(m.kimden))}${m.t?' · '+oncesi(m.t):''}</small></span></button>`).join('')
+    ||L('<p class="m">Gelen kutusu boş.</p>','<p class="m">The inbox is empty.</p>'));
   $('#mailAlt').textContent='Gmail · '+L(oncesi(mailT)+' güncellendi','updated '+oncesi(mailT))+(mailHata?L(' · yenilenemedi',' · could not refresh'):'');
 }
-$('#mail').onclick=e=>{const b=e.target.closest('[data-m]'),m=b&&mailV?.liste[+b.dataset.m];if(m&&/^[0-9a-z]+$/i.test(m.zincir))api('/api/open',{url:'https://mail.google.com/mail/u/0/#inbox/'+m.zincir})};
+// marks read at once in the card; a failed request puts it back (opening the mail in Gmail marks it read anyway, so a click stays quiet)
+async function mailOkundu(m,sessiz){
+  if(!m?.yeni)return;m.yeni=false;mailV.okunmamis=Math.max(0,(+mailV.okunmamis||0)-1);mailCiz();
+  const r=await api('/api/mail_okundu',{id:m.id});if(r.durum==='ok'||sessiz)return;
+  m.yeni=true;mailV.okunmamis++;mailCiz();
+  if(r.durum==='izin_yok')tost(L('Okundu işaretlemek için Google iznini güncelle','Update the Google permission to mark mail as read'),L('İzni güncelle','Update permission'),()=>bagla('google'));
+  else tost(L('İşaretlenemedi: ','Could not mark: ')+r.durum);
+}
+const mailAc=m=>{if(m&&/^[0-9a-z]+$/i.test(m.zincir)){api('/api/open',{url:'https://mail.google.com/mail/u/0/#inbox/'+m.zincir});mailOkundu(m,true)}};
+function mailMenu(x,y,m){
+  menu(x,y,[[L('Gmail’de aç','Open in Gmail'),()=>mailAc(m)],m.yeni?[L('Okundu olarak işaretle','Mark as read'),()=>mailOkundu(m)]:0]);
+}
+$('#mail').onclick=e=>{const b=e.target.closest('[data-m]');mailAc(b&&mailV?.liste[+b.dataset.m])};
 $('#mailYenile').onclick=()=>mail(true);
 // Layout backups (Settings → Appearance): S.ayar.yerYedek=[{ad,t,v}], at most 10. Before applying, the current state is kept as "Previous layout".
 const YER_ANAH=['yerlesim','kartBoy','sutunEn','yanOran','kartMin','kartKapali','kartGizle'];

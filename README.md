@@ -30,7 +30,7 @@ The interface is in **English** and **Turkish**. It follows the Windows display 
 - **News**: BBC News in English, Bundle and TRT Haber in Turkish; keyword filter and hidden sources
 - **Spotify** now playing, controls and up next
 - **Focus timer** (pomodoro) with daily goal, streak, your own labels, a *what am I working on* note with a weekly breakdown, and *do not disturb* (notifications wait until the round ends)
-- **Gmail** unread mail (read-only)
+- **Gmail** last 15 inbox messages, unread ones in bold; right-click to mark as read
 - **Currency and gold** in your home currency (about 160 currencies; TCMB for TRY, ECB and world rates otherwise), **system** info, **clipboard history**
 - Quick search and command palette (Ctrl+F), app and game launcher, quick links with site icons, search in Settings
 - Lives in the tray with a global shortcut you can choose; remembers its window size and position
@@ -94,7 +94,7 @@ It is free, it needs no credit card, and the key stays on your computer in `%APP
 **Good to know**
 
 - **Signed out after a week?** While the key is in *Testing* mode, Google asks you to sign in again every 7 days. To stop this, go to **Audience** → **Publish app** → **Confirm**. You do not need Google to review anything: you are the only user.
-- **Gmail card says "Update permission"?** You connected before the Gmail card existed. Click **Update permission** on the card and allow mail access in the browser.
+- **Gmail card says "Update permission"?** You connected before the Gmail card existed, or before marking as read was added. Click **Update permission** on the card and allow mail access in the browser.
 - **"Access blocked" or "Error 403: access_denied"?** Your address is not in the test users list. Repeat step 5.
 - **Gmail card says the API is turned off?** Repeat the Gmail part of step 3.
 - RYOCS only **reads** your mail. It cannot send, delete or change anything.

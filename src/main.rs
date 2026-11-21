@@ -75,7 +75,7 @@ fn provider(name: &str) -> Result<Provider, String> {
             auth: "https://accounts.google.com/o/oauth2/v2/auth",
             token: "https://oauth2.googleapis.com/token",
             // events + calendar list (birthdays, holidays, shared calendars)
-            scope: "https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar.calendarlist.readonly https://www.googleapis.com/auth/gmail.readonly",
+            scope: "https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar.calendarlist.readonly https://www.googleapis.com/auth/gmail.modify",
             // to get a refresh_token
             extra: &[("access_type", "offline"), ("prompt", "consent")],
         }),
@@ -1322,21 +1322,29 @@ fn takvim_url(takvim: &str, devam: &[&str]) -> Result<url::Url, String> {
     Ok(u)
 }
 
-/// Gmail (read-only): unread count in the inbox and the headers of the last 10 unread messages.
-/// If an old connection lacks the Gmail permission: "izin_yok", the UI suggests reconnecting. RYOCS never changes anything in the mailbox.
+/// Gmail message IDs go into URL paths: letters/digits only.
+fn mail_id(i: &str) -> bool {
+    !i.is_empty() && i.len() <= 64 && i.bytes().all(|c| c.is_ascii_alphanumeric())
+}
+
+/// Gmail: unread count in the inbox and the headers of the last 15 inbox messages, each with its unread state.
+/// Reading works with the old gmail.readonly permission too; marking as read needs gmail.modify ("izin_yok" otherwise).
 fn mail() -> Result<Value, String> {
     let auth = format!("Bearer {}", token(&provider("google")?)?);
-    if !tokens_oku()["google"]["scope"].as_str().is_some_and(|s| s.contains("gmail.readonly")) {
+    if !tokens_oku()["google"]["scope"].as_str().is_some_and(|s| s.contains("gmail.readonly") || s.contains("gmail.modify")) {
         return Err("izin_yok".into());
     }
     let g = "https://gmail.googleapis.com/gmail/v1/users/me";
     let kutu = body(AGENT.get(&format!("{g}/labels/INBOX")).query("fields", "messagesUnread").set("Authorization", &auth).call())?;
-    let liste = body(AGENT.get(&format!("{g}/messages")).query("q", "is:unread in:inbox").query("maxResults", "10")
-        .query("fields", "messages(id)").set("Authorization", &auth).call())?;
-    // the ID goes into the URL path: letters/digits only
-    let idler: Vec<String> = liste["messages"].as_array().into_iter().flatten().filter_map(|m| m["id"].as_str())
-        .filter(|i| !i.is_empty() && i.len() <= 64 && i.bytes().all(|c| c.is_ascii_alphanumeric())).map(String::from).collect();
-    // headers of a message do not change: only new ids are fetched; the memory keeps just the current unread ones
+    let idler_al = |q: &str| -> Result<Vec<String>, String> {
+        let l = body(AGENT.get(&format!("{g}/messages")).query("q", q).query("maxResults", "15")
+            .query("fields", "messages(id)").set("Authorization", &auth).call())?;
+        Ok(l["messages"].as_array().into_iter().flatten().filter_map(|m| m["id"].as_str()).filter(|i| mail_id(i)).map(String::from).collect())
+    };
+    let idler = idler_al("in:inbox")?;
+    // the unread state changes, the headers do not: a second id-only list says which of the 15 are unread
+    let okunmamis = idler_al("is:unread in:inbox")?;
+    // headers of a message do not change: only new ids are fetched; the memory keeps just the current list
     static ONBELLEK: LazyLock<Mutex<HashMap<String, Value>>> = LazyLock::new(Default::default);
     let yeni: Vec<&String> = { let o = kilit(&ONBELLEK); idler.iter().filter(|i| !o.contains_key(*i)).collect() };
     let gelen: Vec<Value> = thread::scope(|k| {
@@ -1352,8 +1360,22 @@ fn mail() -> Result<Value, String> {
         .find(|h| h["name"].as_str().is_some_and(|n| n.eq_ignore_ascii_case(ad))).and_then(|h| h["value"].as_str()).unwrap_or("").to_string();
     let liste: Vec<Value> = mailler.iter().map(|m| json!({
         "id": m["id"], "konu": baslik(m, "Subject"), "kimden": baslik(m, "From"),         "zincir": m["threadId"], "t": m["internalDate"].as_str().and_then(|t| t.parse::<i64>().ok()),
+        "yeni": m["id"].as_str().is_some_and(|i| okunmamis.iter().any(|o| o == i)),
     })).collect();
     Ok(json!({ "okunmamis": kutu["messagesUnread"], "liste": liste }))
+}
+
+/// Marks one message as read in Gmail (removes the UNREAD label). The only change RYOCS makes in the mailbox.
+fn mail_okundu(req_body: &str) -> Result<Value, String> {
+    let v: Value = serde_json::from_str(req_body).map_err(|e| e.to_string())?;
+    let id = v["id"].as_str().filter(|i| mail_id(i)).ok_or("geçersiz id")?;
+    let auth = format!("Bearer {}", token(&provider("google")?)?);
+    if !tokens_oku()["google"]["scope"].as_str().is_some_and(|s| s.contains("gmail.modify")) {
+        return Err("izin_yok".into());
+    }
+    body(AGENT.post(&format!("https://gmail.googleapis.com/gmail/v1/users/me/messages/{id}/modify")).set("Authorization", &auth)
+        .send_json(json!({ "removeLabelIds": ["UNREAD"] })))?;
+    Ok(json!(true))
 }
 
 /// Adds the newly fetched messages to the memory, drops the ones no longer unread, returns them in the order of `idler`.
@@ -1772,6 +1794,8 @@ fn handle(mut req: Request) {
         guncelle_kur()
     } else if !post && path == "/api/mail" {
         mail()
+    } else if post && path == "/api/mail_okundu" {
+        mail_okundu(&b)
     } else if let (false, "/api/kur" | "/api/kur_ecb") = (post, path) {
         let q = |k: &str| url.split_once('?').is_some_and(|(_, s)| url::form_urlencoded::parse(s.as_bytes()).any(|(a, b)| a == k && b == "1"));
         if path == "/api/kur" { kur(q("ag"), q("dunya")) } else { kur_ecb(q("ag"), q("dunya")) }
@@ -2379,6 +2403,8 @@ mod tests {
         assert_eq!(r, vec![json!({"id": "b"}), json!({"id": "a"})]); // Gmail's order, not the fetch order
         let r = mail_birlestir(&mut o, vec![json!({"id": "c"})], &ids(&["c", "a"])); // b was read: gone from memory too
         assert_eq!(r, vec![json!({"id": "c"}), json!({"id": "a"})]);
+        assert!(mail_id("18c2ab9F") && !mail_id("") && !mail_id("a/../b") && !mail_id(&"a".repeat(65)));
+        assert!(mail_okundu(r#"{"id":"../labels"}"#).is_err_and(|e| e == "geçersiz id")); // refused before any request
         assert_eq!(o.len(), 2);
     }
 
