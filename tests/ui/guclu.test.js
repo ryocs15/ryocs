@@ -41,3 +41,9 @@ b.dispatchEvent(new MouseEvent('contextmenu',{bubbles:true,clientX:10,clientY:10
 document.querySelectorAll('#menu button')[1].click();
 dogru('appended to the current note',not.metin.startsWith(once)&&not.metin.endsWith('Faturayı öde\nikinci satır'));
 window.fetch=f0;
+// damaged entries in a loaded or imported file: the panel still draws
+{const eski=S;S=normal({todos:[null,{t:'ok'},{d:true}],notlar:[{ad:'x'},null,{metin:'m'}]});
+ let h='';try{ciz();notCiz()}catch(e){h=String(e)}
+ esit('damaged entries do not crash',h,'');esit('tasks without text dropped',S.todos.map(t=>t.t),['ok']);
+ esit('notes get text and a name',S.notlar.map(n=>[n.ad,n.metin]),[['x',''],['Not','m']]);
+ S=eski;ciz();notCiz();}

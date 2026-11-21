@@ -15,6 +15,8 @@ All releases: [GitHub Releases](https://github.com/ryocs15/ryocs/releases). Your
 - The installer refuses Windows versions older than Windows 10 1709, where RYOCS cannot start.
 
 **Fixed**
+- A damaged task or note in a loaded or imported file no longer stops the panel from drawing.
+- An expired Google or Spotify sign-in now offers to reconnect instead of showing the raw error.
 - Saves are flushed to disk before replacing the file: a power cut no longer leaves an empty data.json.
 - Loading newer data from OneDrive could collide with a save happening at the same moment.
 - The currency card fetches the bank, gold, silver and world rates at the same time (on a slow network this took up to a minute).
