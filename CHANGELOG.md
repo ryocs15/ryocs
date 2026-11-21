@@ -2,7 +2,7 @@
 
 All releases: [GitHub Releases](https://github.com/ryocs15/ryocs/releases). Your data (`%APPDATA%\RYOCS`) is kept by every update.
 
-## 1.1.2 (unreleased)
+## 1.1.2 (2026-11-21)
 
 **Changed**
 - Settings are grouped (Personal, Features, App) with clearer icons. Notifications have their own page with the weather alert and quiet-while-focusing switches; the PIN lock and encryption moved to Privacy and security; the app icon size moved to Cards and layout.

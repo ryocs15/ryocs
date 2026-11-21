@@ -2,7 +2,7 @@
 ; Build: "%LOCALAPPDATA%\Programs\Inno Setup 6\ISCC.exe" kurulum\ryocs.iss  ->  target\kurulum\RYOCS-Setup-<version>.exe
 ; CI passes the version with /DSurum=x.y.z
 #ifndef Surum
-  #define Surum "1.1.1"
+  #define Surum "1.1.2"
 #endif
 
 [Setup]
