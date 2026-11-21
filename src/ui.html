@@ -1902,8 +1902,9 @@ function notCiz(){
   $('#not').value=S.notlar[S.aktifNot].metin;notSay();notListe();
 }
 // On a wide card a note list on the left (name + first line) instead of tabs
-const notListe=()=>$('#nliste').innerHTML=S.notlar.map((n,i)=>`<button data-n="${i}" aria-pressed="${i===S.aktifNot}" title="${esc(n.ad)}"><b>${esc(n.ad)}</b><small>${esc(n.metin.trim().split('\n')[0].slice(0,80))||L('Boş not','Empty note')}</small></button>`).join('')
-  +`${L('<button data-n="+" title="Yeni not"><b>+ Yeni not</b></button>','<button data-n="+" title="New note"><b>+ New note</b></button>')}`;
+const notIlk=()=>S.aktifNot+'|'+S.notlar[S.aktifNot].metin.trim().split('\n',1)[0].slice(0,80); // what the list shows of the open note
+const notListe=()=>(notListe.ilk=notIlk(),$('#nliste').innerHTML=S.notlar.map((n,i)=>`<button data-n="${i}" aria-pressed="${i===S.aktifNot}" title="${esc(n.ad)}"><b>${esc(n.ad)}</b><small>${esc(n.metin.trim().split('\n')[0].slice(0,80))||L('Boş not','Empty note')}</small></button>`).join('')
+  +`${L('<button data-n="+" title="Yeni not"><b>+ Yeni not</b></button>','<button data-n="+" title="New note"><b>+ New note</b></button>')}`);
 // Notes extra: words, characters, last edit
 function notBilgi(){
   const n=S.notlar[S.aktifNot],m=n.metin.trim();
@@ -1917,11 +1918,25 @@ function notSay(){
 }
 const notSec=i=>{S.aktifNot=i;araPos=0;notCiz();kaydet()};
 async function notAdi(i){const n=S.notlar[i],v=await sor(L('Notun adı','Note name'),[{ad:L('Ad','Name'),v:n.ad,zorunlu:1}]);if(v?.[0]){n.ad=v[0].slice(0,40);notCiz();kaydet()}}
-const notMenu=(x,y,i)=>menu(x,y,[[L('Yeniden adlandır…','Rename…'),()=>notAdi(i)],
+// checked list items ("- [x] …") of a note, with what is nested under them (deeper indented lines)
+function isaretliSil(m){
+  const l=m.split('\n'),o=[];let derin=-1;
+  for(const s of l){const g=s.match(/^\s*/)[0].length;
+    if(derin>=0&&g>derin&&s.trim())continue;derin=-1;
+    if(/^\s*- \[[xX]\]/.test(s)){derin=g;continue}
+    o.push(s)}
+  return o.join('\n');
+}
+const notTasi=(i,j)=>{const l=S.notlar,a=l[S.aktifNot];l.splice(j,0,l.splice(i,1)[0]);S.aktifNot=l.indexOf(a);notCiz();kaydet()};
+const notMenu=(x,y,i)=>{const n=S.notlar[i],isaretli=/^\s*- \[[xX]\]/m.test(n.metin);menu(x,y,[[L('Yeniden adlandır…','Rename…'),()=>notAdi(i)],
+  [L('Panoya kopyala','Copy to clipboard'),()=>navigator.clipboard.writeText(n.metin).then(()=>tost(L('Not kopyalandı','Note copied')),()=>tost(L('Kopyalanamadı','Could not copy')))],
+  isaretli?[L('İşaretlenenleri temizle','Clear checked items'),()=>{const eski=n.metin;n.metin=isaretliSil(eski);n.t=Date.now();notCiz();kaydet();
+    tost(L('İşaretlenenler temizlendi','Checked items cleared'),L('Geri al','Undo'),()=>{n.metin=eski;notCiz();kaydet()})}]:0,
+  i>0?[L('Sola taşı','Move left'),()=>notTasi(i,i-1)]:0,i<S.notlar.length-1?[L('Sağa taşı','Move right'),()=>notTasi(i,i+1)]:0,
   S.notlar.length>1?null:0,S.notlar.length>1?[L('Sil','Delete'),()=>{
     const n=S.notlar.splice(i,1)[0];S.aktifNot=Math.min(S.aktifNot,S.notlar.length-1);notCiz();kaydet();
     tost(`"${n.ad}" ${L('silindi','deleted')}`,L('Geri al','Undo'),()=>{S.notlar.splice(i,0,n);S.aktifNot=i;notCiz();kaydet()});
-  },'teh']:0]);
+  },'teh']:0])};
 $('#nsek').onclick=e=>{
   const n=e.target.dataset.n;if(n===undefined||!S)return;
   if(n!=='+')return notSec(+n);
@@ -1929,7 +1944,9 @@ $('#nsek').onclick=e=>{
 };
 $('#nsek').ondblclick=e=>{const n=e.target.dataset.n;if(n!==undefined&&n!=='+')notAdi(+n)};
 $('#nliste').onclick=e=>$('#nsek').onclick(e);$('#nliste').ondblclick=e=>$('#nsek').ondblclick(e);
-$('#not').oninput=e=>{if(S){const n=S.notlar[S.aktifNot];n.metin=e.target.value;n.t=Date.now();kaydet();notSay();notListe()}};
+// typing: the note list (name + first line) is redrawn only when the first line changes, not on every key
+$('#not').oninput=e=>{if(S){const n=S.notlar[S.aktifNot];n.metin=e.target.value;n.t=Date.now();kaydet();notSay();
+  if(notIlk()!==notListe.ilk)notListe()}};
 // execCommand('insertText') is used so Ctrl+Z can undo it
 $('#not').onkeydown=e=>{
   if(e.key!=='Enter'||e.altKey||e.shiftKey)return;

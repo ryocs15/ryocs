@@ -4,6 +4,10 @@ All releases: [GitHub Releases](https://github.com/ryocs15/ryocs/releases). Your
 
 ## Unreleased
 
+**Notes**
+- Right-click a note's tab: copy it to the clipboard, clear its checked items (with what is nested under them; can be undone), or move it left or right.
+- Less work while typing: the note list is redrawn only when the first line of the note changes.
+
 **Tasks**
 - A day and time at the end of a new task set its reminder: "Dentist tomorrow 15:00", "Report friday", "Call mom 18:30" (Turkish or English day names; "18.30" only after "saat").
 - Right-click a task with a reminder → Snooze 1 hour or Snooze until tomorrow.
