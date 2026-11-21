@@ -33,6 +33,9 @@ okCevap={durum:'ok'};mailMenu(10,10,mailV.liste[1]);[...q('#menu').querySelector
 esit('menu: marked read',[mailV.liste[1].yeni,q('#mailSay').textContent],[false,'40']);
 cevap={durum:'ok',veri:{okunmamis:42,liste:[{id:'a1',konu:'x',kimden:'a@b',zincir:'18c2ab',t:null,yeni:true},{id:'b2',konu:'y',kimden:'a@b',zincir:'b2',t:null,yeni:true},{id:'c3',konu:'Eski',kimden:'x@y',zincir:'c3',t:null,yeni:false}]}};await mail(true);
 esit('older refresh: marked mails stay read',[mailV.liste.map(m=>m.yeni),q('#mailSay').textContent],[[false,false,false],'40']);
+cevap={durum:'ok',veri:{okunmamis:40,liste:[{id:'a1',konu:'x',kimden:'a@b',zincir:'18c2ab',t:null,yeni:false},{id:'b2',konu:'y',kimden:'a@b',zincir:'b2',t:null,yeni:false},{id:'c3',konu:'Eski',kimden:'x@y',zincir:'c3',t:null,yeni:false}]}};await mail(true);
+cevap.veri.okunmamis=41;cevap.veri.liste[0].yeni=true;await mail(true);
+esit('made unread again in Gmail: bold again',[mailV.liste[0].yeni,q('#mailSay').textContent],[true,'41']);
 mailMenu(10,10,mailV.liste[2]);esit('read mail: no mark item',[...q('#menu').querySelectorAll('button')].map(b=>b.textContent),['Open in Gmail']);q('#menu').hidePopover?.();
 cevap={durum:'İnternete bağlanılamadı'};await mail(true);
 esit('error keeps the last list',[q('#mail').querySelectorAll('.hb').length,q('#mailAlt').textContent.endsWith(' · could not refresh')],[3,true]);

@@ -3052,12 +3052,12 @@ $('#panoDur').onclick=()=>{panoDurdu=!panoDurdu;try{localStorage.panoDur=panoDur
 $('#panoSil').onclick=()=>panoAyar(true);
 // Gmail card (existing Google sign-in): the last 15 inbox messages, unread ones bold. Every 5 min while the card is open;
 // clicking opens the mail in the browser and marks it read, the right-click menu marks it read without opening.
-let mailV=null,mailHata='',mailT=0;const mailOkunan=new Set(); // marked read here: a refresh that started earlier must not make them bold again
+let mailV=null,mailHata='',mailT=0;const mailOkunan=new Set(); // marked read here until a refresh shows them read: an older refresh must not make them bold again
 async function mail(zorla){
   if(!S||!kartAcik('mail'))return;
   if(!zorla&&mailV&&Date.now()-mailT<3e5)return mailCiz();
   const r=await api('/api/mail');mailT=Date.now();
-  if(r.durum==='ok'&&Array.isArray(r.veri?.liste)){mailV=r.veri;mailHata='';for(const m of mailV.liste)if(mailOkunan.has(m.id)&&m.yeni){m.yeni=false;mailV.okunmamis=Math.max(0,(+mailV.okunmamis||0)-1)}}else mailHata=String(r.durum);
+  if(r.durum==='ok'&&Array.isArray(r.veri?.liste)){mailV=r.veri;mailHata='';for(const m of mailV.liste)if(mailOkunan.has(m.id)&&!m.yeni)mailOkunan.delete(m.id);for(const m of mailV.liste)if(mailOkunan.has(m.id)&&m.yeni){m.yeni=false;mailV.okunmamis=Math.max(0,(+mailV.okunmamis||0)-1)}}else mailHata=String(r.durum);
   mailCiz();
 }
 const mailAd=f=>{const m=String(f).match(/^\s*"?([^"<]*?)"?\s*<([^>]+)>/);return m?m[1].trim()||m[2]:String(f)}; // "Ali Veli <ali@x>" → Ali Veli

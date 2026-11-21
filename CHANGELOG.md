@@ -2,6 +2,11 @@
 
 All releases: [GitHub Releases](https://github.com/ryocs15/ryocs/releases). Your data (`%APPDATA%\RYOCS`) is kept by every update.
 
+## Unreleased
+
+**Fixed**
+- Gmail card: a mail marked read in RYOCS and then marked unread again in Gmail shows as unread again (before, it stayed read until RYOCS restarted).
+
 ## 1.1.5 (2026-11-21)
 
 **Added**
