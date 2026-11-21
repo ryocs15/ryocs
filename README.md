@@ -30,7 +30,7 @@ The interface is in **English** and **Turkish**. It follows the Windows display 
 - **News**: BBC News in English, Bundle and TRT Haber in Turkish; keyword filter and hidden sources
 - **Spotify** now playing (podcasts too), controls, seeking, shuffle and repeat, moving playback to another device, and up next
 - **Focus timer** (pomodoro) with long breaks, skipping a round or adding 5 minutes (right-click), daily goal, streak, your own labels, a *what am I working on* note with a weekly breakdown, and *do not disturb* (notifications wait until the round ends)
-- **Gmail** last 15 inbox messages, unread ones in bold; right-click to mark as read
+- **Gmail** last 15 inbox messages, unread ones in bold, a notification for new mail; right-click to mark as read or unread, or to archive
 - **Currency and gold** with a converter and rate, gold and silver alerts, in your home currency (about 160 currencies; TCMB for TRY, ECB and world rates otherwise), **system** info (CPU with its last minute, memory, every drive, battery time left, uptime), **clipboard history** (pin, delete)
 - Quick search and command palette (Ctrl+F), app and game launcher, quick links with site icons, search in Settings
 - Lives in the tray with a global shortcut you can choose; remembers its window size and position

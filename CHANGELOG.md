@@ -4,6 +4,11 @@ All releases: [GitHub Releases](https://github.com/ryocs15/ryocs/releases). Your
 
 ## Unreleased
 
+**Gmail**
+- A notification when new mail arrives, also while RYOCS is in the tray (checked every 5 min; can be turned off in the card settings).
+- Right-click a mail to archive it or mark it unread again; nothing can be deleted or sent.
+- The tooltip of a mail shows the start of its text.
+
 **Clipboard**
 - Right-click an item to pin it (it stays on top and does not drop off the list) or to delete it; "Clear" keeps the pinned ones. Everything is still kept only in memory.
 - Each item shows when it was copied.

@@ -2359,7 +2359,7 @@ const KART_AYAR={
       ['kurTur',L('Kur türü (yalnız TRY, TCMB)','Rate type (TRY only, TCMB)'),'seg',{'':L('Satış','Selling'),al:L('Alış','Buying'),ef:L('Efektif satış','Banknote')},''],
       ['altinBirim',L('Altın ve gümüş birimi','Gold and silver unit'),'seg',{gram:'Gram',ons:L('Ons','Ounce')},ONS0],
       ['gumus',L('Gümüş satırı','Silver row'),'sw',0,false],['kurDegisim',L('Önceki güne göre değişim','Change since the previous day'),'sw',0,true]],
-    gizle:[['altin',L('Altın ve gümüş satırları','Gold and silver rows'),'.kurAltin'],['kaynak',L('Kaynak ve güncelleme satırı','Source and update line'),'#kurAlt']]},sistem:{ayar:[],gizle:[]},pano:{ayar:[],gizle:[]},mail:{ayar:[],gizle:[]},
+    gizle:[['altin',L('Altın ve gümüş satırları','Gold and silver rows'),'.kurAltin'],['kaynak',L('Kaynak ve güncelleme satırı','Source and update line'),'#kurAlt']]},sistem:{ayar:[],gizle:[]},pano:{ayar:[],gizle:[]},mail:{ayar:[['mailBildir',L('Yeni mail gelince bildir','Notify about new email'),'sw',0,true]],gizle:[]},
   odak:{ayar:[['calisma',L('Çalışma süresi (dk)','Work time (min)'),'sayi',[1,180],25],['mola',L('Mola süresi (dk)','Break time (min)'),'sayi',[1,180],5],['uzunMola',L('Uzun mola (dk, 0: kapalı)','Long break (min, 0: off)'),'sayi',[0,60],15],['uzunAralik',L('Uzun mola kaç turda bir','Long break every … rounds'),'sayi',[2,10],4],['hedef',L('Günlük hedef (tur)','Daily goal (rounds)'),'sayi',[1,20],4],['calismaAd',L('Çalışma adı (boşsa “Çalışma”)','Work label (empty: “Work”)'),'metin',0,''],['molaAd',L('Mola adı (boşsa “Mola”)','Break label (empty: “Break”)'),'metin',0,''],['odakOto',L('Tur bitince sonrakini kendiliğinden başlat','Start the next round automatically'),'sw',0,false],['rahatsiz',L('Çalışırken bildirimleri biriktir, tur bitince tek bildirimle göster','Hold notifications while working, show them in one notification when the round ends'),'sw',0,true]],
     gizle:[['ne',L('Üzerinde çalışılan iş','What you are working on'),'#odakNe'],['hafta',L('Bu hafta neye çalıştın (kart büyükken)','This week by task (when the card is large)'),'.odNe'],['sayac',L('Serbest sayaç','Free timer'),'#serbest'],['spark',L('Başlıkta 7 günlük mini grafik','7-day mini chart in the title'),'#odakIst .spark'],['ek',L('Bugün, seri, hedef ve grafik (kart büyükken)','Today, streak, goal and chart (when the card is large)'),'#odakEk']]}};
 document.head.insertAdjacentHTML('beforeend','<style>'+Object.entries(KART_AYAR).flatMap(([k,a])=>a.gizle.filter(g=>g[2]).map(([id,,sel])=>`[data-kart=${k}][data-gizle~=${id}] ${sel}{display:none!important}`)).join('')+'</style>');
@@ -3199,33 +3199,55 @@ async function mail(zorla){
   if(!S||!kartAcik('mail'))return;
   if(!zorla&&mailV&&Date.now()-mailT<3e5)return mailCiz();
   const r=await api('/api/mail');mailT=Date.now();
-  if(r.durum==='ok'&&Array.isArray(r.veri?.liste)){mailV=r.veri;mailHata='';for(const m of mailV.liste)if(mailOkunan.has(m.id)&&!m.yeni)mailOkunan.delete(m.id);for(const m of mailV.liste)if(mailOkunan.has(m.id)&&m.yeni){m.yeni=false;mailV.okunmamis=Math.max(0,(+mailV.okunmamis||0)-1)}}else mailHata=String(r.durum);
+  if(r.durum==='ok'&&Array.isArray(r.veri?.liste)){mailV=r.veri;mailHata='';mailYeniBildir(mailV.liste);for(const m of mailV.liste)if(mailOkunan.has(m.id)&&!m.yeni)mailOkunan.delete(m.id);for(const m of mailV.liste)if(mailOkunan.has(m.id)&&m.yeni){m.yeni=false;mailV.okunmamis=Math.max(0,(+mailV.okunmamis||0)-1)}}else mailHata=String(r.durum);
   mailCiz();
 }
+// New mail: a notification for unread mail not seen before (card setting). The first fetch only remembers what is there.
+let mailGorulen=null;
+function mailYeniBildir(l){
+  const y=mailGorulen?l.filter(m=>m.yeni&&!mailGorulen.has(m.id)):[];
+  mailGorulen=new Set([...l.map(m=>m.id),...mailGorulen||[]].slice(0,300));
+  if(!y.length||A('mailBildir')===false)return;
+  bildir(y.length>1?y.length+L(' yeni mail',' new emails'):L('Yeni mail','New email'),y.slice(0,3).map(m=>mailAd(m.kimden)+': '+(m.konu||L('(konusuz)','(no subject)'))).join('\n'));
+}
+// Gmail's preview text comes HTML-escaped (&#39; …): turned into plain text (DOMParser runs no scripts)
+const mailOzet=t=>t?new DOMParser().parseFromString(String(t),'text/html').documentElement.textContent.trim():'';
 const mailAd=f=>{const m=String(f).match(/^\s*"?([^"<]*?)"?\s*<([^>]+)>/);return m?m[1].trim()||m[2]:String(f)}; // "Ali Veli <ali@x>" → Ali Veli
 function mailCiz(){
   const el=$('#mail');$('#mailSay').textContent=!mailHata&&mailV?.okunmamis>0?mailV.okunmamis:'';
-  if(mailHata==='izin_yok')return el.innerHTML=`${L('<div><p class="m">Gmail için Google iznini güncellemen gerekiyor. RYOCS maillerini okur ve yalnız okundu olarak işaretleyebilir; silemez, gönderemez.</p><button class="btn ana" onclick="bagla(\'google\')">İzni güncelle</button></div>','<div><p class="m">Update the Google permission for Gmail. RYOCS reads your mail and can only mark it as read; it cannot delete or send.</p><button class="btn ana" onclick="bagla(\'google\')">Update permission</button></div>')}`;
+  if(mailHata==='izin_yok')return el.innerHTML=`${L('<div><p class="m">Gmail için Google iznini güncellemen gerekiyor. RYOCS maillerini okur; okundu ya da okunmadı işaretleyebilir ve arşivleyebilir; silemez, gönderemez.</p><button class="btn ana" onclick="bagla(\'google\')">İzni güncelle</button></div>','<div><p class="m">Update the Google permission for Gmail. RYOCS reads your mail and can mark it read or unread and archive it; it cannot delete or send.</p><button class="btn ana" onclick="bagla(\'google\')">Update permission</button></div>')}`;
   if(mailHata&&/^403/.test(mailHata)&&/Gmail API|accessNotConfigured|has not been used/i.test(mailHata))
     return el.innerHTML=L('<p class="m">Gmail API, Google Cloud projende kapalı. console.cloud.google.com → APIs &amp; Services → Library → "Gmail API" → Enable, sonra yenile.</p>','<p class="m">The Gmail API is turned off in your Google Cloud project. console.cloud.google.com → APIs &amp; Services → Library → "Gmail API" → Enable, then refresh.</p>');
   if(mailHata&&!mailV)return baglan(el,{durum:mailHata},'Google','google');
   if(!mailV)return ekYaz('#mail',L('<p class="m yuk">Mailler yükleniyor…</p>','<p class="m yuk">Loading mail…</p>'));
-  ekYaz('#mail',mailV.liste.map((m,i)=>`<button class="hb${m.yeni?' yeni':''}" data-m="${i}" title="${esc(m.konu||L('(konusuz)','(no subject)'))} — ${esc(m.kimden)}"><span><b>${esc(m.konu||L('(konusuz)','(no subject)'))}</b><small>${esc(mailAd(m.kimden))}${m.t?' · '+oncesi(m.t):''}</small></span></button>`).join('')
+  ekYaz('#mail',mailV.liste.map((m,i)=>`<button class="hb${m.yeni?' yeni':''}" data-m="${i}" title="${esc(m.konu||L('(konusuz)','(no subject)'))} — ${esc(m.kimden)}${m.ozet?'\n\n'+esc(mailOzet(m.ozet)):''}"><span><b>${esc(m.konu||L('(konusuz)','(no subject)'))}</b><small>${esc(mailAd(m.kimden))}${m.t?' · '+oncesi(m.t):''}</small></span></button>`).join('')
     ||L('<p class="m">Gelen kutusu boş.</p>','<p class="m">The inbox is empty.</p>'));
   $('#mailAlt').textContent='Gmail · '+L(oncesi(mailT)+' güncellendi','updated '+oncesi(mailT))+(mailHata?L(' · yenilenemedi',' · could not refresh'):'');
 }
-// marks read at once in the card; a failed request puts it back (opening the mail in Gmail marks it read anyway, so a click stays quiet)
-async function mailOkundu(m,sessiz){
-  if(!m?.yeni)return;m.yeni=false;mailOkunan.add(m.id);mailV.okunmamis=Math.max(0,(+mailV.okunmamis||0)-1);mailCiz();
-  const r=await api('/api/mail_okundu',{id:m.id});if(r.durum==='ok'||sessiz)return;
-  mailOkunan.delete(m.id);const g=mailV?.liste.find(x=>x.id===m.id); // the list may have been refreshed meanwhile
-  if(g&&!g.yeni){g.yeni=true;mailV.okunmamis++;mailCiz()}
-  if(r.durum==='izin_yok')tost(L('Okundu işaretlemek için Google iznini güncelle','Update the Google permission to mark mail as read'),L('İzni güncelle','Update permission'),()=>bagla('google'));
-  else tost(L('İşaretlenemedi: ','Could not mark: ')+r.durum);
+// The card changes at once; a failed request puts it back (opening the mail in Gmail marks it read anyway, so a click stays quiet)
+const mailSay=d=>mailV.okunmamis=Math.max(0,(+mailV.okunmamis||0)+d);
+async function mailIslem(m,islem,sessiz){
+  if(!m||!mailV||(islem==='okundu'&&!m.yeni)||(islem==='okunmadi'&&m.yeni))return;
+  const i=mailV.liste.indexOf(m),yeni=m.yeni;
+  if(islem==='okundu'){m.yeni=false;mailOkunan.add(m.id);mailSay(-1)}
+  else if(islem==='okunmadi'){m.yeni=true;mailOkunan.delete(m.id);mailSay(1)}
+  else{mailV.liste.splice(i,1);if(yeni)mailSay(-1)} // archive: out of the inbox (it stays in All Mail)
+  mailCiz();
+  const r=await api('/api/mail_islem',{id:m.id,islem});if(r.durum==='ok'||sessiz)return;
+  // back as it was, if the list was not refreshed meanwhile
+  if(islem==='okundu')mailOkunan.delete(m.id);
+  const g=mailV?.liste.find(x=>x.id===m.id);
+  if(islem==='arsiv'){if(!g&&i>=0){mailV.liste.splice(Math.min(i,mailV.liste.length),0,m);if(yeni)mailSay(1)}}
+  else if(g&&g.yeni!==yeni){g.yeni=yeni;mailSay(yeni?1:-1)}
+  mailCiz();
+  if(r.durum==='izin_yok')tost(L('Bunun için Google iznini güncelle','Update the Google permission for this'),L('İzni güncelle','Update permission'),()=>bagla('google'));
+  else tost(L('Yapılamadı: ','Could not do it: ')+r.durum);
 }
+const mailOkundu=(m,sessiz)=>mailIslem(m,'okundu',sessiz);
 const mailAc=m=>{if(m&&/^[0-9a-z]+$/i.test(m.zincir)){api('/api/open',{url:'https://mail.google.com/mail/u/0/#inbox/'+m.zincir});mailOkundu(m,true)}};
 function mailMenu(x,y,m){
-  menu(x,y,[[L('Gmail’de aç','Open in Gmail'),()=>mailAc(m)],m.yeni?[L('Okundu olarak işaretle','Mark as read'),()=>mailOkundu(m)]:0]);
+  menu(x,y,[[L('Gmail’de aç','Open in Gmail'),()=>mailAc(m)],m.yeni?[L('Okundu olarak işaretle','Mark as read'),()=>mailIslem(m,'okundu')]:[L('Okunmadı olarak işaretle','Mark as unread'),()=>mailIslem(m,'okunmadi')],
+    [L('Arşivle','Archive'),()=>mailIslem(m,'arsiv')]]);
 }
 $('#mail').onclick=e=>{const b=e.target.closest('[data-m]');mailAc(b&&mailV?.liste[+b.dataset.m])};
 $('#mailYenile').onclick=()=>mail(true);
@@ -3734,7 +3756,7 @@ const gunDenetle=()=>{let t=0;try{t=+localStorage.gunT||0}catch{}if(Date.now()-t
 $('#aGunB').onclick=()=>gunV?.yeni?gunKur():guncelle(true);
 tick();setInterval(tick,1000);yukle().then(hepsi).then(gunDenetle);setInterval(gunDenetle,36e5);
 addEventListener('online',hepsi);setInterval(()=>{if($('main .ag'))hepsi()},3e4);
-setInterval(sistem,3000);setInterval(()=>gizliMi()||mail(),6e4);setInterval(pano,2000);setInterval(kur,18e5);setInterval(()=>gizliMi()||(!spPos?.on&&Date.now()-spIstekT<14e3)||spotify(),5000); // paused or nothing playing: every 15 ssetInterval(hava,9e5);setInterval(()=>gizliMi()||haber(),18e4);setInterval(()=>{takvim(true);ileriAl()},6e5);addEventListener('offline',()=>ustSon='');setInterval(hatirlat,15e3);
+setInterval(sistem,3000);setInterval(()=>(!gizliMi()||A('mailBildir')!==false)&&mail(),6e4); // in the tray too while new-mail notifications are on (every 5 min)setInterval(pano,2000);setInterval(kur,18e5);setInterval(()=>gizliMi()||(!spPos?.on&&Date.now()-spIstekT<14e3)||spotify(),5000); // paused or nothing playing: every 15 ssetInterval(hava,9e5);setInterval(()=>gizliMi()||haber(),18e4);setInterval(()=>{takvim(true);ileriAl()},6e5);addEventListener('offline',()=>ustSon='');setInterval(hatirlat,15e3);
 </script>
 </body>
 </html>

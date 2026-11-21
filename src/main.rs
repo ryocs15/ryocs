@@ -1434,7 +1434,7 @@ fn mail() -> Result<Value, String> {
         let isler: Vec<_> = yeni.iter().map(|id| { let auth = &auth; k.spawn(move || {
             body(AGENT.get(&format!("{g}/messages/{id}")).query("format", "metadata")
                 .query("metadataHeaders", "From").query("metadataHeaders", "Subject")
-                .query("fields", "id,threadId,internalDate,payload/headers").set("Authorization", auth).call())
+                .query("fields", "id,threadId,internalDate,snippet,payload/headers").set("Authorization", auth).call())
         })}).collect();
         isler.into_iter().filter_map(|h| h.join().ok()?.ok()).collect()
     });
@@ -1444,20 +1444,28 @@ fn mail() -> Result<Value, String> {
     let liste: Vec<Value> = mailler.iter().map(|m| json!({
         "id": m["id"], "konu": baslik(m, "Subject"), "kimden": baslik(m, "From"),         "zincir": m["threadId"], "t": m["internalDate"].as_str().and_then(|t| t.parse::<i64>().ok()),
         "yeni": m["id"].as_str().is_some_and(|i| okunmamis.iter().any(|o| o == i)),
+        "ozet": m["snippet"].as_str().map(|t| t.chars().take(200).collect::<String>()),
     })).collect();
     Ok(json!({ "okunmamis": kutu["messagesUnread"], "liste": liste }))
 }
 
-/// Marks one message as read in Gmail (removes the UNREAD label). The only change RYOCS makes in the mailbox.
-fn mail_okundu(req_body: &str) -> Result<Value, String> {
+/// Changes one message's labels: read (UNREAD off), unread (UNREAD on) or archive (INBOX off, it stays in All Mail).
+/// These are the only changes RYOCS makes in the mailbox: nothing is deleted or sent.
+fn mail_islem(req_body: &str) -> Result<Value, String> {
     let v: Value = serde_json::from_str(req_body).map_err(|e| e.to_string())?;
     let id = v["id"].as_str().filter(|i| mail_id(i)).ok_or("geçersiz id")?;
+    let degisim = match v["islem"].as_str().unwrap_or("okundu") {
+        "okundu" => json!({ "removeLabelIds": ["UNREAD"] }),
+        "okunmadi" => json!({ "addLabelIds": ["UNREAD"] }),
+        "arsiv" => json!({ "removeLabelIds": ["INBOX"] }),
+        _ => return Err("geçersiz işlem".into()),
+    };
     let auth = format!("Bearer {}", token(&provider("google")?)?);
     if !tokens_oku()["google"]["scope"].as_str().is_some_and(|s| s.contains("gmail.modify")) {
         return Err("izin_yok".into());
     }
     body(AGENT.post(&format!("https://gmail.googleapis.com/gmail/v1/users/me/messages/{id}/modify")).set("Authorization", &auth)
-        .send_json(json!({ "removeLabelIds": ["UNREAD"] })))?;
+        .send_json(degisim))?;
     Ok(json!(true))
 }
 
@@ -1895,8 +1903,8 @@ fn handle(mut req: Request) {
         guncelle_kur()
     } else if !post && path == "/api/mail" {
         mail()
-    } else if post && path == "/api/mail_okundu" {
-        mail_okundu(&b)
+    } else if post && path == "/api/mail_islem" {
+        mail_islem(&b)
     } else if let (false, "/api/kur" | "/api/kur_ecb") = (post, path) {
         let q = |k: &str| url.split_once('?').is_some_and(|(_, s)| url::form_urlencoded::parse(s.as_bytes()).any(|(a, b)| a == k && b == "1"));
         if path == "/api/kur" { kur(q("ag"), q("dunya")) } else { kur_ecb(q("ag"), q("dunya")) }
@@ -2538,7 +2546,8 @@ mod tests {
         let r = mail_birlestir(&mut o, vec![json!({"id": "c"})], &ids(&["c", "a"])); // b was read: gone from memory too
         assert_eq!(r, vec![json!({"id": "c"}), json!({"id": "a"})]);
         assert!(mail_id("18c2ab9F") && !mail_id("") && !mail_id("a/../b") && !mail_id(&"a".repeat(65)));
-        assert!(mail_okundu(r#"{"id":"../labels"}"#).is_err_and(|e| e == "geçersiz id")); // refused before any request
+        assert!(mail_islem(r#"{"id":"../labels"}"#).is_err_and(|e| e == "geçersiz id")); // refused before any request
+        assert!(mail_islem(r#"{"id":"abc","islem":"sil"}"#).is_err_and(|e| e == "geçersiz işlem")); // nothing else, deleting least of all
         assert_eq!(o.len(), 2);
     }
 

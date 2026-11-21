@@ -4,7 +4,7 @@ const {esit,dogru,q,bek}=RT;
 let cevap={durum:'izin_yok'},acilan=null,durum=null,okundu=[],okCevap={durum:'ok'};const f0=window.fetch;
 window.fetch=async(p,a)=>{
   if(p==='/api/mail')return{json:async()=>cevap};
-  if(p==='/api/mail_okundu'){okundu.push(JSON.parse(a.body).id);return{json:async()=>okCevap}}
+  if(p==='/api/mail_islem'){okundu.push(JSON.parse(a.body).id);return{json:async()=>okCevap}}
   if(p==='/api/open'){acilan=JSON.parse(a.body).url;return{json:async()=>({durum:'ok'})}}
   if(p==='/api/state'&&a?.method==='POST'){durum=JSON.parse(a.body);return new Promise(()=>{})} // no reload after applying a layout
   return f0(p,a)};
@@ -36,7 +36,7 @@ esit('older refresh: marked mails stay read',[mailV.liste.map(m=>m.yeni),q('#mai
 cevap={durum:'ok',veri:{okunmamis:40,liste:[{id:'a1',konu:'x',kimden:'a@b',zincir:'18c2ab',t:null,yeni:false},{id:'b2',konu:'y',kimden:'a@b',zincir:'b2',t:null,yeni:false},{id:'c3',konu:'Eski',kimden:'x@y',zincir:'c3',t:null,yeni:false}]}};await mail(true);
 cevap.veri.okunmamis=41;cevap.veri.liste[0].yeni=true;await mail(true);
 esit('made unread again in Gmail: bold again',[mailV.liste[0].yeni,q('#mailSay').textContent],[true,'41']);
-mailMenu(10,10,mailV.liste[2]);esit('read mail: no mark item',[...q('#menu').querySelectorAll('button')].map(b=>b.textContent),['Open in Gmail']);q('#menu').hidePopover?.();
+mailMenu(10,10,mailV.liste[2]);esit('read mail: unread and archive offered',[...q('#menu').querySelectorAll('button')].map(b=>b.textContent),['Open in Gmail','Mark as unread','Archive']);q('#menu').hidePopover?.();
 cevap={durum:'İnternete bağlanılamadı'};await mail(true);
 esit('error keeps the last list',[q('#mail').querySelectorAll('.hb').length,q('#mailAlt').textContent.endsWith(' · could not refresh')],[3,true]);
 cevap={durum:'ok',veri:{okunmamis:0,liste:[]}};await mail(true);
