@@ -2077,6 +2077,9 @@ fn main() {
         .with_background_color((233, 234, 236, 255))
         .with_browser_accelerator_keys(false) // browser shortcuts such as F5, Ctrl+P, Ctrl+F do not belong to the app
         .with_hotkeys_zoom(false)
+        // wry's defaults, plus: a hidden page (tray, minimized) keeps its 1 s timers, so reminders and focus rounds stay on time.
+        // Without this Chromium wakes chained timers only once a minute after 5 minutes hidden.
+        .with_additional_browser_args("--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection,IntensiveWakeUpThrottling --disable-background-timer-throttling")
         .with_ipc_handler(|r| match r.body().as_str() {
             "hazir" => olay(Olay::Goster(false)),
             "koyu" => olay(Olay::Koyu(true)),
@@ -2101,12 +2104,20 @@ fn main() {
         }
     };
     let mut kapaniyor = false;
+    let mut kucuk = false; // minimized: the web view is hidden too
     event_loop.run(move |event, _, control_flow| {
         *control_flow = ControlFlow::Wait;
+        // Hidden window: WebView2 is told too (IsVisible), so it stops drawing and compositing; hiding only the window does not.
+        let gizle = || {
+            window.set_visible(false);
+            webview.set_visible(false).ok();
+        };
         let goster = || {
+            webview.set_visible(true).ok(); // before the window: no frame with an empty web view
             window.set_visible(true);
             window.set_minimized(false);
             window.set_focus();
+            webview.focus().ok(); // the web view was hidden: keyboard input goes to the page again
             webview.evaluate_script("window.gizlendi&&gizlendi(false)").ok(); // the page redraws and polls again
         };
         match event {
@@ -2114,7 +2125,7 @@ fn main() {
             Event::WindowEvent { event: WindowEvent::CloseRequested, .. } => {
                 hata_kaydet("info: close request → hidden to the tray");
                 pencere_kaydet(&window);
-                window.set_visible(false);
+                gizle();
                 webview.evaluate_script("kapandi()").ok();
             }
             // Real exit: flush the pending save, give the save request time, then exit.
@@ -2136,12 +2147,13 @@ fn main() {
             Event::UserEvent(Olay::Goster(one)) if !kapaniyor && (one || (!gizli && !window.is_visible())) => goster(),
             // started in the tray (--gizli): the page is told it is hidden, or it polls and animates until the window is opened once
             Event::UserEvent(Olay::Goster(false)) if gizli && !window.is_visible() => {
+                webview.set_visible(false).ok();
                 webview.evaluate_script("window.gizlendi&&gizlendi(true)").ok();
             }
             Event::UserEvent(Olay::Degistir) if !kapaniyor => {
                 if window.is_visible() && window.is_focused() && !window.is_minimized() {
                     hata_kaydet("info: hidden by the shortcut");
-                    window.set_visible(false);
+                    gizle();
                     webview.evaluate_script("window.gizlendi&&gizlendi(true)").ok();
                 } else {
                     goster();
@@ -2158,7 +2170,7 @@ fn main() {
                     "buyut" => window.set_maximized(!window.is_maximized()),
                     "kapat" => {
                         pencere_kaydet(&window);
-                        window.set_visible(false);
+                        gizle();
                         webview.evaluate_script("kapandi()").ok();
                     }
                     b if !window.is_maximized() => {
@@ -2174,6 +2186,15 @@ fn main() {
             }
             // the maximize icon and edge cursors follow the window state
             Event::WindowEvent { event: WindowEvent::Resized(_), .. } => {
+                // minimized ↔ restored: WebView2 does not stop drawing for a minimized window by itself
+                if window.is_minimized() != kucuk {
+                    kucuk = !kucuk;
+                    webview.set_visible(!kucuk).ok();
+                    if !kucuk {
+                        webview.focus().ok();
+                        webview.evaluate_script("window.gizlendi&&gizlendi(false)").ok(); // the page redraws and polls again
+                    }
+                }
                 webview.evaluate_script(&format!("window.pencereDurum&&pencereDurum({})", window.is_maximized())).ok();
             }
             _ => {}
