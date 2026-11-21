@@ -9,7 +9,9 @@ const sec=t=>[...q('#menu').querySelectorAll('button')].find(b=>b.textContent===
 q('#haberler [data-h="0"]').dispatchEvent(new MouseEvent('contextmenu',{bubbles:true,clientX:10,clientY:10}));await bek(30);
 esit('story menu',[...q('#menu').querySelectorAll('button')].map(b=>b.textContent),['Sonra oku','Bağlantıyı kopyala','Kaynak A haberlerini gizle']);
 sec('Sonra oku').click();esit('saved',S.haberKayit.map(x=>[x.b,x.l]),[['Birinci haber','https://ornek.com/1']]);
-haberMenu(10,10,haberV[k][0]);await bek(20);dogru('saved: remove offered',!!sec('Kaydedilenlerden çıkar'));q('#menu').hidePopover();
+haberMenu(10,10,haberV[k][0]);await bek(20);dogru('saved: remove offered',!!sec('Kaydedilenlerden çıkar'));
+dogru('saved list reachable from a story',!!sec('Sonra okunacaklar (1)…'));q('#menu').hidePopover();
+{const s0=S.haberKayit;S.haberKayit=[];let h='';try{haberMenu(10,10,{b:'x',l:'',k:''})}catch(e){h=String(e)}esit('nothing to offer: no menu, no error',h,'');S.haberKayit=s0}
 hbKayitPencere();await bek(30);q('#sor [data-ka="0"]').click();esit('opened from the saved list',acilan,['https://ornek.com/1']);
 q('#sor [data-ks="0"]').click();await bek(30);esit('removed from the saved list',S.haberKayit,[]);
 for(const x of document.querySelectorAll('dialog[open]'))x.close();

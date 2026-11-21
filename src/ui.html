@@ -3158,12 +3158,13 @@ function haberCiz(){
 // Saved for later: S.haberKayit = [{b,l,k,t}] (newest first, at most 50); read from the card's menu
 const hbKayitli=x=>(S.haberKayit||[]).some(y=>y.l===x.l);
 function haberMenu(x,y,h){
-  const ok=/^https?:\/\//i.test(h.l);
+  const ok=/^https?:\/\//i.test(h.l);if(!ok&&!h.k&&!S.haberKayit?.length)return; // nothing to offer: no empty menu
   menu(x,y,[ok?[hbKayitli(h)?L('Kaydedilenlerden çıkar','Remove from saved'):L('Sonra oku','Save for later'),()=>{
       S.haberKayit=hbKayitli(h)?S.haberKayit.filter(y=>y.l!==h.l):[{b:h.b.slice(0,300),l:h.l,k:h.k,t:Date.now()},...S.haberKayit||[]].slice(0,50);kaydet();
       tost(hbKayitli(h)?L('Sonra okumak için kaydedildi','Saved for later'):L('Kaydedilenlerden çıkarıldı','Removed from saved'))}]:0,
     ok?[L('Bağlantıyı kopyala','Copy link'),()=>navigator.clipboard.writeText(h.l).then(()=>tost(L('Bağlantı kopyalandı','Link copied')),()=>tost(L('Kopyalanamadı','Could not copy')))]:0,
-    h.k?null:0,h.k?[h.k+L(' haberlerini gizle',' – hide its news'),()=>hbKaynakGizle(h.k)]:0]);
+    h.k?null:0,h.k?[h.k+L(' haberlerini gizle',' – hide its news'),()=>hbKaynakGizle(h.k)]:0,
+    S.haberKayit?.length?null:0,S.haberKayit?.length?[L('Sonra okunacaklar','Saved for later')+` (${S.haberKayit.length})…`,hbKayitPencere]:0].filter(o=>o!==0));
 }
 function hbKayitPencere(){
   const l=S.haberKayit||[];
