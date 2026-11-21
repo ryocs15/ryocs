@@ -2156,7 +2156,7 @@ addEventListener('contextmenu',e=>{
   if(hx?.k){const r=hb.getBoundingClientRect();return menu(e.clientX||r.left+12,e.clientY||r.bottom,[[hx.k+L(' haberlerini gizle',' – hide its news'),()=>hbKaynakGizle(hx.k)]])}
   const pb=e.target.closest('#pano [data-p]'),pm=pb&&panoL[+pb.dataset.p]?.trim();
   if(pm){const r=pb.getBoundingClientRect();return panoMenu(e.clientX||r.left+12,e.clientY||r.bottom,pm)}
-  const sp=e.target.closest('[data-kart=spotify]');if(sp&&spDurum&&!e.target.closest('#ses')){const r=sp.getBoundingClientRect();return spMenu(e.clientX||r.left+12,e.clientY||r.top+40)}
+  const sp=e.target.closest('#sp');if(sp&&spDurum){const r=sp.getBoundingClientRect();return spMenu(e.clientX||r.left+12,e.clientY||r.top+12)}
   const mb=e.target.closest('#mail [data-m]'),mm=mb&&mailV?.liste[+mb.dataset.m];if(mm){const r=mb.getBoundingClientRect();return mailMenu(e.clientX||r.left+12,e.clientY||r.bottom,mm)}
   const kr=e.target.closest('#kur [data-c]');if(kr){const r=kr.getBoundingClientRect();return kurAlarmMenu(e.clientX||r.left+12,e.clientY||r.bottom,kr.dataset.c)}
   const el=e.target.closest('[data-r],.row[data-h],[data-l],[data-n],[data-u]');
@@ -3243,13 +3243,13 @@ let spDurum=null;
 const spCihazYazi=()=>spDurum?[spDurum.cihaz,spDurum.shuffle&&L('karışık','shuffle'),spDurum.repeat==='track'?L('tekrar: şarkı','repeat: track'):spDurum.repeat==='context'&&L('tekrar','repeat')].filter(Boolean).join(' · '):'';
 async function spKomut(c,b,tamam){
   const r=await api('/api/spotify/'+c,b||{});
-  if(r.durum!=='ok')return tost(L('Komut reddedildi (Premium ve açık bir cihaz gerekir)','Command refused (needs Premium and an active device)'));
-  if(tamam)tost(tamam);
-  await new Promise(t=>setTimeout(t,500));spSon='';spotify(''); // Spotify reports the new state a little later
+  if(r.durum!=='ok')tost(L('Komut reddedildi (Premium ve açık bir cihaz gerekir)','Command refused (needs Premium and an active device)'));else if(tamam)tost(tamam);
+  if(r.durum==='ok')await new Promise(t=>setTimeout(t,500)); // Spotify reports the new state a little later
+  spSon='';spotify(''); // refused too: the bar or the menu state shown in advance goes back to the real one
 }
 async function spMenu(x,y){
   if(!spDurum)return;
-  const r=await api('/api/spotify/devices'),cihazlar=r.durum==='ok'?(r.veri?.devices||[]).filter(d=>d.id&&!d.is_active&&!d.is_restricted):[];
+  const r=await Promise.race([api('/api/spotify/devices'),new Promise(t=>setTimeout(()=>t({}),1500))]),cihazlar=r.durum==='ok'?(r.veri?.devices||[]).filter(d=>d.id&&!d.is_active&&!d.is_restricted):[];
   const sonraki={off:['context',L('Listeyi tekrarla','Repeat the list')],context:['track',L('Bu şarkıyı tekrarla','Repeat this track')],track:['off',L('Tekrarı kapat','Turn repeat off')]}[spDurum.repeat]||['off',L('Tekrarı kapat','Turn repeat off')];
   menu(x,y,[[spDurum.shuffle?L('Karışık çalmayı kapat','Turn shuffle off'):L('Karışık çal','Shuffle'),()=>spKomut('shuffle',{on:!spDurum.shuffle})],
     [sonraki[1],()=>spKomut('repeat',{mod:sonraki[0]})],
@@ -3260,7 +3260,7 @@ async function spMenu(x,y){
 function spAtla(ms){
   if(!spPos?.d)return;ms=Math.max(0,Math.min(spPos.d-1000,Math.round(ms)));
   spPos={...spIlerleAn(),p:ms,son:0};spIlerle();
-  spKomut('seek',{ms});
+  clearTimeout(spAtla.t);spAtla.t=setTimeout(()=>spKomut('seek',{ms}),400); // a held arrow key: one request, not 30 a second
 }
 let spMesgul=false;
 $('#sp').onclick=async e=>{

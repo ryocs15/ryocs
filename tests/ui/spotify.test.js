@@ -19,13 +19,13 @@ istek.length=0;q('#sp .tr b').click();await bek(20);
 esit('title opens Spotify',istek[0],['/api/open',{url:'https://open.spotify.com/episode/e1'}]);
 // seek: click in the middle, then the arrow key
 const il=q('#spIlerle'),k=il.getBoundingClientRect();
-istek.length=0;il.dispatchEvent(new MouseEvent('click',{bubbles:true,clientX:k.left+k.width/2,clientY:k.top+5}));await bek(20);
+istek.length=0;il.dispatchEvent(new MouseEvent('click',{bubbles:true,clientX:k.left+k.width/2,clientY:k.top+5}));await bek(450);
 const seek=istek.find(x=>x[0]==='/api/spotify/seek');
 dogru('click seeks to the middle',seek&&Math.abs(seek[1].ms-90000)<2000);
 esit('bar moves at once',Math.round(parseFloat(q('#spBar').style.width)),50);
 await bek(700);istek.length=0;spPos={p:90000,d:180000,t:Date.now(),on:false};
-il.focus();q('#spIlerle').dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowRight',bubbles:true}));await bek(20);
-esit('arrow key: +10 s',istek.find(x=>x[0]==='/api/spotify/seek')?.[1],{ms:100000});
+for(let i=0;i<5;i++)q('#spIlerle').dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowRight',bubbles:true}));await bek(450);
+esit('held arrow key: one request, +50 s',istek.filter(x=>x[0]==='/api/spotify/seek').map(x=>x[1]),[{ms:140000}]);
 await bek(700);
 // menu: shuffle, repeat, devices (active and restricted ones are left out)
 durum={...durum,item:parca};spSon='';await spotify('');await bek(50);
@@ -42,9 +42,18 @@ esit('device line shows shuffle and repeat',q('#sp .spCihaz').textContent,'Masa�
 spMenu(10,10);await bek(80);
 esit('repeat goes on to the track',ogeler().slice(0,2),['Karışık çalmayı kapat','Bu şarkıyı tekrarla']);
 q('#menu').hidePopover();
-// right-click on the card opens the same menu
+// right-click: the player opens the same menu, the title bar keeps the card menu
+q('#sp .tr span').dispatchEvent(new MouseEvent('contextmenu',{bubbles:true,clientX:20,clientY:20}));await bek(80);
+esit('right-click on the player: player menu',ogeler()[0],'Karışık çalmayı kapat');q('#menu').hidePopover();
 q('[data-kart=spotify] h2').dispatchEvent(new MouseEvent('contextmenu',{bubbles:true,clientX:20,clientY:20}));await bek(80);
-esit('right-click: player menu',ogeler()[0],'Karışık çalmayı kapat');q('#menu').hidePopover();
+esit('right-click on the title: card menu',ogeler()[0],'Spotify ayarları…');q('#menu').hidePopover();
+// a refused seek: the real position comes back
+{const f1=window.fetch;window.fetch=async(p,a)=>p==='/api/spotify/seek'?{json:async()=>({durum:'403: premium'})}:f1(p,a);
+ durum={...durum,is_playing:false,progress_ms:20000};spSon='';await spotify('');spAtla(150000);await bek(700);
+ esit('refused seek: bar back',[Math.round(parseFloat(q('#spBar').style.width)),q('#tost').textContent.startsWith('Komut reddedildi')],[10,true]);window.fetch=f1}
+// a slow device list: the menu opens without it after 1.5 s
+{const f1=window.fetch;window.fetch=async(p,a)=>p==='/api/spotify/devices'?new Promise(()=>{}):f1(p,a);
+ const t0=Date.now();await spMenu(10,10);esit('slow devices: menu after 1.5 s, no devices',[Date.now()-t0<2500,ogeler().some(x=>x.startsWith('Şurada çal'))],[true,false]);q('#menu').hidePopover();window.fetch=f1}
 // the track ends: one extra poll right after it
 istek.length=0;spPos={p:199500,d:200000,t:Date.now()-1000,on:true};spIlerle();spIlerle();await bek(1100);
 esit('track end: one poll',istek.filter(x=>x[0]==='/api/spotify').length,1);
