@@ -55,5 +55,7 @@ esit('right-click on the title: card menu',ogeler()[0],'Spotify ayarları…');q
 {const f1=window.fetch;window.fetch=async(p,a)=>p==='/api/spotify/devices'?new Promise(()=>{}):f1(p,a);
  const t0=Date.now();await spMenu(10,10);esit('slow devices: menu after 1.5 s, no devices',[Date.now()-t0<2500,ogeler().some(x=>x.startsWith('Şurada çal'))],[true,false]);q('#menu').hidePopover();window.fetch=f1}
 // the track ends: one extra poll right after it
-istek.length=0;spPos={p:199500,d:200000,t:Date.now()-1000,on:true};spIlerle();spIlerle();await bek(1100);
-esit('track end: one poll',istek.filter(x=>x[0]==='/api/spotify').length,1);
+// counted by the timer it sets, not by requests: the normal 5 s poll may also land in the wait (flaky in CI)
+{const st=window.setTimeout;let n=0;window.setTimeout=(f,ms,...x)=>{if(ms===900)n++;return st(f,ms,...x)};
+ spPos={p:199500,d:200000,t:Date.now()-1000,on:true};spIlerle();spIlerle();window.setTimeout=st;
+ esit('track end: one extra poll',n,1);}
