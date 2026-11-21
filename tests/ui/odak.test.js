@@ -37,3 +37,11 @@ inp.value='0';inp.dispatchEvent(new Event('change',{bubbles:true}));await bek(10
 esit('0 is saved',S.ayar.uzunMola,0);
 inp.value='';inp.dispatchEvent(new Event('change',{bubbles:true}));await bek(100);
 esit('empty: the value stays',S.ayar.uzunMola,0);
+
+// +5 on an idle timer: reset is offered
+O={mod:'calisma',kalan:sure('calisma'),bitis:0};odakCiz();odakMenu(10,10);sec('+5').click();odakMenu(10,10);
+dogru('idle +5: reset offered',!!sec('Sıfırla'));q('#menu').hidePopover();
+// a waiting long break takes a new length; 0 makes it a normal break
+O={mod:'mola',uzun:1,kalan:900,bitis:0};S.ayar.uzunMola=20;KART_SONRA.uzunMola();
+esit('waiting long break: new length',[O.kalan,q('#sure').textContent],[1200,'20:00']);
+S.ayar.uzunMola=0;KART_SONRA.uzunMola();esit('0: normal break',[O.uzun,O.kalan],[undefined,sure('mola')]);
