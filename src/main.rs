@@ -647,7 +647,11 @@ fn sistem() -> Value {
     let mut m: MEMORYSTATUSEX = unsafe { std::mem::zeroed() };
     m.dwLength = std::mem::size_of::<MEMORYSTATUSEX>() as u32;
     let bellek = (unsafe { GlobalMemoryStatusEx(&mut m) } != 0).then(|| json!({ "toplam": m.ullTotalPhys, "bos": m.ullAvailPhys }));
-    // every fixed drive (A–Z bits of GetLogicalDrives; type 3 = DRIVE_FIXED), the system drive first; at most 4
+    // every fixed drive (A–Z bits of GetLogicalDrives; type 3 = DRIVE_FIXED), the system drive first; at most 4.
+    // Read once a minute: many USB disks count as fixed, and asking every 3 s would keep a sleeping one spinning.
+    static DISKLER: Mutex<Option<(std::time::Instant, Value)>> = Mutex::new(None);
+    let onbellek = kilit(&DISKLER).as_ref().filter(|(t, _)| t.elapsed() < Duration::from_secs(60)).map(|(_, v)| v.clone());
+    let diskler = onbellek.unwrap_or_else(|| {
     let sistem_surucu = std::env::var("SystemDrive").unwrap_or_else(|_| "C:".into()).to_ascii_uppercase();
     let maske = unsafe { GetLogicalDrives() };
     let mut diskler: Vec<Value> = (0..26u8).filter(|i| maske >> i & 1 == 1).filter_map(|i| {
@@ -659,6 +663,10 @@ fn sistem() -> Value {
     }).collect();
     diskler.sort_by_key(|d| d["ad"].as_str() != Some(sistem_surucu.as_str()));
     diskler.truncate(4);
+    let v = json!(diskler);
+    *kilit(&DISKLER) = Some((std::time::Instant::now(), v.clone()));
+    v
+    });
     let mut g: SYSTEM_POWER_STATUS = unsafe { std::mem::zeroed() };
     // BatteryFlag 128: no battery (desktop); percent 255: unknown
     let pil = (unsafe { GetSystemPowerStatus(&mut g) } != 0 && g.BatteryFlag & 128 == 0 && g.BatteryLifePercent <= 100)
@@ -2340,10 +2348,18 @@ mod tests {
     fn sistem_gercek_degerler() {
         let v = sistem();
         assert!(v["bellek"]["toplam"].as_u64().unwrap() > v["bellek"]["bos"].as_u64().unwrap());
-        assert!(v["disk"]["toplam"].as_u64().unwrap() >= v["disk"]["bos"].as_u64().unwrap());
+        let d = &v["diskler"][0];
+        assert!(d["toplam"].as_u64().unwrap() >= d["bos"].as_u64().unwrap());
+        assert_eq!(d["ad"].as_str().map(String::from), std::env::var("SystemDrive").ok().map(|d| d.to_ascii_uppercase())); // system drive first
+        assert!(v["diskler"].as_array().is_some_and(|d| d.len() <= 4) && v["acik"].as_u64().is_some_and(|s| s > 0));
         thread::sleep(Duration::from_millis(120));
         let c = sistem()["cpu"].as_f64().unwrap(); // second reading: a percent comes
         assert!((0.0..=100.0).contains(&c));
+        // a reading a minute old is not used (one test: the CPU state is shared; skipped on a machine up for less than a minute)
+        if let Some(eski) = std::time::Instant::now().checked_sub(Duration::from_secs(60)) {
+            *kilit(&CPU_ONCEKI) = Some(((0, 0), eski));
+            assert_eq!(sistem()["cpu"], Value::Null);
+        }
         let _ = pano_oku(); // must return without crashing (whatever the content)
     }
 
@@ -2450,16 +2466,6 @@ mod tests {
         let b = simdi_ms();
         kayitlari_bekle(); // nothing saving: returns at once
         assert!(simdi_ms() - b < 200);
-    }
-
-    #[test]
-    fn sistem_bilgisi() {
-        let v = sistem();
-        let ilk = v["diskler"][0]["ad"].as_str().map(String::from);
-        assert_eq!(ilk, std::env::var("SystemDrive").ok().map(|d| d.to_ascii_uppercase())); // the system drive comes first
-        assert!(v["diskler"].as_array().is_some_and(|d| d.len() <= 4) && v["acik"].as_u64().is_some_and(|s| s > 0));
-        *kilit(&CPU_ONCEKI) = Some(((0, 0), std::time::Instant::now() - Duration::from_secs(60)));
-        assert_eq!(sistem()["cpu"], Value::Null); // a reading a minute old is not used
     }
 
     #[test]
