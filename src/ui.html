@@ -1654,7 +1654,7 @@ function normal(v){
   const o=v&&typeof v==='object'&&!Array.isArray(v)?v:{},dizi=x=>Array.isArray(x)?x:[],nesne=x=>x&&typeof x==='object'&&!Array.isArray(x)?x:{};
   // a damaged entry (hand-edited or cut-off file) must not stop the whole panel from drawing: tasks without text are dropped, notes get text
   const notlar=dizi(o.notlar).filter(x=>x&&typeof x==='object').map(x=>({...x,ad:typeof x.ad==='string'&&x.ad?x.ad:L('Not','Note'),metin:typeof x.metin==='string'?x.metin:''}));
-  const n={...o,todos:dizi(o.todos).filter(t=>typeof t?.t==='string'),links:dizi(o.links),uygulamalar:dizi(o.uygulamalar),aliskanlik:dizi(o.aliskanlik),ayar:nesne(o.ayar),odak:nesne(o.odak),biten:nesne(o.biten),
+  const n={...o,todos:dizi(o.todos).filter(t=>typeof t?.t==='string'),links:dizi(o.links),uygulamalar:dizi(o.uygulamalar),aliskanlik:dizi(o.aliskanlik),haberKayit:dizi(o.haberKayit).filter(x=>typeof x?.l==='string'&&typeof x.b==='string'),ayar:nesne(o.ayar),odak:nesne(o.odak),biten:nesne(o.biten),
     notlar:notlar.length?notlar:[{ad:L('Not','Note'),metin:typeof o.notes==='string'?o.notes:''}]}; // the old single-note format is migrated
   delete n.notes;
   // Format steps, oldest first; each runs once for saves older than its number (a save without "surum" is format 0)
@@ -2268,14 +2268,15 @@ addEventListener('contextmenu',e=>{
   const om=e.target.closest('.odak');if(om){const r=om.getBoundingClientRect();return odakMenu(e.clientX||r.left+12,e.clientY||r.top+12)}
   const sk=e.target.closest('[data-kart=saat]');if(sk){const r=sk.getBoundingClientRect();return saatMenu(e.clientX||r.left+12,e.clientY||r.top+12)}
   const hb=e.target.closest('#haberler [data-h]'),hx=hb&&haberV[haberK()]?.[+hb.dataset.h];
-  if(hx?.k){const r=hb.getBoundingClientRect();return menu(e.clientX||r.left+12,e.clientY||r.bottom,[[hx.k+L(' haberlerini gizle',' – hide its news'),()=>hbKaynakGizle(hx.k)]])}
+  if(hx){const r=hb.getBoundingClientRect();return haberMenu(e.clientX||r.left+12,e.clientY||r.bottom,hx)}
   const pb=e.target.closest('#pano [data-p]'),pm=pb&&panoL[+pb.dataset.p]?.m;
   if(pm?.trim()){const r=pb.getBoundingClientRect();return panoMenu(e.clientX||r.left+12,e.clientY||r.bottom,pm)}
   const sp=e.target.closest('#sp');if(sp&&spDurum){const r=sp.getBoundingClientRect();return spMenu(e.clientX||r.left+12,e.clientY||r.top+12)}
   const mb=e.target.closest('#mail [data-m]'),mm=mb&&mailV?.liste[+mb.dataset.m];if(mm){const r=mb.getBoundingClientRect();return mailMenu(e.clientX||r.left+12,e.clientY||r.bottom,mm)}
   const kr=e.target.closest('#kur [data-c]');if(kr){const r=kr.getBoundingClientRect();return kurAlarmMenu(e.clientX||r.left+12,e.clientY||r.bottom,kr.dataset.c)}
   const el=e.target.closest('[data-r],.row[data-h],[data-l],[data-n],[data-u]');
-  if(!el){const kk=e.target.closest('main [data-kart]');if(kk){const r=kk.getBoundingClientRect(),k=kk.dataset.kart;menu(e.clientX||r.left+12,e.clientY||r.top+12,[[KART_AD[k]+L(' ayarları…',' settings…'),()=>kartAyar(k)],null,[L('Kartı büyüt','Enlarge card'),()=>kartBoyDeg(k,1.25)],[L('Kartı küçült','Shrink card'),()=>kartBoyDeg(k,.8)],A('kartBoy')?.[k]||A('kartMin')?.[k]?[L('Boyutu sıfırla','Reset size'),()=>kartBoyDeg(k,0)]:0,null,[L('Kartı kapat','Close card'),()=>kartAc(k,false)],k==='haber'&&A('haberGizli')?.length?[L('Gizlenen kaynakları göster (','Show hidden sources (')+A('haberGizli').length+')',()=>{delete S.ayar.haberGizli;kaydet();haberCiz()}]:0])}return} // empty space on a card: card settings
+  if(!el){const kk=e.target.closest('main [data-kart]');if(kk){const r=kk.getBoundingClientRect(),k=kk.dataset.kart;menu(e.clientX||r.left+12,e.clientY||r.top+12,[[KART_AD[k]+L(' ayarları…',' settings…'),()=>kartAyar(k)],null,[L('Kartı büyüt','Enlarge card'),()=>kartBoyDeg(k,1.25)],[L('Kartı küçült','Shrink card'),()=>kartBoyDeg(k,.8)],A('kartBoy')?.[k]||A('kartMin')?.[k]?[L('Boyutu sıfırla','Reset size'),()=>kartBoyDeg(k,0)]:0,null,[L('Kartı kapat','Close card'),()=>kartAc(k,false)],k==='haber'&&A('haberGizli')?.length?[L('Gizlenen kaynakları göster (','Show hidden sources (')+A('haberGizli').length+')',()=>{delete S.ayar.haberGizli;kaydet();haberCiz()}]:0,
+    k==='haber'?null:0,k==='haber'?[L('Sonra okunacaklar','Saved for later')+(S.haberKayit?.length?` (${S.haberKayit.length})…`:'…'),hbKayitPencere]:0,k==='haber'?[L('Tümünü okundu say','Mark all as read'),hbTumOkundu]:0])}return} // empty space on a card: card settings
   const k=el.getBoundingClientRect(),x=e.clientX||k.left+12,y=e.clientY||k.bottom,d=el.dataset; // opened from the keyboard (Shift+F10) there is no cursor position
   if(d.r!==undefined)gorevMenu(x,y,+d.r);
   else if(d.h!==undefined)aliskanlikMenu(x,y,+d.h);
@@ -3151,7 +3152,32 @@ function haberCiz(){
     return `<button class="hb${hbOkundu.includes(x.l)?' okundu':''}" data-h="${i}" title="${esc(x.b)} — ${esc(x.k)}">`
     +(x.lg?`<img class="hbLogo" src="${esc(x.lg)}" alt="" loading="lazy">`:'')
     +`<span><b>${t&&Date.now()-t<18e5?L('<em class="hbYeni">YENİ</em>','<em class="hbYeni">NEW</em>'):''}${esc(x.b)}</b><small>${esc(x.k)}${t?' · '+oncesi(t):''}</small></span>`
-    +(x.g?`<img class="hbGorsel" src="${esc(x.g)}" alt="" loading="lazy">`:'')+'</button>'}).join('')||L('<p class="m">Bu kategoride haber yok.</p>','<p class="m">No news in this category.</p>'));
+    +(x.g?`<img class="hbGorsel" src="${esc(x.g)}" alt="" loading="lazy">`:'')+'</button>'}).join('')
+    ||(l.length?`<p class="m">${l.length}${L(' haberin hepsi gizlenen kaynaklara ya da kelimelere takıldı.',' stories are all hidden by your sources or words.')}</p>`:L('<p class="m">Bu kategoride haber yok.</p>','<p class="m">No news in this category.</p>')));
+}
+// Saved for later: S.haberKayit = [{b,l,k,t}] (newest first, at most 50); read from the card's menu
+const hbKayitli=x=>(S.haberKayit||[]).some(y=>y.l===x.l);
+function haberMenu(x,y,h){
+  const ok=/^https?:\/\//i.test(h.l);
+  menu(x,y,[ok?[hbKayitli(h)?L('Kaydedilenlerden çıkar','Remove from saved'):L('Sonra oku','Save for later'),()=>{
+      S.haberKayit=hbKayitli(h)?S.haberKayit.filter(y=>y.l!==h.l):[{b:h.b.slice(0,300),l:h.l,k:h.k,t:Date.now()},...S.haberKayit||[]].slice(0,50);kaydet();
+      tost(hbKayitli(h)?L('Sonra okumak için kaydedildi','Saved for later'):L('Kaydedilenlerden çıkarıldı','Removed from saved'))}]:0,
+    ok?[L('Bağlantıyı kopyala','Copy link'),()=>navigator.clipboard.writeText(h.l).then(()=>tost(L('Bağlantı kopyalandı','Link copied')),()=>tost(L('Kopyalanamadı','Could not copy')))]:0,
+    h.k?null:0,h.k?[h.k+L(' haberlerini gizle',' – hide its news'),()=>hbKaynakGizle(h.k)]:0]);
+}
+function hbKayitPencere(){
+  const l=S.haberKayit||[];
+  const d=pencere(`<div class="ic"><div class="dh"><h1>${L('Sonra okunacaklar','Saved for later')}</h1><button class="rb" data-kapat aria-label="${L('Kapat','Close')}" title="${L('Kapat (Esc)','Close (Esc)')}">${SVG(IKON.kapat)}</button></div>`
+    +(l.map((x,i)=>`<div class="ar"><span>${esc(x.b)}<small>${esc(x.k)}${x.k?' · ':''}${L('kaydedildi ','saved ')}${oncesi(x.t)}</small></span><div class="grp"><button class="btn k" data-ka="${i}">${L('Aç','Open')}</button><button class="btn k tehb" data-ks="${i}">${L('Kaldır','Remove')}</button></div></div>`).join('')
+      ||`<p class="m">${L('Kaydedilen haber yok. Bir habere sağ tıkla → Sonra oku.','Nothing saved. Right-click a story → Save for later.')}</p>`)+'</div>');
+  d.onclick=e=>{const a=e.target.dataset.ka,s=e.target.dataset.ks;
+    if(a!==undefined){const x=l[+a];if(/^https?:\/\//i.test(x?.l))api('/api/open',{url:x.l});return}
+    if(s!==undefined){S.haberKayit=l.filter((_,i)=>i!==+s);kaydet();hbKayitPencere()}};
+}
+// every story of the open category counts as read (the dimmed look); kept to the same 300 as clicks
+function hbTumOkundu(){
+  const l=(haberV[haberK()]||[]).map(x=>x.l).filter(u=>u&&!hbOkundu.includes(u));
+  hbOkundu=[...l,...hbOkundu].slice(0,300);try{localStorage.hbOkundu=JSON.stringify(hbOkundu)}catch{}haberCiz();
 }
 function hbKaynakGizle(k){
   S.ayar.haberGizli=[...new Set([...(A('haberGizli')||[]),k])];kaydet();haberCiz();

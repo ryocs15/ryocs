@@ -27,7 +27,7 @@ The interface is in **English** and **Turkish**. It follows the Windows display 
 - **Tasks and habits** with reminders (type "tomorrow 15:00" at the end of a task), snooze, repeats (daily, weekdays, weekly, monthly or specific days) and streaks
 - **Notes** with checklists
 - **Weather** from Open-Meteo for up to five cities (switch in the card; when several places share a name you pick the right one): hourly and 7-day forecast (click a day for its hours), when rain starts or stops, the difference from yesterday, air quality and pollen, a morning alert (rain, frost, storms, snow, wind, heat, poor air) and an evening note for tomorrow
-- **News**: BBC News in English, Bundle and TRT Haber in Turkish; keyword filter and hidden sources
+- **News**: BBC News in English, Bundle and TRT Haber in Turkish; keyword filter, hidden sources, save for later
 - **Spotify** now playing (podcasts too), controls, seeking, shuffle and repeat, moving playback to another device, and up next
 - **Focus timer** (pomodoro) with long breaks, skipping a round or adding 5 minutes (right-click), daily goal, streak, your own labels, a *what am I working on* note with a weekly breakdown, and *do not disturb* (notifications wait until the round ends)
 - **Gmail** last 15 inbox messages, unread ones in bold, a notification for new mail; right-click to mark as read or unread, or to archive

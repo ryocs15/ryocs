@@ -4,6 +4,11 @@ All releases: [GitHub Releases](https://github.com/ryocs15/ryocs/releases). Your
 
 ## Unreleased
 
+**News**
+- Right-click a story → Save for later or Copy link; the saved list opens from the card's right-click menu.
+- The card's menu can mark every story of the category as read.
+- When your hidden sources or words hide every story, the card says so (before: "No news in this category").
+
 **Notes**
 - Right-click a note's tab: copy it to the clipboard, clear its checked items (with what is nested under them; can be undone), or move it left or right.
 - Less work while typing: the note list is redrawn only when the first line of the note changes.
