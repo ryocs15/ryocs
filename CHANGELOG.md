@@ -4,6 +4,12 @@ All releases: [GitHub Releases](https://github.com/ryocs15/ryocs/releases). Your
 
 ## Unreleased
 
+**Clock**
+- Alarms: right-click the clock → Alarms… (once or every day); they ring while RYOCS runs, in the tray and during a focus round too. The next alarm shows under the time.
+- Click the date to open today in the calendar.
+- Fixed: the date follows the region's order (11/21 in the US); before, it was always day/month.
+- Less work every second: the date, time and greeting are rewritten only when they change.
+
 **Gmail**
 - A notification when new mail arrives, also while RYOCS is in the tray (checked every 5 min; can be turned off in the card settings).
 - Right-click a mail to archive it or mark it unread again; nothing can be deleted or sent.

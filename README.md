@@ -22,7 +22,7 @@ The interface is in **English** and **Turkish**. It follows the Windows display 
 
 ## Features
 
-- **Clock** with several dial styles, a second clock (about 35 cities), sunrise/sunset and countdowns
+- **Clock** with several dial styles, alarms, a second clock (about 35 cities), sunrise/sunset and countdowns
 - **Google Calendar**: month and week views, add, edit and delete events, birthdays and important dates, regional holidays
 - **Tasks and habits** with reminders, repeats (daily, weekdays, weekly, monthly or specific days) and streaks
 - **Notes** with checklists
