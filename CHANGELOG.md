@@ -2,7 +2,7 @@
 
 All releases: [GitHub Releases](https://github.com/ryocs15/ryocs/releases). Your data (`%APPDATA%\RYOCS`) is kept by every update.
 
-## 1.1.6 (2026-11-21)
+## 1.1.7 (2026-11-21)
 
 Three cards got their own round of work: weather, Spotify and focus.
 
