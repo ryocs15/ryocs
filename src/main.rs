@@ -451,22 +451,46 @@ fn weather(q: &HashMap<String, String>) -> Result<Value, String> {
         konum(sehir_adi(cfg["sehir"].as_str().unwrap_or(varsayilan_sehir()))?)?
     };
     let f = q.get("birim").is_some_and(|b| b == "f"); // °F, mph, inch; anything else is metric
+    let (lat, lon) = (loc["lat"].to_string(), loc["lon"].to_string());
+    // air quality (and pollen in Europe) comes from a second Open-Meteo API, in parallel; the card works without it
+    let kalite = thread::spawn({ let (lat, lon) = (lat.clone(), lon.clone()); move || {
+        body(AGENT.get("https://air-quality-api.open-meteo.com/v1/air-quality").query("latitude", &lat).query("longitude", &lon)
+            .query("current", "european_aqi,pm2_5,alder_pollen,birch_pollen,grass_pollen,mugwort_pollen,olive_pollen,ragweed_pollen")
+            .query("timezone", "auto").call()).map(|v| v["current"].clone()).unwrap_or(Value::Null)
+    }});
     let mut w = body(
         AGENT.get("https://api.open-meteo.com/v1/forecast")
-            .query("latitude", &loc["lat"].to_string())
-            .query("longitude", &loc["lon"].to_string())
+            .query("latitude", &lat)
+            .query("longitude", &lon)
             .query("current", "temperature_2m,apparent_temperature,weather_code,wind_speed_10m,wind_direction_10m,relative_humidity_2m,pressure_msl,precipitation,is_day")
             .query("hourly", "temperature_2m,precipitation_probability,weather_code,is_day")
-            .query("daily", "weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,sunrise,sunset,uv_index_max")
+            .query("daily", "weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,sunrise,sunset,uv_index_max,wind_gusts_10m_max")
             .query("temperature_unit", if f { "fahrenheit" } else { "celsius" })
             .query("wind_speed_unit", if f { "mph" } else { "kmh" })
             .query("precipitation_unit", if f { "inch" } else { "mm" })
-            .query("timezone", "auto").query("forecast_days", "7").call(),
+            .query("timezone", "auto").query("forecast_days", "7").query("past_days", "1").call(),
     )?;
+    dun_ayir(&mut w);
+    w["kalite"] = kalite.join().unwrap_or(Value::Null);
     w["birim"] = json!(if f { "f" } else { "c" });
     w["sehir"] = loc["ad"].clone();
     w["bolge"] = loc["bolge"].clone();
     Ok(w)
+}
+
+/// past_days=1 gives yesterday too: its temperature at this hour goes to "dun", then yesterday is cut off,
+/// so for the UI index 0 is still today (daily) and the hourly list starts at today's midnight.
+fn dun_ayir(w: &mut Value) {
+    let su = w["current"]["time"].as_str().and_then(|t| t.get(..13)).map(String::from);
+    let i = w["hourly"]["time"].as_array().and_then(|a| a.iter().position(|t| t.as_str().and_then(|t| t.get(..13)) == su.as_deref()));
+    w["dun"] = i.filter(|i| *i >= 24).map(|i| w["hourly"]["temperature_2m"][i - 24].clone()).unwrap_or(Value::Null);
+    for (k, n) in [("hourly", 24), ("daily", 1)] {
+        for v in w[k].as_object_mut().into_iter().flat_map(|o| o.values_mut()) {
+            if let Some(a) = v.as_array_mut() {
+                a.drain(..n.min(a.len()));
+            }
+        }
+    }
 }
 
 /// Bundle news: the (undocumented) feed the bundle.app site itself uses; no credentials needed.
@@ -2393,6 +2417,21 @@ mod tests {
         let b = simdi_ms();
         kayitlari_bekle(); // nothing saving: returns at once
         assert!(simdi_ms() - b < 200);
+    }
+
+    #[test]
+    fn dun_ayirma() {
+        let saatler: Vec<String> = (0..48).map(|h| format!("2026-11-{}T{:02}:00", 20 + h / 24, h % 24)).collect();
+        let mut w = json!({"current": {"time": "2026-11-21T14:15"},
+            "hourly": {"time": saatler, "temperature_2m": (0..48).collect::<Vec<_>>()},
+            "daily": {"time": ["2026-11-20", "2026-11-21"], "temperature_2m_max": [9, 12]}, "daily_units": {"time": "iso8601"}});
+        dun_ayir(&mut w);
+        assert_eq!(w["dun"], json!(14)); // yesterday 14:00
+        assert_eq!((w["hourly"]["time"][0].as_str(), w["hourly"]["temperature_2m"].as_array().map(|a| a.len())), (Some("2026-11-21T00:00"), Some(24)));
+        assert_eq!(w["daily"], json!({"time": ["2026-11-21"], "temperature_2m_max": [12]}));
+        let mut eski = json!({"current": {"time": "2026-11-21T01:00"}, "hourly": {"time": ["2026-11-21T01:00"]}});
+        dun_ayir(&mut eski); // no yesterday in the data: no "dun", nothing breaks
+        assert_eq!(eski["dun"], Value::Null);
     }
 
     #[test]

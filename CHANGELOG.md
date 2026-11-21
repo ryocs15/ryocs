@@ -4,6 +4,14 @@ All releases: [GitHub Releases](https://github.com/ryocs15/ryocs/releases). Your
 
 ## Unreleased
 
+**Added**
+- Weather: an icon next to the current temperature (a moon at night).
+- Weather: a line under the current weather says when rain starts or stops in the next 12 hours, and how much warmer or colder it is than yesterday at this hour.
+- Weather: air quality (European index, PM2.5) and, in Europe, pollen in the details when the card is large.
+- Weather: click a day in the 7-day list or the 3-day strip to see its hours; click it again to go back.
+- Weather: the morning alert also covers thunderstorms, snow, strong gusts, extreme heat and poor air.
+- Weather: a note with tomorrow's weather once in the evening, after 6 pm (Settings → Notifications → Tomorrow's weather).
+
 **Fixed**
 - Weather: clear and partly cloudy nights show a moon instead of a sun (hourly strip, other cities).
 - Weather: for a city in another time zone the hourly strip and the 24-hour curve start at that city's current hour.

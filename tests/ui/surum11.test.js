@@ -9,7 +9,7 @@ const {esit,dogru}=RT;
  await RT.bek(700);window.fetch=f;
  esit('written to the encrypted file',gonder.at(-1)&&[gonder.at(-1).ileri[0].summary,Array.isArray(gonder.at(-1).tCache),Array.isArray(gonder.at(-1).bekleyen)],['Eski önbellek',true,true]);}
 // A moved event is reminded again before its new time
-{const once=[],f=window.fetch;window.fetch=(p,o)=>{if(p==='/api/notify')once.push(o.body);return f(p,o)};S.ayar.etk=true;S.ayar.rahatsiz=false;
+{const once=[],f=window.fetch;window.fetch=(p,o)=>{if(p==='/api/notify')once.push(o.body);return f(p,o)};S.ayar.etk=true;S.ayar.rahatsiz=false;S.ayar.havaAksam=false;S.ayar.havaUyari=false;
  const t=d=>new Date(Date.now()+d).toISOString();ileri=[{id:'tasinan',summary:'Görüşme',start:{dateTime:t(5*6e4)},end:{dateTime:t(36e5)}}];hatirlat();hatirlat();
  ileri=[{id:'tasinan',summary:'Görüşme',start:{dateTime:t(8*6e4)},end:{dateTime:t(36e5)}}];hatirlat();window.fetch=f;
  esit('once per start time',once.length,2);}
