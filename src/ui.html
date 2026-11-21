@@ -257,6 +257,7 @@ main [data-kart][hidden]{display:none!important} /* a closed card (the card layo
 .hbGorsel{display:none;width:76px;height:50px;border-radius:9px;object-fit:cover;flex:none;background:var(--ln)}
 .haberK.genis .hbGorsel{display:block}
 .kurS,.sisS{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:4px 0;font-size:13px}
+.kurS[data-c]{cursor:pointer;border-radius:6px}.kurS[data-c]:hover{background:var(--ln)}.kurA{font-size:11px}
 .kurS b{font-weight:600;font-variant-numeric:tabular-nums}.kurD{font-weight:400;margin-left:4px}.kurS small,.sisS small{color:var(--mu);font-size:11px}
 #sistem .cizgi{margin-bottom:6px}
 #pano,#mail{flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column;gap:2px;contain:size;min-height:90px}
@@ -2038,6 +2039,9 @@ addEventListener('contextmenu',e=>{
   const sk=e.target.closest('[data-kart=saat]');if(sk){const r=sk.getBoundingClientRect();return saatMenu(e.clientX||r.left+12,e.clientY||r.top+12)}
   const hb=e.target.closest('#haberler [data-h]'),hx=hb&&haberV[haberK()]?.[+hb.dataset.h];
   if(hx?.k){const r=hb.getBoundingClientRect();return menu(e.clientX||r.left+12,e.clientY||r.bottom,[[hx.k+L(' haberlerini gizle',' – hide its news'),()=>hbKaynakGizle(hx.k)]])}
+  const pb=e.target.closest('#pano [data-p]'),pm=pb&&panoL[+pb.dataset.p]?.trim();
+  if(pm){const r=pb.getBoundingClientRect();return panoMenu(e.clientX||r.left+12,e.clientY||r.bottom,pm)}
+  const kr=e.target.closest('#kur [data-c]');if(kr){const r=kr.getBoundingClientRect();return kurAlarmMenu(e.clientX||r.left+12,e.clientY||r.bottom,kr.dataset.c)}
   const el=e.target.closest('[data-r],.row[data-h],[data-l],[data-n],[data-u]');
   if(!el){const kk=e.target.closest('main [data-kart]');if(kk){const r=kk.getBoundingClientRect(),k=kk.dataset.kart;menu(e.clientX||r.left+12,e.clientY||r.top+12,[[KART_AD[k]+L(' ayarları…',' settings…'),()=>kartAyar(k)],null,[L('Kartı büyüt','Enlarge card'),()=>kartBoyDeg(k,1.25)],[L('Kartı küçült','Shrink card'),()=>kartBoyDeg(k,.8)],A('kartBoy')?.[k]||A('kartMin')?.[k]?[L('Boyutu sıfırla','Reset size'),()=>kartBoyDeg(k,0)]:0,null,[L('Kartı kapat','Close card'),()=>kartAc(k,false)],k==='haber'&&A('haberGizli')?.length?[L('Gizlenen kaynakları göster (','Show hidden sources (')+A('haberGizli').length+')',()=>{delete S.ayar.haberGizli;kaydet();haberCiz()}]:0])}return} // empty space on a card: card settings
   const k=el.getBoundingClientRect(),x=e.clientX||k.left+12,y=e.clientY||k.bottom,d=el.dataset; // opened from the keyboard (Shift+F10) there is no cursor position
@@ -2917,6 +2921,19 @@ async function kur(zorla){
     kurV=v;try{localStorage.kur=JSON.stringify(v)}catch{}}
   kurCiz();
 }
+// Rate alert: S.ayar.kurAlarm = {CODE:{y:'>'|'<', v:number}}; the direction follows the target vs. the current rate; removed after it fires.
+let kurDeg=()=>0;
+async function kurAlarm(c){
+  const al=A('kurAlarm')||{},su=kurDeg(c);
+  const v=await sor(`${c} ${L('alarmı','alert')}`,[{ad:L('Hedef kur','Target rate')+` (${kurTaban()})`,v:al[c]?.v??(su?+su.toFixed(4):''),zorunlu:1}],L('Kur','Set'),su?L('Şu an: ','Now: ')+su.toLocaleString(LOC)+L('. Kur bu değere ulaşınca bildirim gelir.','. You get a notification when the rate reaches it.'):'');
+  if(!v)return;const h=+v[0].replace(/\s/g,'').replace(',','.');
+  if(!(h>0))return tost(L('Geçerli bir sayı gir','Enter a valid number'));
+  al[c]={y:h>=su?'>':'<',v:h};S.ayar.kurAlarm=al;kaydet();kurCiz();tost(L('Alarm kuruldu','Alert set'));
+}
+function kurAlarmMenu(x,y,c){const al=A('kurAlarm')||{};menu(x,y,[[al[c]?L('Alarmı değiştir…','Change alert…'):L('Alarm kur…','Set alert…'),()=>kurAlarm(c)],
+  al[c]?[L('Alarmı kaldır','Remove alert'),()=>{delete al[c];S.ayar.kurAlarm=al;kaydet();kurCiz()},'teh']:0])}
+$('#kur').onclick=e=>{const r=e.target.closest('[data-c]');if(r){const b=r.getBoundingClientRect();kurAlarmMenu(b.left+20,b.bottom,r.dataset.c)}};
+$('#kur').onkeydown=e=>{if((e.key==='Enter'||e.key===' ')&&e.target.dataset.c){e.preventDefault();e.target.click()}};
 function kurCiz(){
   const B=kurTaban(),V=kurUygun(kurV)?kurV:null;
   if(!V)return ekYaz('#kur',kurHata==='ag'?agYok():kurHata?L('<p class="m">Kurlar alınamadı. Kaynak geçici olarak kapalı ya da değişmiş olabilir.</p>','<p class="m">Could not load the rates. The source may be down or may have changed.</p>')+tekrarB():L('<p class="m yuk">Kurlar yükleniyor…</p>','<p class="m yuk">Loading rates…</p>'));
@@ -2928,10 +2945,13 @@ function kurCiz(){
   const para=x=>{const f=x<.1?6:x<10?4:2;return x.toLocaleString(LOC,{style:'currency',currency:B,minimumFractionDigits:f,maximumFractionDigits:f})};
   const fark=(c,v)=>{const o=deg(V.dun,c);if(A('kurDegisim')===false||!o||!v)return'';const p=(v-o)/o*100;
     return ` <small class="kurD" title="${L('önceki güne göre','since the previous day')}">${p>0?'▲':p<0?'▼':'='} ${Math.abs(p).toLocaleString(LOC,{minimumFractionDigits:2,maximumFractionDigits:2})}%</small>`};
-  const sat=(ad,alt,v,f='',s='')=>`<div class="kurS${s}"><span>${ad} <small>${alt}</small></span><b>${v}${f}</b></div>`;
+  const al=A('kurAlarm')||{};
+  const sat=(ad,alt,v,f='',s='',c='')=>`<div class="kurS${s}"${c?` data-c="${c}" tabindex="0" role="button" aria-label="${esc(ad)}: ${L('alarm kur','set an alert')}"`:''}><span>${ad} <small>${alt}</small></span><b>${c&&al[c]?`<span class="kurA" title="${L('Alarm: ','Alert: ')}${al[c].y} ${para(al[c].v)}">🔔</span> `:''}${v}${f}</b></div>`;
   let h='',capr=0;for(const c of kurKodlar()){const v=deg(k,c);if(!k[c]){yok.push(c);continue}
     const cp=V.w?.includes(c);if(cp)capr=1;
-    h+=sat(esc(ad.of(c)),c+' → '+B+(cp?L(' · çapraz',' · cross'):''),v?para(v):'—',fark(c,v))}
+    h+=sat(esc(ad.of(c)),c+' → '+B+(cp?L(' · çapraz',' · cross'):''),v?para(v):'—',fark(c,v),'',c);
+    if(v&&al[c]&&(al[c].y==='>'?v>=al[c].v:v<=al[c].v)){bildir(L('Kur alarmı','Rate alert'),`${c} → ${B}: ${para(v)} (${al[c].y} ${para(al[c].v)})`);delete al[c];S.ayar.kurAlarm=al;kaydet();return kurCiz()}}
+  kurDeg=c=>deg(k,c);
   const usd=tr?k.USD.s:k[B]/k.USD,maden=(o,a)=>sat(a,gram?L('gram · hesaplanan','gram · calculated'):L('ons','ounce'),o?para(o*usd/(gram?31.1035:1)):'—','',' kurAltin'); // usd: home currency per dollar
   h+=maden(V.ons,L('Altın','Gold'));if(A('gumus'))h+=maden(V.ag,L('Gümüş','Silver'));
   ekYaz('#kur',h);
@@ -2967,6 +2987,9 @@ function panoCiz(r){
     ||`<p class="m">${panoDurdu?L('Duraklatıldı: kopyaladıkların toplanmıyor.','Paused: your copies are not being collected.'):L('Kopyaladığın metinler burada görünür. Yalnız bellekte tutulur, RYOCS kapanınca silinir.','Text you copy appears here. Kept only in memory and cleared when RYOCS closes.')}</p>`);
 }
 $('#pano').onclick=e=>{const b=e.target.closest('[data-p]'),m=b&&panoL[+b.dataset.p];if(m)navigator.clipboard.writeText(m).then(()=>tost(L('Panoya kopyalandı','Copied to clipboard')),()=>tost(L('Kopyalanamadı','Could not copy')))};
+function panoMenu(x,y,m){
+  menu(x,y,[[L('Görev olarak ekle','Add as task'),()=>{S.todos.push({t:m.split('\n')[0].slice(0,300),d:false});ciz();kaydet();tost(L('Görevlere eklendi','Added to tasks'))}],
+    [L('Nota ekle','Add to note'),()=>{const n=S.notlar[S.aktifNot];n.metin+=(n.metin&&!n.metin.endsWith('\n')?'\n':'')+m;n.t=Date.now();notCiz();kaydet();tost(`"${n.ad}" ${L('notuna eklendi','note updated')}`)}]])}
 $('#panoDur').onclick=()=>{panoDurdu=!panoDurdu;try{localStorage.panoDur=panoDurdu?'1':''}catch{}panoAyar()};
 $('#panoSil').onclick=()=>panoAyar(true);
 // Gmail card (read-only, existing Google sign-in): unread mail in the inbox. Every 5 min while the card is open; clicking opens the mail in the browser.

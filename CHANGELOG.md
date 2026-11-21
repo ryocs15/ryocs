@@ -4,6 +4,10 @@ All releases: [GitHub Releases](https://github.com/ryocs15/ryocs/releases). Your
 
 ## 1.1.0 (unreleased)
 
+**Added**
+- Currency alerts: click (or right-click) a rate to get a notification once it reaches your target; a bell marks rates with an alert.
+- Right-click a clipboard entry to add it as a task or append it to the current note.
+
 **Security**
 - Your data is encrypted on disk with Windows DPAPI: data.json, its backups, the calendar / notification cache and the client secrets in config.json. Older plain files are encrypted at the first start. **You cannot go back to 1.0.7 or older after this version.** Export keeps a plain copy for moving to another PC or after a Windows reinstall.
 - The OneDrive copy can be password-encrypted (Settings → Data → Password…; AES-256-GCM from Windows). Without a password it stays plain, as before, and the settings say so.
