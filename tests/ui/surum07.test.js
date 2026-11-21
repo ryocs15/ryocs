@@ -54,7 +54,7 @@ esit('search: matching rows from every category',[q('#ayBas').textContent,gorune
 RT.dogru('search: section headings give way to category names',[...document.querySelectorAll('.ayBol.ayBulundu>h3')].every(h=>!h.offsetParent)&&getComputedStyle(q('.ayBol.ayBulundu:not([hidden])'),'::before').content.includes('Cards'));
 ara('zzqx');esit('search: nothing found',[q('#ayBas').textContent,gorunen()],['No results',[]]);
 q('.ayNav [data-b="genel"]').click();await bek(50);
-esit('category click ends the search',[q('#ayAra').value,!!document.querySelector('#ayarlar .araGizli'),q('#ayBas').textContent.trim()],['',false,'App']);
+esit('category click ends the search',[q('#ayAra').value,!!document.querySelector('#ayarlar .araGizli'),q('#ayBas').textContent.trim()],['',false,'System']);
 
 // 0.8.7 shortcut choice
 await ayarCiz();await bek(100);

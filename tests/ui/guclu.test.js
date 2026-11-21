@@ -57,3 +57,12 @@ window.fetch=f0;
  dogru('saved before installing',yol.slice(0,i).includes('/api/state'));
  dogru('no web page opened',!yol.includes('/api/open'));
  dogru('second click while installing does nothing',(await gunKur(),yol.filter(p=>p==='/api/guncelle').length===2));}
+// settings: notifications in one place, the new switches use the same keys as the card settings; PIN under privacy
+ayarAc();await RT.bek(200);q('.ayNav [data-b="bildirim"]').click();await RT.bek(50);
+dogru('notification switches together',['aEtk','aHavaUy','aOzet','aRahatsiz'].every(i=>!!q('#'+i).offsetParent));
+q('#aHavaUy').click();q('#aRahatsiz').click();
+esit('switches write the card keys',[A('havaUyari'),A('rahatsiz')],[false,false]);
+q('#aHavaUy').click();q('#aRahatsiz').click();
+esit('and back',[A('havaUyari'),A('rahatsiz')],[true,true]);
+dogru('PIN and encryption under privacy',q('#aPin').closest('.ayBol').dataset.b==='gizlilik');
+q('#ayarlar [data-kapat]').click();await RT.bek(300);
