@@ -7,7 +7,7 @@ for(const x of document.querySelectorAll('dialog[open]'))x.close();
 S.ayar.rahatsiz=false;S.ayar.kurTaban='TRY';S.ayar.kurListe='USD, EUR';S.ayar.altinBirim='gram';S.ayar.kurDegisim=true;
 const xml=`<Tarih_Date Tarih="20.11.2026"><Currency CurrencyCode="USD"><Unit>1</Unit><ForexBuying>40</ForexBuying><ForexSelling>40</ForexSelling><BanknoteSelling>40</BanknoteSelling></Currency>`
   +`<Currency CurrencyCode="EUR"><Unit>1</Unit><ForexBuying>46</ForexBuying><ForexSelling>46</ForexSelling><BanknoteSelling>46</BanknoteSelling></Currency></Tarih_Date>`;
-const taze=()=>{const v=kurAyir(xml,3110.35,40);v.mDun={ons:3000,ag:40,usd:40};return v};
+const taze=()=>{const v=kurAyir(xml,3110.35,40);v.mDun={ons:3000,ag:40,usd:40,b:'TRY'};return v};
 // an alert is not fired (nor removed) by rates cached long ago
 S.ayar.kurAlarm={USD:{y:'>',v:39,b:'TRY'}};kurV=taze();kurV.t=Date.now()-3*864e5;kurHata=false;bild.length=0;kurCiz();
 esit('old cache: no alert, kept',[bild.length,!!S.ayar.kurAlarm.USD],[0,true]);
@@ -34,3 +34,9 @@ const inp=c.querySelector('input');inp.value='1000';inp.dispatchEvent(new Event(
 c.querySelector('[data-yon]').click();
 esit('reversed',[c.querySelector('b').textContent,c.querySelector('input').value,c.querySelector('select').value],['= 25','1000','USD']);
 kurCiz();esit('redraw keeps the same input',c.querySelector('input')===q('#kurCev input'),true);
+// another home currency since yesterday: no gold change; a missing rate with an alert stays clickable
+kurV=taze();kurV.mDun.b='EUR';kurCiz();
+dogru('gold change hidden after a currency switch',![...document.querySelectorAll('#kur .kurS')].find(s=>s.textContent.startsWith('Altın')).textContent.includes('%'));
+S.ayar.kurListe='USD, EUR, PLN';S.ayar.kurAlarm={PLN:{y:'>',v:12,b:'TRY'}};kurV=taze();kurV.k.PLN={s:0,a:0,e:0};kurCiz();
+esit('missing rate with an alert: still clickable',q('#kur [data-c="PLN"]')?.textContent.includes('—'),true);
+S.ayar.kurAlarm={};kurCiz();esit('missing rate without an alert: not clickable',q('#kur [data-c="PLN"]'),null);

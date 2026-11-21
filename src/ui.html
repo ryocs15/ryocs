@@ -3064,7 +3064,7 @@ async function kur(zorla){
   kurHata=!v&&(r.durum===AG_YOK?'ag':true);
   if(v){if(!!v.ecb!==!!kurV?.ecb)kurV=null;v.ons||=kurV?.ons||null;v.ag||=kurV?.ag||null; // if gold or silver could not be fetched, the old price stays
     v.dun=kurV&&kurV.tarih!==v.tarih?kurV.k:kurV?.dun||null; // rates of the previous published day, for the change arrow
-    v.mDun=kurV&&gunStr(new Date(kurV.t))!==gunStr(new Date())?{ons:kurV.ons,ag:kurV.ag,usd:kurUsd(kurV)}:kurV?.mDun||null; // gold / silver of an earlier day
+    v.mDun=kurV&&gunStr(new Date(kurV.t))!==gunStr(new Date())?{ons:kurV.ons,ag:kurV.ag,usd:kurUsd(kurV),b:kurTaban()}:kurV?.mDun||null; // gold / silver of an earlier day, in that day's home currency
     kurV=v;try{localStorage.kur=JSON.stringify(v)}catch{}}
   kurCiz();
 }
@@ -3101,13 +3101,14 @@ function kurCiz(){
   const fark=(c,v)=>{const o=deg(V.dun,c);if(A('kurDegisim')===false||!o||!v)return'';const p=(v-o)/o*100;
     return ` <small class="kurD" title="${L('önceki güne göre','since the previous day')}">${p>0?'▲':p<0?'▼':'='} ${Math.abs(p).toLocaleString(LOC,{minimumFractionDigits:2,maximumFractionDigits:2})}%</small>`};
   const al=kurAlarmlar();
-  const sat=(ad,alt,v,f='',s='',c='')=>`<div class="kurS${s}"${c&&v!=='—'?` data-c="${c}" tabindex="0" role="button" aria-label="${esc(ad)}: ${L('alarm kur','set an alert')}"`:''}><span>${ad} <small>${alt}</small></span><b>${c&&al[c]?`<span class="kurA" title="${esc(L('Alarm: ','Alert: ')+al[c].y+' '+para(al[c].v))}">🔔</span> `:''}${v}${f}</b></div>`;
+  const sat=(ad,alt,v,f='',s='',c='')=>`<div class="kurS${s}"${c&&(v!=='—'||al[c])?` data-c="${c}" tabindex="0" role="button" aria-label="${esc(ad)}: ${L('alarm kur','set an alert')}"`:''}><span>${ad} <small>${alt}</small></span><b>${c&&al[c]?`<span class="kurA" title="${esc(L('Alarm: ','Alert: ')+al[c].y+' '+para(al[c].v))}">🔔</span> `:''}${v}${f}</b></div>`;
   let h='',capr=0;for(const c of kurKodlar()){const v=deg(k,c);if(!k[c]){yok.push(c);continue}
     const cp=V.w?.includes(c);if(cp)capr=1;
     h+=sat(esc(ad.of(c)),c+' → '+B+(cp?L(' · çapraz',' · cross'):''),v?para(v):'—',fark(c,v),'',c)}
   const usd=kurUsd(V),metal=(o,u=usd)=>o>0&&u>0?o*u/(gram?31.1035:1):0; // usd: home currency per dollar
   // gold / silver change since an earlier day: in the home currency, so the dollar's move is in it too
-  const farkM=(o,od)=>{const v=metal(o),e=metal(od,V.mDun?.usd);if(A('kurDegisim')===false||!v||!e)return'';const p=(v-e)/e*100;
+  const farkM=(o,od)=>{const v=metal(o),e=V.mDun?.b===B?metal(od,V.mDun.usd):0; // another home currency since then: no comparison
+   if(A('kurDegisim')===false||!v||!e)return'';const p=(v-e)/e*100;
     return ` <small class="kurD" title="${L('önceki güne göre','since the previous day')}">${p>0?'▲':p<0?'▼':'='} ${Math.abs(p).toLocaleString(LOC,{minimumFractionDigits:2,maximumFractionDigits:2})}%</small>`};
   const maden=(o,od,a,c)=>sat(a,gram?L('gram · hesaplanan','gram · calculated'):L('ons','ounce'),metal(o)?para(metal(o)):'—',farkM(o,od),' kurAltin',c);
   h+=maden(V.ons,V.mDun?.ons,MADEN.XAU,'XAU');if(A('gumus'))h+=maden(V.ag,V.mDun?.ag,MADEN.XAG,'XAG');
