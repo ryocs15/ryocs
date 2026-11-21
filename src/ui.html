@@ -3470,18 +3470,27 @@ addEventListener('keydown',e=>{
 });
 addEventListener('focus',()=>{takvim();spotify();if($('#ayarlar').open)ayarCiz()}); // cards refresh after returning from the OAuth consent in the browser
 addEventListener('pagehide',kaydetSimdi);
-// Update check: once a day (also while running in the tray for days) and from Settings → General. Only a notice; the user installs it.
+// Update check: once a day (also while running in the tray for days) and from Settings → General.
+// "Update" installs it in one click: Rust downloads and checks the installer, runs it silently, RYOCS quits and starts again.
 let gunV=null;
-const gunYaz=m=>{$('#aGunD').textContent=m||(gunV?gunV.yeni?L('yeni sürüm var: ','new version available: ')+gunV.son:L('güncel · ','up to date · ')+gunV.surum:'');$('#aGunB').textContent=gunV?.yeni?L('İndir','Download'):L('Şimdi denetle','Check now')};
+const gunYaz=m=>{$('#aGunD').textContent=m||(gunV?gunV.yeni?L('yeni sürüm var: ','new version available: ')+gunV.son:L('güncel · ','up to date · ')+gunV.surum:'');$('#aGunB').textContent=gunV?.yeni?L('Güncelle','Update'):L('Şimdi denetle','Check now')};
+let gunKuruyor=false;
+async function gunKur(){
+  if(gunKuruyor)return;gunKuruyor=true;gunYaz(L('indiriliyor ve doğrulanıyor…','downloading and checking…'));tost(L('Güncelleme indiriliyor…','Downloading the update…'));
+  await kaydetSimdi(); // the installer closes RYOCS: nothing may be left unsaved
+  const r=await api('/api/guncelle',{});
+  if(r.durum==='ok')return tost(L('RYOCS güncelleniyor, birazdan yeniden açılacak','RYOCS is updating and will open again shortly'));
+  gunKuruyor=false;gunYaz(L('güncellenemedi: ','could not update: ')+String(r.durum).slice(0,100));tost(L('Güncellenemedi: ','Could not update: ')+String(r.durum).slice(0,100));
+}
 async function guncelle(elle){
   const r=await api('/api/guncelleme');
   if(r.durum!=='ok'){if(elle)gunYaz(L('denetlenemedi: ','could not check: ')+String(r.durum).slice(0,80));return}
   gunV=r.veri;let once='';try{localStorage.gunT=Date.now();once=localStorage.gunGoster||''}catch{}gunYaz();
-  if(gunV.yeni&&(elle||once!==gunV.son)){try{localStorage.gunGoster=gunV.son}catch{}tost(L('Yeni sürüm var: RYOCS ','A new version is available: RYOCS ')+gunV.son,L('İndir','Download'),()=>api('/api/open',{url:gunV.url}))} // the toast once per new version
+  if(gunV.yeni&&(elle||once!==gunV.son)){try{localStorage.gunGoster=gunV.son}catch{}tost(L('Yeni sürüm var: RYOCS ','A new version is available: RYOCS ')+gunV.son,L('Güncelle','Update'),gunKur)} // the toast once per new version
   else if(elle&&!gunV.yeni)tost(L('RYOCS güncel','RYOCS is up to date'));
 }
 const gunDenetle=()=>{let t=0;try{t=+localStorage.gunT||0}catch{}if(Date.now()-t>864e5)guncelle()};
-$('#aGunB').onclick=()=>gunV?.yeni?api('/api/open',{url:gunV.url}):guncelle(true);
+$('#aGunB').onclick=()=>gunV?.yeni?gunKur():guncelle(true);
 tick();setInterval(tick,1000);yukle().then(hepsi).then(gunDenetle);setInterval(gunDenetle,36e5);
 addEventListener('online',hepsi);setInterval(()=>{if($('main .ag'))hepsi()},3e4);
 setInterval(sistem,3000);setInterval(()=>gizliMi()||mail(),6e4);setInterval(pano,2000);setInterval(kur,18e5);setInterval(()=>gizliMi()||spotify(),5000);setInterval(hava,9e5);setInterval(()=>gizliMi()||haber(),18e4);setInterval(()=>{takvim(true);ileriAl()},6e5);addEventListener('offline',()=>ustSon='');setInterval(hatirlat,15e3);

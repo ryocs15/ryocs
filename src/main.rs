@@ -520,6 +520,52 @@ fn guncelleme() -> Result<Value, String> {
     }))
 }
 
+/// SHA-256 (lowercase hex) of file `ad` in a SHA256SUMS text ("<64 hex>  <name>" per line); None if missing or malformed.
+fn sha_satiri(metin: &str, ad: &str) -> Option<String> {
+    metin.lines().find_map(|s| {
+        let (h, a) = s.trim().split_once(char::is_whitespace)?;
+        (a.trim().trim_start_matches('*') == ad && h.len() == 64 && h.bytes().all(|c| c.is_ascii_hexdigit())).then(|| h.to_ascii_lowercase())
+    })
+}
+fn hex(b: &[u8]) -> String {
+    b.iter().map(|x| format!("{x:02x}")).collect()
+}
+/// One-click update: the installer of the latest release is downloaded (GitHub over HTTPS, addresses built here, not taken from the
+/// response), checked against the release's SHA256SUMS, started with /SILENT (no UAC: it installs per user) and RYOCS quits.
+/// The installer starts RYOCS again when it is done. The UI saves before calling this.
+fn guncelle_kur() -> Result<Value, String> {
+    use std::io::Read;
+    let r = body(AGENT.get("https://api.github.com/repos/ryocs15/ryocs/releases/latest").set("Accept", "application/vnd.github+json").call())?;
+    let son = r["tag_name"].as_str().and_then(surum_sayi).ok_or(l("Sürüm bilgisi okunamadı", "Could not read the version info"))?;
+    if Some(son) <= surum_sayi(env!("CARGO_PKG_VERSION")) {
+        return Err(l("RYOCS zaten güncel", "RYOCS is already up to date").into());
+    }
+    let s = format!("{}.{}.{}", son.0, son.1, son.2);
+    let (ad, taban) = (format!("RYOCS-Setup-{s}.exe"), format!("https://github.com/ryocs15/ryocs/releases/download/v{s}"));
+    // the installer is several MB: a per-read timeout instead of the 15 s total of AGENT (slow networks)
+    let indir = ureq::AgentBuilder::new()
+        .tls_connector(Arc::new(native_tls::TlsConnector::new().map_err(|e| e.to_string())?))
+        .timeout_connect(Duration::from_secs(15)).timeout_read(Duration::from_secs(60)).build();
+    let ag = |e: ureq::Error| match e { ureq::Error::Status(c, _) => format!("HTTP {c}"), _ => AG_YOK.to_string() };
+    let toplam = indir.get(&format!("{taban}/SHA256SUMS")).call().map_err(|e| match e {
+        ureq::Error::Status(404, _) => l("Bu sürüm tek tıkla kurulamıyor (doğrulama dosyası yok)", "This version cannot be installed in one click (no checksum file)").to_string(),
+        e => ag(e),
+    })?.into_string().map_err(|e| e.to_string())?;
+    let beklenen = sha_satiri(&toplam, &ad).ok_or(l("Doğrulama dosyasında kurulum bulunamadı", "The installer is missing from the checksum file"))?;
+    let mut b = Vec::new();
+    indir.get(&format!("{taban}/{ad}")).call().map_err(ag)?.into_reader().take(300 << 20).read_to_end(&mut b).map_err(|_| AG_YOK.to_string())?;
+    use sha2::{Digest, Sha256};
+    if hex(&Sha256::digest(&b)) != beklenen {
+        return Err(l("İndirilen dosya doğrulanamadı; kurulmadı", "The downloaded file did not pass the check; nothing was installed").into());
+    }
+    let yol = std::env::temp_dir().join(&ad);
+    dayanikli_yaz(&yol, &b)?;
+    std::process::Command::new(&yol).args(["/SILENT", "/SUPPRESSMSGBOXES", "/NORESTART"]).spawn().map_err(|e| e.to_string())?;
+    // answer the UI first, then save and quit (the installer closes a RYOCS that is still running anyway)
+    thread::spawn(|| { thread::sleep(Duration::from_millis(300)); olay(Olay::Kapat); });
+    Ok(json!(s))
+}
+
 /// English currency card: ECB daily reference rates (raw XML, parsed in the UI) + gold-api.com gold and silver ounce (USD).
 /// ag / dunya: silver and world rates only when the card shows them (silver row on, a code the bank does not publish).
 fn kur_ecb(ag: bool, dunya_da: bool) -> Result<Value, String> {
@@ -1703,6 +1749,8 @@ fn handle(mut req: Request) {
             .and_then(|u| sehir_ara(&u.query_pairs().find(|(k, _)| k == "q").map(|(_, v)| v.into_owned()).unwrap_or_default()))
     } else if !post && path == "/api/guncelleme" {
         guncelleme()
+    } else if post && path == "/api/guncelle" {
+        guncelle_kur()
     } else if !post && path == "/api/mail" {
         mail()
     } else if let (false, "/api/kur" | "/api/kur_ecb") = (post, path) {
@@ -2464,6 +2512,13 @@ mod tests {
         assert!(surum_sayi("v0.3.10") > surum_sayi("0.3.9"));
         assert!(surum_sayi("v1.0.0") > surum_sayi("0.9.9"));
         assert_eq!(surum_sayi("v1.2"), None);
+        let h = "ab".repeat(32);
+        let t = format!("{}  RYOCS-Setup-1.2.0.exe\n{h}  RYOCS-Setup-1.1.0.exe\r\nxyz  RYOCS-Setup-1.3.0.exe\n", "CD".repeat(32));
+        assert_eq!(sha_satiri(&t, "RYOCS-Setup-1.2.0.exe"), Some("cd".repeat(32)));
+        assert_eq!(sha_satiri(&t, "RYOCS-Setup-1.1.0.exe"), Some(h));
+        assert_eq!(sha_satiri(&t, "RYOCS-Setup-1.3.0.exe"), None); // not a hash
+        assert_eq!(sha_satiri(&t, "RYOCS-Setup-1.0.0.exe"), None);
+        assert_eq!(hex(&[0, 255, 16]), "00ff10");
         assert_eq!(surum_sayi("v1.2.3.4"), None);
         assert_eq!(surum_sayi("v1.2.0-beta"), None);
     }

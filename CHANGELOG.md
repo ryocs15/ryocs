@@ -2,6 +2,11 @@
 
 All releases: [GitHub Releases](https://github.com/ryocs15/ryocs/releases). Your data (`%APPDATA%\RYOCS`) is kept by every update.
 
+## 1.1.1 (unreleased)
+
+**Added**
+- One-click update: "Update" in the notice or in Settings downloads the new installer from the GitHub release, checks it against the release's SHA-256 file, installs it without a browser and starts RYOCS again. Updating from 1.1.0 still goes through the release page once.
+
 ## 1.1.0 (2026-11-21)
 
 **Added**

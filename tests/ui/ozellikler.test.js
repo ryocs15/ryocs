@@ -27,7 +27,7 @@ S.ayar.calismaAd='   ';odakCiz();esit('focus: blank label falls back',q('#mod').
 
 // update check
 await guncelle(true);
-esit('update: settings row',[q('#aGunD').textContent,q('#aGunB').textContent],['new version available: 0.5.0','Download']);
+esit('update: settings row',[q('#aGunD').textContent,q('#aGunB').textContent],['new version available: 0.5.0','Update']);
 dogru('update: toast',q('#tost').textContent.startsWith('A new version is available: RYOCS 0.5.0'));
 q('#aGunB').click();await bek(50);
-esit('update: download opens the release page',acilan,'https://github.com/ryocs15/ryocs/releases/tag/v0.5.0');
+esit('update: one click installs in the app, no web page',acilan,null);

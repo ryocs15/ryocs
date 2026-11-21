@@ -49,6 +49,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           $f = Get-ChildItem target\kurulum\RYOCS-Setup-*.exe
+          # one-click update in the app downloads the installer and checks it against this file
+          $s = "target\kurulum\SHA256SUMS"
+          [IO.File]::WriteAllText($s, (Get-FileHash $f.FullName -Algorithm SHA256).Hash.ToLower() + "  " + $f.Name + "`n")
           gh release view "${{ github.ref_name }}" 2>$null
-          if ($LASTEXITCODE) { gh release create "${{ github.ref_name }}" $f.FullName --title "RYOCS ${{ github.ref_name }}" --generate-notes }
-          else { gh release upload "${{ github.ref_name }}" $f.FullName --clobber }
+          if ($LASTEXITCODE) { gh release create "${{ github.ref_name }}" $f.FullName $s --title "RYOCS ${{ github.ref_name }}" --generate-notes }
+          else { gh release upload "${{ github.ref_name }}" $f.FullName $s --clobber }

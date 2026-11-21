@@ -59,6 +59,8 @@ Root: HKCU; Subkey: "Software\Classes\AppUserModelId\RYOCS"; Flags: uninsdeletek
 
 [Run]
 Filename: "{app}\ryocs.exe"; Description: "{cm:Baslat}"; Flags: nowait postinstall skipifsilent
+; one-click update in the app runs this installer with /SILENT: start RYOCS again afterwards
+Filename: "{app}\ryocs.exe"; Flags: nowait; Check: WizardSilent
 
 [UninstallRun]
 ; no "Start with Windows" entry is left behind; personal data (%APPDATA%\RYOCS) is deliberately not deleted

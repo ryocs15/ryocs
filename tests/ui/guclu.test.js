@@ -47,3 +47,13 @@ window.fetch=f0;
  esit('damaged entries do not crash',h,'');esit('tasks without text dropped',S.todos.map(t=>t.t),['ok']);
  esit('notes get text and a name',S.notlar.map(n=>[n.ad,n.metin]),[['x',''],['Not','m']]);
  S=eski;ciz();notCiz();}
+// one-click update: saves first, then asks Rust to install; never opens a web page; a failure is shown and can be retried
+{const f1=window.fetch,yol=[];let cevap={durum:'ok',veri:'9.9.9'};
+ window.fetch=async(p,a)=>{yol.push(p);if(p==='/api/guncelle'||p==='/api/state'&&a?.method==='POST')return{json:async()=>(p==='/api/guncelle'?cevap:{durum:'ok'})};return f1(p,a)};
+ cevap={durum:'HTTP 404'};await gunKur();
+ dogru('failure shown',q('#aGunD').textContent.includes('HTTP 404'));
+ cevap={durum:'ok',veri:'9.9.9'};await gunKur();window.fetch=f1;
+ const i=yol.lastIndexOf('/api/guncelle');
+ dogru('saved before installing',yol.slice(0,i).includes('/api/state'));
+ dogru('no web page opened',!yol.includes('/api/open'));
+ dogru('second click while installing does nothing',(await gunKur(),yol.filter(p=>p==='/api/guncelle').length===2));}
