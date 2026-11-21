@@ -5,7 +5,7 @@ All releases: [GitHub Releases](https://github.com/ryocs15/ryocs/releases). Your
 ## Unreleased
 
 **Clock**
-- Alarms: right-click the clock → Alarms… (once or every day); they ring while RYOCS runs, in the tray and during a focus round too. The next alarm shows under the time.
+- Alarms: right-click the clock → Alarms… (once or every day); they ring while RYOCS runs, in the tray and during a focus round too. An alarm missed while the PC was asleep rings on waking (up to 3 hours late), marked as missed. The next alarm shows under the time.
 - Click the date to open today in the calendar.
 - Fixed: the date follows the region's order (11/21 in the US); before, it was always day/month.
 - Less work every second: the date, time and greeting are rewritten only when they change.

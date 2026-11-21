@@ -1236,14 +1236,18 @@ const metinYaz=(sec,t)=>{const e=$(sec);if(e&&e.textContent!==t)e.textContent=t}
 // a one-time alarm turns itself off after it rings. Comes through do-not-disturb (the user set it, like the free timer).
 const alarmGecerli=x=>x&&typeof x.ad==='string'&&/^([01]\d|2[0-3]):[0-5]\d$/.test(x.s);
 const alarmlar=()=>(Array.isArray(S?.alarmlar)?S.alarmlar:[]).filter(alarmGecerli);
-let alarmDk='';
+// Every minute since the last check is looked at: after the PC slept through 07:30, the alarm rings on waking, marked as missed.
+// A gap over 3 hours (a night off) rings nothing late. The clock moving back (time change) rings nothing twice.
+let alarmSon=0;
 function alarmBak(d){
-  const dk=gunStr(d)+' '+saat24(d);if(!S||dk===alarmDk)return;const ilk=!alarmDk;alarmDk=dk;
-  if(ilk)return; // the minute RYOCS starts in does not ring (an alarm for "now" would ring at every start)
+  if(!S)return;const su=Math.floor(+d/6e4)*6e4;if(su<=alarmSon)return;
+  const once=alarmSon;alarmSon=su;
+  if(!once)return; // the minute RYOCS starts in does not ring (an alarm for "now" would ring at every start)
   let degisti=false;
-  for(const a of alarmlar())if(a.acik!==false&&a.s===saat24(d)){
-    api('/api/notify',{baslik:L('Alarm','Alarm')+' · '+saat(d),metin:a.ad||L('Alarm','Alarm')});tost('⏰ '+(a.ad||L('Alarm','Alarm')));
-    if(!a.tekrar){a.acik=false;degisti=true}}
+  for(let t=su-once>3*36e5?su:once+6e4;t<=su;t+=6e4){const hm=saat24(new Date(t)),gec=t<su;
+    for(const a of alarmlar())if(a.acik!==false&&a.s===hm){const ad=a.ad||L('Alarm','Alarm');
+      api('/api/notify',{baslik:L('Alarm','Alarm')+' · '+saatS(hm),metin:ad+(gec?L(' (kaçırıldı: bilgisayar uykudaydı)',' (missed: the PC was asleep)'):'')});tost('⏰ '+ad);
+      if(!a.tekrar){a.acik=false;degisti=true}}}
   if(degisti){kaydet();alarmBilgi()}
 }
 // next active alarm under the time, e.g. "⏰ 07:30"
@@ -1253,7 +1257,7 @@ function alarmBilgi(){
 }
 function alarmPencere(){
   const l=alarmlar().sort((a,b)=>a.s<b.s?-1:1);
-  const sat=a=>{const i=S.alarmlar.indexOf(a);return `<div class="ar"><span>${saatS(a.s)} · ${esc(a.ad||L('Alarm','Alarm'))}<small>${a.tekrar?L('her gün','every day'):L('bir kez','once')}</small></span><div class="grp"><button class="sw" role="switch" data-aa="${i}" aria-checked="${a.acik!==false}" aria-label="${L('Açık','On')}"></button><button class="btn k" data-ad="${i}">${L('Düzenle','Edit')}</button><button class="btn k tehb" data-as="${i}">${L('Sil','Delete')}</button></div></div>`};
+  const sat=a=>{const i=S.alarmlar.indexOf(a);return `<div class="ar"><span>${saatS(a.s)} · ${esc(a.ad||L('Alarm','Alarm'))}<small>${a.tekrar?L('her gün','every day'):L('bir kez','once')}</small></span><div class="grp"><button class="sw" role="switch" data-aa="${i}" aria-checked="${a.acik!==false}" aria-label="${saatS(a.s)} ${esc(a.ad||L('Alarm','Alarm'))}"></button><button class="btn k" data-ad="${i}">${L('Düzenle','Edit')}</button><button class="btn k tehb" data-as="${i}">${L('Sil','Delete')}</button></div></div>`};
   const d=pencere(`<div class="ic"><div class="dh"><h1>${L('Alarmlar','Alarms')}</h1><button class="rb" data-kapat aria-label="${L('Kapat','Close')}" title="${L('Kapat (Esc)','Close (Esc)')}">${SVG(IKON.kapat)}</button></div>`
     +(l.map(sat).join('')||`<p class="m">${L('Henüz alarm yok. RYOCS açıkken (tepside de) çalar.','No alarms yet. They ring while RYOCS is running (in the tray too).')}</p>`)
     +`<div class="db"><button class="btn ana" data-ae>${SVG(IKON.arti)}${L('Alarm ekle','Add alarm')}</button></div></div>`);
