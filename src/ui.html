@@ -283,7 +283,8 @@ main [data-kart][hidden]{display:none!important} /* a closed card (the card layo
 #mail .hb:not(.yeni) b{color:var(--mu)}
 #mail .hb.yeni b{font-weight:600}
 .yy{display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end}.yy select{max-width:200px}
-.pn{display:block;width:100%;flex:none;text-align:left;padding:6px;border-radius:10px;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pn{display:flex;align-items:baseline;gap:8px;width:100%;flex:none;text-align:left;padding:6px;border-radius:10px;font-size:12px;white-space:nowrap;overflow:hidden}
+.pn>span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}.pn>small{flex:none;color:var(--mu);font-size:11px}
 .pn:hover{background:var(--ln)}
 .panoK h2 .btn{margin-left:6px}
 .hbKaynak{align-self:flex-end;color:var(--mu);font-size:11px;margin-top:6px;opacity:.8}
@@ -2161,8 +2162,8 @@ addEventListener('contextmenu',e=>{
   const sk=e.target.closest('[data-kart=saat]');if(sk){const r=sk.getBoundingClientRect();return saatMenu(e.clientX||r.left+12,e.clientY||r.top+12)}
   const hb=e.target.closest('#haberler [data-h]'),hx=hb&&haberV[haberK()]?.[+hb.dataset.h];
   if(hx?.k){const r=hb.getBoundingClientRect();return menu(e.clientX||r.left+12,e.clientY||r.bottom,[[hx.k+L(' haberlerini gizle',' – hide its news'),()=>hbKaynakGizle(hx.k)]])}
-  const pb=e.target.closest('#pano [data-p]'),pm=pb&&panoL[+pb.dataset.p]?.trim();
-  if(pm){const r=pb.getBoundingClientRect();return panoMenu(e.clientX||r.left+12,e.clientY||r.bottom,pm)}
+  const pb=e.target.closest('#pano [data-p]'),pm=pb&&panoL[+pb.dataset.p]?.m;
+  if(pm?.trim()){const r=pb.getBoundingClientRect();return panoMenu(e.clientX||r.left+12,e.clientY||r.bottom,pm)}
   const sp=e.target.closest('#sp');if(sp&&spDurum){const r=sp.getBoundingClientRect();return spMenu(e.clientX||r.left+12,e.clientY||r.top+12)}
   const mb=e.target.closest('#mail [data-m]'),mm=mb&&mailV?.liste[+mb.dataset.m];if(mm){const r=mb.getBoundingClientRect();return mailMenu(e.clientX||r.left+12,e.clientY||r.bottom,mm)}
   const kr=e.target.closest('#kur [data-c]');if(kr){const r=kr.getBoundingClientRect();return kurAlarmMenu(e.clientX||r.left+12,e.clientY||r.bottom,kr.dataset.c)}
@@ -3163,23 +3164,31 @@ async function sistem(){
 }
 // Clipboard history: the last 20 texts, in memory only (cleared when RYOCS closes), collected only while the card is open.
 // Copies that password managers mark "exclude from history" are skipped on the Rust side. Clicking a row copies the text again.
-let panoL=[],panoDurdu=false;try{panoDurdu=localStorage.panoDur==='1'}catch{}
+// panoL: [{m: text, t: copied (ms), s: pinned}]; panoSurum: the server's version of the list we have (only a change is sent)
+let panoL=[],panoDurdu=false,panoSurum=0,panoCizT=0;try{panoDurdu=localStorage.panoDur==='1'}catch{}
 async function panoAyar(temizle){
   const acik=!!S&&kartAcik('pano');
-  const r=await api('/api/pano',{acik:acik&&!panoDurdu,temizle:!!temizle||!acik}); // the history is cleared when the card is closed
+  const r=await api('/api/pano',{acik:acik&&!panoDurdu,...!acik?{temizle:'hepsi'}:temizle?{temizle:true}:{}}); // closing the card clears all, "Clear" keeps the pinned ones
   $('#panoDur').textContent=panoDurdu?L('Devam et','Resume'):L('Duraklat','Pause');$('#panoDur').title=panoDurdu?L('Kopyalananları yeniden topla','Collect copied text again'):L('Kopyalananları toplamayı durdur','Stop collecting copied text');
   panoCiz(r);
 }
-async function pano(){if(S&&kartAcik('pano')&&!gizliMi())panoCiz(await api('/api/pano',{}))}
+// every 2 s: only the version is exchanged until something changes; the "… ago" times are redrawn once a minute
+async function pano(){if(S&&kartAcik('pano')&&!gizliMi())panoCiz(await api('/api/pano',{surum:panoSurum}))}
 function panoCiz(r){
-  if(r.durum!=='ok'||!Array.isArray(r.veri?.liste))return ekYaz('#pano',L('<p class="m">Pano okunamadı.</p>','<p class="m">Could not read the clipboard.</p>'));
-  panoL=r.veri.liste;
-  ekYaz('#pano',panoL.map((m,i)=>`<button class="pn" data-p="${i}" title="${esc(m.slice(0,300))}">${esc(m.trim().slice(0,160))}</button>`).join('')
+  if(r.durum!=='ok'||(!Array.isArray(r.veri?.liste)&&r.veri?.surum!==panoSurum))return ekYaz('#pano',L('<p class="m">Pano okunamadı.</p>','<p class="m">Could not read the clipboard.</p>'));
+  if(Array.isArray(r.veri.liste)){panoL=r.veri.liste.map(x=>typeof x==='string'?{m:x}:x).filter(x=>typeof x?.m==='string');panoSurum=r.veri.surum||0}
+  else if(Date.now()-panoCizT<6e4)return;
+  panoCizT=Date.now();
+  ekYaz('#pano',panoL.map(({m,t,s},i)=>`<button class="pn${s?' sabit':''}" data-p="${i}" title="${esc(m.slice(0,300))}"><span>${s?'📌 ':''}${esc(m.trim().slice(0,160))}</span>${t?`<small>${oncesi(t)}</small>`:''}</button>`).join('')
     ||`<p class="m">${panoDurdu?L('Duraklatıldı: kopyaladıkların toplanmıyor.','Paused: your copies are not being collected.'):L('Kopyaladığın metinler burada görünür. Yalnız bellekte tutulur, RYOCS kapanınca silinir.','Text you copy appears here. Kept only in memory and cleared when RYOCS closes.')}</p>`);
 }
-$('#pano').onclick=e=>{const b=e.target.closest('[data-p]'),m=b&&panoL[+b.dataset.p];if(m)navigator.clipboard.writeText(m).then(()=>tost(L('Panoya kopyalandı','Copied to clipboard')),()=>tost(L('Kopyalanamadı','Could not copy')))};
+$('#pano').onclick=e=>{const b=e.target.closest('[data-p]'),m=b&&panoL[+b.dataset.p]?.m;if(m)navigator.clipboard.writeText(m).then(()=>tost(L('Panoya kopyalandı','Copied to clipboard')),()=>tost(L('Kopyalanamadı','Could not copy')))};
+// server change from the menu: the answer carries the new list
+const panoIs=async b=>{panoCiz(await api('/api/pano',b))};
 function panoMenu(x,y,m){
-  menu(x,y,[[L('Görev olarak ekle','Add as task'),()=>{S.todos.push({t:m.split('\n')[0].slice(0,300),d:false});ciz();kaydet();tost(L('Görevlere eklendi','Added to tasks'))}],
+  const o=panoL.find(x=>x.m===m);
+  menu(x,y,[o?[o.s?L('Sabitlemeyi kaldır','Unpin'):L('Sabitle','Pin'),()=>panoIs({sabitle:{m,on:!o.s}})]:0,
+    o?[L('Sil','Delete'),()=>panoIs({sil:m}),'teh']:0,null,[L('Görev olarak ekle','Add as task'),()=>{S.todos.push({t:m.split('\n')[0].slice(0,300),d:false});ciz();kaydet();tost(L('Görevlere eklendi','Added to tasks'))}],
     [L('Nota ekle','Add to note'),()=>{const n=S.notlar[S.aktifNot];n.metin+=(n.metin&&!n.metin.endsWith('\n')?'\n':'')+m;n.t=Date.now();notCiz();kaydet();tost(`"${n.ad}" ${L('notuna eklendi','note updated')}`)}]])}
 $('#panoDur').onclick=()=>{panoDurdu=!panoDurdu;try{localStorage.panoDur=panoDurdu?'1':''}catch{}panoAyar()};
 $('#panoSil').onclick=()=>panoAyar(true);

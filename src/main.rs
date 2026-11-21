@@ -676,15 +676,28 @@ fn sistem() -> Value {
 }
 
 /// Clipboard history: kept in memory only, only while the card is open (PANO_ACIK); never written to disk.
-static PANO: Mutex<Vec<String>> = Mutex::new(Vec::new());
+/// An item: the text, when it was copied (ms) and whether it is pinned. Pinned items stay on top and do not drop off the end.
+struct PanoOge {
+    m: String,
+    t: u64,
+    sabit: bool,
+}
+static PANO: Mutex<Vec<PanoOge>> = Mutex::new(Vec::new());
 static PANO_ACIK: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
-fn pano_ekle(l: &mut Vec<String>, m: String) {
+/// Raised on every change: the card polls every 2 s and gets the list only when this differs from what it has.
+static PANO_SURUM: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(1);
+fn pano_ekle(l: &mut Vec<PanoOge>, m: String, t: u64) -> bool {
     if m.trim().is_empty() || m.chars().count() > 5000 {
-        return; // empty or very long text (file dumps etc.) is not kept
+        return false; // empty or very long text (file dumps etc.) is not kept
     }
-    l.retain(|x| *x != m);
-    l.insert(0, m);
-    l.truncate(20);
+    let sabit = l.iter().any(|x| x.m == m && x.sabit);
+    l.retain(|x| x.m != m);
+    // newest on top of its group: pinned ones first, then the others (at most 20 unpinned)
+    let i = if sabit { 0 } else { l.iter().take_while(|x| x.sabit).count() };
+    l.insert(i, PanoOge { m, t, sabit });
+    let mut acik = 0;
+    l.retain(|x| x.sabit || { acik += 1; acik <= 20 });
+    true
 }
 /// Reads plain text from the clipboard. Content carrying password managers' "exclude from history" markers is skipped.
 fn pano_oku() -> Option<String> {
@@ -732,16 +745,39 @@ fn pano_izle() {
         son = n;
         if !PANO_ACIK.load(Relaxed) { continue; } // copies made while it was off are not picked up later
         if let Some(m) = pano_oku() {
-            pano_ekle(&mut kilit(&PANO), m);
+            let t = SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_millis() as u64).unwrap_or(0);
+            if pano_ekle(&mut kilit(&PANO), m, t) {
+                PANO_SURUM.fetch_add(1, Relaxed);
+            }
         }
     }
 }
+/// {acik, temizle: true (unpinned) | "hepsi" (all, when the card closes), sil: text, sabitle: {m, on}, surum}
 fn pano(b: &str) -> Value {
     use std::sync::atomic::Ordering::Relaxed;
     let r: Value = serde_json::from_str(b).unwrap_or_default();
     if let Some(a) = r["acik"].as_bool() { PANO_ACIK.store(a, Relaxed); }
-    if r["temizle"] == true { kilit(&PANO).clear(); }
-    json!({ "acik": PANO_ACIK.load(Relaxed), "liste": *kilit(&PANO) })
+    let mut l = kilit(&PANO);
+    let n = l.len();
+    if r["temizle"] == "hepsi" { l.clear(); } else if r["temizle"] == true { l.retain(|x| x.sabit); }
+    if let Some(m) = r["sil"].as_str() { l.retain(|x| x.m != m); }
+    let mut degisti = l.len() != n;
+    if let (Some(m), Some(on)) = (r["sabitle"]["m"].as_str(), r["sabitle"]["on"].as_bool()) {
+        if let Some(i) = l.iter().position(|x| x.m == m && x.sabit != on) {
+            let mut o = l.remove(i);
+            o.sabit = on;
+            let j = if on { 0 } else { l.iter().take_while(|x| x.sabit).count() };
+            l.insert(j, o);
+            degisti = true;
+        }
+    }
+    if degisti { PANO_SURUM.fetch_add(1, Relaxed); }
+    let surum = PANO_SURUM.load(Relaxed);
+    let mut v = json!({ "acik": PANO_ACIK.load(Relaxed), "surum": surum });
+    if r["surum"].as_u64() != Some(surum) {
+        v["liste"] = l.iter().map(|x| json!({ "m": x.m, "t": x.t, "s": x.sabit })).collect();
+    }
+    v
 }
 
 /// OneDrive sync: data.json is paired with <OneDrive>\RYOCS\data.json. esitle.json: {acik, klasor, oz}.
@@ -2545,13 +2581,21 @@ mod tests {
     #[test]
     fn pano_son_yirmi_ve_tekrarsiz() {
         let mut l = Vec::new();
-        for i in 0..25 { pano_ekle(&mut l, format!("m{i}")); }
-        assert_eq!((l.len(), l[0].as_str(), l[19].as_str()), (20, "m24", "m5"));
-        pano_ekle(&mut l, "m10".into()); // a re-copied item moves to the top, no duplicates
-        assert_eq!((l.len(), l[0].as_str()), (20, "m10"));
-        pano_ekle(&mut l, "   ".into());
-        pano_ekle(&mut l, "x".repeat(5001));
-        assert_eq!(l[0], "m10");
+        for i in 0..25 { pano_ekle(&mut l, format!("m{i}"), i); }
+        assert_eq!((l.len(), l[0].m.as_str(), l[19].m.as_str()), (20, "m24", "m5"));
+        assert!(pano_ekle(&mut l, "m10".into(), 99)); // a re-copied item moves to the top, no duplicates
+        assert_eq!((l.len(), l[0].m.as_str(), l[0].t), (20, "m10", 99));
+        assert!(!pano_ekle(&mut l, "   ".into(), 1) && !pano_ekle(&mut l, "x".repeat(5001), 1));
+        assert_eq!(l[0].m, "m10");
+        // pinned: stays on top, never drops off, keeps its pin when copied again
+        l[5].sabit = true;
+        let s = l.remove(5);
+        l.insert(0, s);
+        for i in 0..30 { pano_ekle(&mut l, format!("y{i}"), 200 + i); }
+        assert_eq!((l.len(), l[0].sabit, l[1].m.as_str()), (21, true, "y29"));
+        let m = l[0].m.clone();
+        pano_ekle(&mut l, m.clone(), 300);
+        assert_eq!((l[0].m.as_str(), l[0].sabit), (m.as_str(), true));
     }
 
     #[test]

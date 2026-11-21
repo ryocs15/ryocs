@@ -4,6 +4,11 @@ All releases: [GitHub Releases](https://github.com/ryocs15/ryocs/releases). Your
 
 ## Unreleased
 
+**Clipboard**
+- Right-click an item to pin it (it stays on top and does not drop off the list) or to delete it; "Clear" keeps the pinned ones. Everything is still kept only in memory.
+- Each item shows when it was copied.
+- Less work while the card is open: every 2 s only a version number is checked, the list itself is sent only when it changed.
+
 **System**
 - Every fixed drive is shown (the system drive first, up to 4), not only the system drive.
 - A bar at 90 % or more (a nearly full disk, memory) turns red.

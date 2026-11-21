@@ -33,12 +33,12 @@ panoCiz({durum:'ok',veri:{liste:['Faturayı öde\nikinci satır','x']}});
 const n0=S.todos.length,b=q('#pano [data-p="0"]');
 b.dispatchEvent(new MouseEvent('contextmenu',{bubbles:true,clientX:10,clientY:10}));
 const m=[...document.querySelectorAll('#menu button')];
-esit('menu items',m.map(x=>x.textContent),['Görev olarak ekle','Nota ekle']);
-m[0].click();
+esit('menu items',m.map(x=>x.textContent),['Sabitle','Sil','Görev olarak ekle','Nota ekle']);
+m[2].click();
 esit('task added from the first line',S.todos.slice(n0).map(t=>t.t),['Faturayı öde']);
 const not=S.notlar[S.aktifNot],once=not.metin;
 b.dispatchEvent(new MouseEvent('contextmenu',{bubbles:true,clientX:10,clientY:10}));
-document.querySelectorAll('#menu button')[1].click();
+document.querySelectorAll('#menu button')[3].click();
 dogru('appended to the current note',not.metin.startsWith(once)&&not.metin.endsWith('Faturayı öde\nikinci satır'));
 window.fetch=f0;
 // damaged entries in a loaded or imported file: the panel still draws
