@@ -56,8 +56,18 @@ await bek(400);
 esit('switch: same card parts',[h2===el.querySelector('h2'),seg===el.querySelector('.seg'),ek===q('#havaEk'),govde===el.querySelector('.havaGovde')],[true,true,true,true]);
 esit('switch: title and pressed button',[el.querySelector('.hvAd').textContent,[...el.querySelectorAll('.hvSehir button')].map(b=>b.getAttribute('aria-pressed'))],['Yeşilova',['false','true']]);
 esit('switch: no number pop',pop,0);
-el.querySelector('.hvSehir [data-hs=""]').click();await bek(400);
-esit('switch back',[el.querySelector('.hvAd').textContent,h2===el.querySelector('h2')],['Köyceğiz',true]);
+// the top line and the clock card follow the shown city at once, with an opacity-only fade (nothing slides there)
+dogru('switch: top line follows',q('#gunOzet').textContent.includes('Yeşilova 38°'));
+dogru('switch: sunrise follows',!havaC['37.5,29.75'].v.daily?.sunrise?.[0]||q('#gunes span').title.endsWith(' · Yeşilova'));
+const n0=q('#gunOzet').getAnimations().length; // headless: the timeline may not advance, so earlier fades can still be listed
+el.querySelector('.hvSehir [data-hs=""]').click();await bek(30);
+const solma=q('#gunOzet').getAnimations();
+esit('switch: top line fades only',[solma.length-n0,solma.some(kaydi)],[1,false]);
+await bek(400);
+esit('switch back',[el.querySelector('.hvAd').textContent,h2===el.querySelector('h2'),q('#gunOzet').textContent.includes('Yeşilova')],['Köyceğiz',true,false]);
+const n1=q('#gunOzet').getAnimations().length;tick();await bek(1100);esit('next ticks: no new fade',q('#gunOzet').getAnimations().length,n1);
+// forecast times are the place's own clock
+esit('place time → moment',[yerAn({utc_offset_seconds:3600},'2026-11-21T08:00').toISOString(),+yerAn({},'2026-11-21T08:00')],['2026-11-21T07:00:00.000Z',+new Date('2026-11-21T08:00')]);
 
 // a city not loaded yet: only it is fetched, its button shows loading, extra clicks are ignored
 S.ayar.sehirler.push({ad:'Yeşilova',bolge:'Tufanbeyli, Adana',lat:38.2,lon:36.2});delete havaC['38.2,36.2'];havaCiz();

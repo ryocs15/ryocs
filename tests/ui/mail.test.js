@@ -31,6 +31,8 @@ okCevap={durum:'izin_yok'};mailMenu(10,10,mailV.liste[1]);[...q('#menu').querySe
 esit('menu: no permission puts it back',[okundu.at(-1),mailV.liste[1].yeni,q('#mailSay').textContent,q('#tost').textContent.startsWith('Update the Google permission')],['b2',true,'41',true]);
 okCevap={durum:'ok'};mailMenu(10,10,mailV.liste[1]);[...q('#menu').querySelectorAll('button')].find(b=>b.textContent==='Mark as read').click();await bek(50);
 esit('menu: marked read',[mailV.liste[1].yeni,q('#mailSay').textContent],[false,'40']);
+cevap={durum:'ok',veri:{okunmamis:42,liste:[{id:'a1',konu:'x',kimden:'a@b',zincir:'18c2ab',t:null,yeni:true},{id:'b2',konu:'y',kimden:'a@b',zincir:'b2',t:null,yeni:true},{id:'c3',konu:'Eski',kimden:'x@y',zincir:'c3',t:null,yeni:false}]}};await mail(true);
+esit('older refresh: marked mails stay read',[mailV.liste.map(m=>m.yeni),q('#mailSay').textContent],[[false,false,false],'40']);
 mailMenu(10,10,mailV.liste[2]);esit('read mail: no mark item',[...q('#menu').querySelectorAll('button')].map(b=>b.textContent),['Open in Gmail']);q('#menu').hidePopover?.();
 cevap={durum:'İnternete bağlanılamadı'};await mail(true);
 esit('error keeps the last list',[q('#mail').querySelectorAll('.hb').length,q('#mailAlt').textContent.endsWith(' · could not refresh')],[3,true]);

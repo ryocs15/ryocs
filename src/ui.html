@@ -1304,13 +1304,19 @@ function bar7(o,ad){
     +g.map(([d,n])=>`<span title="${d.toLocaleDateString(LOC,{weekday:'long'})}: ${n} ${ad}"><b>${n||''}</b><i style="height:${Math.max(3,n/en*52)}px"></i>${d.toLocaleDateString(LOC,{weekday:'narrow'})}</span>`).join('')+'</div>';
 }
 // Clock extra: daylight bar and long date
+// Forecast times ("2026-11-21T07:12") are on the place's own clock: with the offset they become real moments, so another
+// city's daylight is right too. An older cache without the offset: our own clock, as before.
+const yerAn=(w,t)=>w.utc_offset_seconds!=null?new Date(Date.parse(t+'Z')-w.utc_offset_seconds*1e3):new Date(t);
+const yerBugun=w=>w.utc_offset_seconds!=null?new Date(Date.now()+w.utc_offset_seconds*1e3).toISOString().slice(0,10):gunStr(new Date());
+// the city the weather card shows: its name goes in front when it is not the main city
+const ustYer=()=>{const w=havaGoster();return{w,ad:w&&w!==havaV?String(w.sehir||''):''}};
 function saatEk(){
-  const n=new Date(),d=havaV?.daily;let h='';
-  const gd=d?.sunrise?.[0]&&new Date(d.sunrise[0]),gb=d?.sunset?.[0]&&new Date(d.sunset[0]);
-  if(gd&&gunStr(gd)===gunStr(n)){
-    const p=Math.min(1,Math.max(0,(n-gd)/(gb-gd))),ys=d.sunrise[1]&&new Date(d.sunrise[1]);
+  const n=new Date(),{w,ad}=ustYer(),d=w?.daily;let h='';
+  const gd=d?.sunrise?.[0]&&yerAn(w,d.sunrise[0]),gb=d?.sunset?.[0]&&yerAn(w,d.sunset[0]);
+  if(gd&&d.sunrise[0].slice(0,10)===yerBugun(w)){
+    const p=Math.min(1,Math.max(0,(n-gd)/(gb-gd))),ys=d.sunrise[1]&&yerAn(w,d.sunrise[1]);
     const yazi=n<gd?L('Gün doğumuna ','Sunrise in ')+sureYaz(gd-n):n<gb?L('Gün batımına ','Sunset in ')+sureYaz(gb-n):ys>n?L('Gün doğumuna ','Sunrise in ')+sureYaz(ys-n):L('Gün battı','The sun has set');
-    h+=`${L('<div class="gIsik"><h3>Gün ışığı · ','<div class="gIsik"><h3>Daylight · ')}${sureYaz(gb-gd)}</h3><div class="cizgi" style="--p:${p*100}%"><i></i></div><div class="ekSat"><span>${saatS(d.sunrise[0].slice(11,16))}</span><span>${yazi}</span><span>${saatS(d.sunset[0].slice(11,16))}</span></div></div>`;
+    h+=`${L('<div class="gIsik"><h3>Gün ışığı · ','<div class="gIsik"><h3>Daylight · ')}${ad?esc(ad)+' · ':''}${sureYaz(gb-gd)}</h3><div class="cizgi" style="--p:${p*100}%"><i></i></div><div class="ekSat"><span>${saatS(d.sunrise[0].slice(11,16))}</span><span>${yazi}</span><span>${saatS(d.sunset[0].slice(11,16))}</span></div></div>`;
   }
   const y0=new Date(n.getFullYear(),0,1),yg=Math.floor((n-y0)/864e5)+1,yt=Math.round((new Date(n.getFullYear()+1,0,1)-y0)/864e5),yp=Math.floor((n-y0)/(yt*864e5)*100);
   h+=`<div class="gTarih"><b>${n.toLocaleDateString(LOC,{day:'numeric',month:'long',year:'numeric',weekday:'long'})}</b><small>${haftaNo(n)}${L('. hafta · yılın ',' · week ')}${yg}${L('. günü · ',' of the year · ')}${yt-yg}${L(' gün kaldı</small><div class="cizgi"><i style="width:',' days left</small><div class="cizgi"><i style="width:')}${yp}${L('%"></i></div><div class="ekSat"><span>Yıl</span><span>%','%"></i></div><div class="ekSat"><span>Year</span><span>')}${yp}${L(' tamamlandı</span></div></div>','% complete</span></div></div>')}`;
@@ -1355,8 +1361,8 @@ function ustCiz(){
   if(s){const dk=Math.ceil((zaman(s)-n)/6e4);cip=etkAd(s)+' · '+(kalanYazi(dk)||(evGun(s)===bugun?saat(zaman(s)):L('yarın ','tomorrow ')+saat(zaman(s))));cipE=s}
   else{const y=ev.find(e=>tur(e)&&evGun(e)===yarin);if(y){cip=L('Yarın: ','Tomorrow: ')+etkAd(y);cipE=y}}
   // summary of the day: today's timed events and special days, tasks due today, current weather
-  const bugunE=ev.filter(e=>evGunde(e,bugun)&&(e.start.dateTime||tur(e))),gb=S?S.todos.filter(t=>!t.d&&t.due&&t.due.slice(0,10)<=bugun).length:0;
-  const oz=[bugunE.length?bugunE.length+L(' etkinlik',bugunE.length>1?' events':' event'):'',gb?gb+L(' görev',gb>1?' tasks':' task'):'',havaV?Math.round(havaV.current.temperature_2m)+'° '+(WMO[havaV.current.weather_code]||'').toLocaleLowerCase(LOC):''].filter(Boolean).join(' · ');
+  const hy=ustYer(),bugunE=ev.filter(e=>evGunde(e,bugun)&&(e.start.dateTime||tur(e))),gb=S?S.todos.filter(t=>!t.d&&t.due&&t.due.slice(0,10)<=bugun).length:0;
+  const oz=[bugunE.length?bugunE.length+L(' etkinlik',bugunE.length>1?' events':' event'):'',gb?gb+L(' görev',gb>1?' tasks':' task'):'',hy.w?(hy.ad&&hy.ad+' ')+Math.round(hy.w.current.temperature_2m)+'° '+(WMO[hy.w.current.weather_code]||'').toLocaleLowerCase(LOC):''].filter(Boolean).join(' · ');
   // countdown: the nearest ⭐ important date (otherwise another special day); for an ongoing period, which day it is
   const g=ev.find(e=>tur(e)==='onemli'&&gunleri(e).at(-1)>=bugun)||ev.find(e=>tur(e)&&evGun(e)>bugun);
   let gs='',gsB=g?etkAd(g)+' · '+aralikYazi(g):'';
@@ -1369,7 +1375,7 @@ function ustCiz(){
   // second clock in our own zone is hidden; in Turkish it shows Turkey instead (for those living abroad)
   let tz=A('saat2')??'',ad=SAAT2[tz];
   if(tz&&dilimSaat(tz,n,1)===saat24(n)){tz=DIL==='tr'&&tz!=='Europe/Istanbul'?'Europe/Istanbul':'';ad=L('Türkiye','Turkey')}
-  const d=havaV?.daily,gunes=d?.sunrise?.[0]?`<span title="${L('Gün doğumu','Sunrise')}"><svg viewBox="0 0 24 24"><path d="M3 19h18M6.5 19a5.5 5.5 0 0 1 11 0M12 3.5v6M9 6.5l3-3 3 3"/></svg>${saatS(d.sunrise[0].slice(11,16))}</span><span title="${L('Gün batımı','Sunset')}"><svg viewBox="0 0 24 24"><path d="M3 19h18M6.5 19a5.5 5.5 0 0 1 11 0M12 3.5v6M9 6.5l3 3 3-3"/></svg>${saatS(d.sunset[0].slice(11,16))}</span>`:'';
+  const d=hy.w?.daily,yt=hy.ad?' · '+esc(hy.ad):'',gunes=d?.sunrise?.[0]?`<span title="${L('Gün doğumu','Sunrise')}${yt}"><svg viewBox="0 0 24 24"><path d="M3 19h18M6.5 19a5.5 5.5 0 0 1 11 0M12 3.5v6M9 6.5l3-3 3 3"/></svg>${saatS(d.sunrise[0].slice(11,16))}</span><span title="${L('Gün batımı','Sunset')}${yt}"><svg viewBox="0 0 24 24"><path d="M3 19h18M6.5 19a5.5 5.5 0 0 1 11 0M12 3.5v6M9 6.5l3 3 3-3"/></svg>${saatS(d.sunset[0].slice(11,16))}</span>`:'';
   const cevrim=!navigator.onLine||takvimUyarildi||!!document.querySelector('#hava .ag,#olay .ag');
   if(sonGuncel){const dk=Math.floor((Date.now()-sonGuncel)/6e4);$('#yenile').title=(cevrim?L('Çevrimdışı: son bilinen veriler gösteriliyor. ','Offline: showing the last known data. '):'')+L('Son güncelleme: ','Last updated: ')+(dk<1?L('az önce','just now'):dk+L(' dk önce',' min ago'))+L(' · Yenile (F5)',' · Refresh (F5)')}
   const yeni=JSON.stringify([cip,oz,gs,tz&&ad+' '+dilimSaat(tz,n),gunes,cevrim]);
@@ -1399,7 +1405,7 @@ const havaTur=k=>k===0?'gunes':k<=2?'parcali':k===3?'bulut':k<=48?'sis':k>=95?'f
 const havaIkon=k=>`<svg class="hi-${havaTur(k)}" viewBox="0 0 24 24" aria-hidden="true">${HS[havaTur(k)]}</svg>`; // class: animates by kind on hover
 let havaSon='',havaV=null,havaDenendi=false;
 // Extra weather cities (S.ayar.sehirler, at most 4: {ad,bolge,lat,lon}; older saves: a name string). The card switches between them;
-// alerts, sunrise and the summary always use the main city (havaV). havaSehir / havaC are keyed by yerAnahtar.
+// alerts and the greeting use the main city (havaV); the clock card and the top line follow the shown city (ustYer). havaSehir / havaC are keyed by yerAnahtar.
 let havaSehir='',havaC={},havaYuk=false;
 // Units: S.ayar.birim 'c' | 'f'; missing: °F for the US. The labels follow the data's own unit (w.birim from the server).
 const FAH=()=>{const b=A('birim');return b==='f'||(!b&&/-(US|LR|MM)$/i.test(LOC))};
@@ -1476,8 +1482,13 @@ function havaCiz(){
     const eski=havaSerit;havaSerit=serit;g.querySelector('.saatlik')?.remove();g.insertAdjacentHTML('beforeend',serit);
     if(eski&&!gecis)g.querySelector('.saatlik')?.classList.add('degisti');
   }
-  ekYaz('#havaEk',havaEk(w));saatEk();
-  if(gecis&&K.dataset.anim!=='off')for(const x of [ad,g,el.querySelector('#havaEk')])x?.animate([{opacity:0,transform:`translateX(${yon*14}px)`},{opacity:1,transform:'none'}],{duration:280,easing:'cubic-bezier(.2,.7,.3,1)'});
+  // the clock card and the top line follow the shown city at once, fading in with the card (opacity only: nothing moves or jumps)
+  const ust=[$('#gunOzet'),$('#gunes'),$('#saatEk')],once=ust.map(x=>x?.innerHTML);
+  ekYaz('#havaEk',havaEk(w));saatEk();if(gecis){ustSon='';ustCiz()}
+  if(gecis&&K.dataset.anim!=='off'){
+    for(const x of [ad,g,el.querySelector('#havaEk')])x?.animate([{opacity:0,transform:`translateX(${yon*14}px)`},{opacity:1,transform:'none'}],{duration:280,easing:'cubic-bezier(.2,.7,.3,1)'});
+    ust.forEach((x,i)=>x&&x.innerHTML!==once[i]&&x.animate([{opacity:0},{opacity:1}],{duration:280,easing:'ease-out'}));
+  }
 }
 // Weather extra (when the card is large): details, 24-hour curve, 7-day forecast. A block is skipped if an old cache lacks its fields.
 function havaEk(w){
@@ -3041,12 +3052,12 @@ $('#panoDur').onclick=()=>{panoDurdu=!panoDurdu;try{localStorage.panoDur=panoDur
 $('#panoSil').onclick=()=>panoAyar(true);
 // Gmail card (existing Google sign-in): the last 15 inbox messages, unread ones bold. Every 5 min while the card is open;
 // clicking opens the mail in the browser and marks it read, the right-click menu marks it read without opening.
-let mailV=null,mailHata='',mailT=0;
+let mailV=null,mailHata='',mailT=0;const mailOkunan=new Set(); // marked read here: a refresh that started earlier must not make them bold again
 async function mail(zorla){
   if(!S||!kartAcik('mail'))return;
   if(!zorla&&mailV&&Date.now()-mailT<3e5)return mailCiz();
   const r=await api('/api/mail');mailT=Date.now();
-  if(r.durum==='ok'&&Array.isArray(r.veri?.liste)){mailV=r.veri;mailHata=''}else mailHata=String(r.durum);
+  if(r.durum==='ok'&&Array.isArray(r.veri?.liste)){mailV=r.veri;mailHata='';for(const m of mailV.liste)if(mailOkunan.has(m.id)&&m.yeni){m.yeni=false;mailV.okunmamis=Math.max(0,(+mailV.okunmamis||0)-1)}}else mailHata=String(r.durum);
   mailCiz();
 }
 const mailAd=f=>{const m=String(f).match(/^\s*"?([^"<]*?)"?\s*<([^>]+)>/);return m?m[1].trim()||m[2]:String(f)}; // "Ali Veli <ali@x>" → Ali Veli
@@ -3063,9 +3074,10 @@ function mailCiz(){
 }
 // marks read at once in the card; a failed request puts it back (opening the mail in Gmail marks it read anyway, so a click stays quiet)
 async function mailOkundu(m,sessiz){
-  if(!m?.yeni)return;m.yeni=false;mailV.okunmamis=Math.max(0,(+mailV.okunmamis||0)-1);mailCiz();
+  if(!m?.yeni)return;m.yeni=false;mailOkunan.add(m.id);mailV.okunmamis=Math.max(0,(+mailV.okunmamis||0)-1);mailCiz();
   const r=await api('/api/mail_okundu',{id:m.id});if(r.durum==='ok'||sessiz)return;
-  m.yeni=true;mailV.okunmamis++;mailCiz();
+  mailOkunan.delete(m.id);const g=mailV?.liste.find(x=>x.id===m.id); // the list may have been refreshed meanwhile
+  if(g&&!g.yeni){g.yeni=true;mailV.okunmamis++;mailCiz()}
   if(r.durum==='izin_yok')tost(L('Okundu işaretlemek için Google iznini güncelle','Update the Google permission to mark mail as read'),L('İzni güncelle','Update permission'),()=>bagla('google'));
   else tost(L('İşaretlenemedi: ','Could not mark: ')+r.durum);
 }
