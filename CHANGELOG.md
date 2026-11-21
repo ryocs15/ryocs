@@ -2,9 +2,10 @@
 
 All releases: [GitHub Releases](https://github.com/ryocs15/ryocs/releases). Your data (`%APPDATA%\RYOCS`) is kept by every update.
 
-## Unreleased
+## 1.1.5 (2026-11-21)
 
 **Added**
+- The clock card and the top line follow the city the weather card shows: temperature, sunrise and sunset, and the daylight bar (in that city's own time). They fade in together with the card.
 - Gmail card: the last 15 inbox messages, not only unread ones; unread ones are bold. Clicking a message opens it and marks it read; the right-click menu marks it read without opening. Marking needs the updated Google permission (RYOCS asks when you first try); it cannot delete or send mail.
 
 **Changed**
