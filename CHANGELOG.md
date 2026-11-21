@@ -2,6 +2,14 @@
 
 All releases: [GitHub Releases](https://github.com/ryocs15/ryocs/releases). Your data (`%APPDATA%\RYOCS`) is kept by every update.
 
+## Unreleased
+
+**Currency and gold**
+- Converter: the ⇄ button in the card title opens a small converter (an amount in a shown currency ⇄ the home currency, at the card's own rates).
+- Gold and silver alerts: click the gold or silver row; the alert keeps its unit (gram or ounce).
+- Gold and silver show their change since the previous day, in the home currency.
+- Fixed: a rate alert could fire, and be removed, on rates cached days ago when RYOCS started; alerts now check only rates fetched in the last hour.
+
 ## 1.1.7 (2026-11-21)
 
 Three cards got their own round of work: weather, Spotify and focus.
