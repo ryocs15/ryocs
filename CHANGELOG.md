@@ -2,30 +2,35 @@
 
 All releases: [GitHub Releases](https://github.com/ryocs15/ryocs/releases). Your data (`%APPDATA%\RYOCS`) is kept by every update.
 
-## Unreleased
+## 1.1.6 (2026-11-21)
 
-**Added**
-- Focus: a long break (15 min) after every 4th work round of the day; both numbers are in the card settings, 0 minutes turns it off.
-- Focus: right-click the timer to skip the round (a skipped work round is not counted) or add 5 minutes.
-- Spotify: click on the progress bar (or use the arrow keys on it) to jump in the track.
-- Spotify: the device, shuffle and repeat show under the bar; click there or right-click the card to turn shuffle and repeat on or off, or move playback to another device.
-- Spotify: click the title to open the track in Spotify.
-- Weather: an icon next to the current temperature (a moon at night).
-- Weather: a line under the current weather says when rain starts or stops in the next 12 hours, and how much warmer or colder it is than yesterday at this hour.
-- Weather: air quality (European index, PM2.5) and, in Europe, pollen in the details when the card is large.
-- Weather: click a day in the 7-day list or the 3-day strip to see its hours; click it again to go back.
-- Weather: the morning alert also covers thunderstorms, snow, strong gusts, extreme heat and poor air.
-- Weather: a note with tomorrow's weather once in the evening, after 6 pm (Settings → Notifications → Tomorrow's weather).
+Three cards got their own round of work: weather, Spotify and focus.
 
-**Fixed**
-- Focus: a round that ended while RYOCS was closed is counted when it opens again (before, it could be lost), without a late notification.
+**Weather**
+- An icon next to the current temperature (a moon at night); clear and partly cloudy nights show a moon in the hourly strip too.
+- A line under the current weather says when rain starts or stops in the next 12 hours, and how much warmer or colder it is than yesterday at this hour.
+- Air quality (European index, PM2.5) and, in Europe, pollen in the details when the card is large.
+- Click a day in the 7-day list or the 3-day strip to see its hours; click it again to go back.
+- The morning alert also covers thunderstorms, snow, strong gusts, extreme heat and poor air.
+- A note with tomorrow's weather once in the evening, after 6 pm (Settings → Notifications → Tomorrow's weather).
+- Fixed: for a city in another time zone the hourly strip and the 24-hour curve start at that city's current hour.
+- Fixed: the rain chance next to the current temperature says "rain today", because it is the day's highest chance.
+- The daylight bar, the sunrise/sunset tips and the top line name the main city too, like the other cities.
+
+**Spotify**
+- Podcasts show the episode, the show and its cover (before, the card said nothing was playing).
+- Click on the progress bar (or use the arrow keys on it) to jump in the track.
+- The device, shuffle and repeat show under the bar; click there or right-click the player to turn shuffle and repeat on or off, or move playback to another device.
+- Click the title to open the track in Spotify.
+- The next track shows right when a track ends, and the card asks Spotify only every 15 s while nothing plays (5 s while playing).
+
+**Focus**
+- A long break (15 min) after every 4th work round of the day; both numbers are in the card settings, 0 minutes turns it off.
+- Right-click the timer to skip the round (a skipped work round is not counted) or add 5 minutes.
+- Fixed: a round that ended while RYOCS was closed is counted when it opens again (before, it could be lost), without a late notification.
+
+**Other fixes**
 - Card settings: a number field accepts 0 where 0 is allowed (before, it went back to the default).
-- Spotify: podcasts show the episode, the show and its cover (before, the card said nothing was playing).
-- Spotify: the next track shows right when a track ends, and the card asks Spotify only every 15 s while nothing plays (5 s while playing).
-- Weather: clear and partly cloudy nights show a moon instead of a sun (hourly strip, other cities).
-- Weather: for a city in another time zone the hourly strip and the 24-hour curve start at that city's current hour.
-- Weather: the rain chance next to the current temperature says "rain today", because it is the day's highest chance.
-- The daylight bar, the sunrise/sunset tips and the top line name the main city too, like the other cities (before, only the other cities were named).
 - Gmail card: a mail marked read in RYOCS and then marked unread again in Gmail shows as unread again (before, it stayed read until RYOCS restarted).
 
 ## 1.1.5 (2026-11-21)
