@@ -1183,9 +1183,15 @@ let ilkTik=true,sonGun=gunStr(new Date());
 // but nothing is redrawn every second and Spotify / news / mail / system / clipboard are not polled.
 let gorunmez=false;
 const gizliMi=()=>gorunmez||document.hidden;
-const uykuYaz=()=>K.classList.toggle('uyku',gorunmez||!document.hasFocus());
-addEventListener('blur',uykuYaz);addEventListener('focus',uykuYaz);
-function gizlendi(g){gorunmez=g;uykuYaz();if(!g&&S){ustSon='';tick();saatEk();takvimEk();notBilgi();haberCiz();spotify();haber();mail();sistem();pano()}}
+// Idle: no mouse or keyboard input for 5 minutes also pauses the moving background and the Spotify bars (the next input resumes them)
+const BOSTA_MS=3e5;let sonGirdi=Date.now(),bosta=false;
+const uykuYaz=()=>K.classList.toggle('uyku',gorunmez||bosta||!document.hasFocus());
+const girdi=()=>{sonGirdi=Date.now();if(bosta){bosta=false;uykuYaz()}};
+const bostaDenetle=()=>{const b=!gorunmez&&Date.now()-sonGirdi>=BOSTA_MS;if(b!==bosta){bosta=b;uykuYaz()}};
+for(const o of ['pointermove','pointerdown','keydown','wheel'])addEventListener(o,girdi,{passive:true,capture:true});
+setInterval(bostaDenetle,3e4);
+addEventListener('blur',uykuYaz);addEventListener('focus',girdi);addEventListener('focus',uykuYaz);
+function gizlendi(g){gorunmez=g;if(!g){sonGirdi=Date.now();bosta=false}uykuYaz();if(!g&&S){ustSon='';tick();saatEk();takvimEk();notBilgi();haberCiz();spotify();haber();mail();sistem();pano()}}
 function tick(){
   const d=new Date(),sn=d.getHours()*3600+d.getMinutes()*60+d.getSeconds();
   if(gunStr(d)!==sonGun){sonGun=gunStr(d);if(S){ciz();odakIstat()}takvim()} // midnight: refresh everything tied to "today"
