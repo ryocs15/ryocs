@@ -2114,6 +2114,10 @@ fn main() {
                 *control_flow = ControlFlow::Exit;
             }
             Event::UserEvent(Olay::Goster(one)) if !kapaniyor && (one || (!gizli && !window.is_visible())) => goster(),
+            // started in the tray (--gizli): the page is told it is hidden, or it polls and animates until the window is opened once
+            Event::UserEvent(Olay::Goster(false)) if gizli && !window.is_visible() => {
+                webview.evaluate_script("window.gizlendi&&gizlendi(true)").ok();
+            }
             Event::UserEvent(Olay::Degistir) if !kapaniyor => {
                 if window.is_visible() && window.is_focused() && !window.is_minimized() {
                     hata_kaydet("info: hidden by the shortcut");
