@@ -41,6 +41,8 @@ en.Masaustu=Create a desktop shortcut
 tr.Masaustu=Masaüstüne kısayol oluştur
 en.Baslat=Start RYOCS
 tr.Baslat=RYOCS'u başlat
+en.WebView2=Installing the Microsoft Edge WebView2 Runtime (needed by RYOCS)...
+tr.WebView2=Microsoft Edge WebView2 Runtime kuruluyor (RYOCS için gerekli)...
 
 [Tasks]
 Name: "masaustu"; Description: "{cm:Masaustu}"; Flags: unchecked
@@ -62,7 +64,7 @@ Name: "{autodesktop}\RYOCS"; Filename: "{app}\ryocs.exe"; AppUserModelID: "RYOCS
 Root: HKCU; Subkey: "Software\Classes\AppUserModelId\RYOCS"; Flags: uninsdeletekey
 
 [Run]
-Filename: "{tmp}\MicrosoftEdgeWebview2Setup.exe"; Parameters: "/silent /install"; StatusMsg: "Microsoft Edge WebView2 Runtime..."; Flags: waituntilterminated; Check: WebView2Kur
+Filename: "{tmp}\MicrosoftEdgeWebview2Setup.exe"; Parameters: "/silent /install"; StatusMsg: "{cm:WebView2}"; Flags: waituntilterminated; Check: WebView2Kur
 Filename: "{app}\ryocs.exe"; Description: "{cm:Baslat}"; Flags: nowait postinstall skipifsilent
 ; one-click update in the app runs this installer with /SILENT: start RYOCS again afterwards
 Filename: "{app}\ryocs.exe"; Flags: nowait; Check: WizardSilent
