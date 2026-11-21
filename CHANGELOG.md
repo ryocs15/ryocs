@@ -2,6 +2,12 @@
 
 All releases: [GitHub Releases](https://github.com/ryocs15/ryocs/releases). Your data (`%APPDATA%\RYOCS`) is kept by every update.
 
+## 1.1.3 (unreleased)
+
+**Fixed**
+- Less CPU and GPU: the moving background and the Spotify bars pause while RYOCS is in the tray or behind another window.
+- One-click update stops if the data cannot be saved first, and old installers are removed from the temporary folder.
+
 ## 1.1.2 (2026-11-21)
 
 **Changed**

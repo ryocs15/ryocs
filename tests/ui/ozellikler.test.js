@@ -3,7 +3,7 @@
 const {esit,dogru,q,bek}=RT;
 const f0=window.fetch;let acilan=null;
 window.fetch=async(p,a)=>{
-  if(p==='/api/guncelleme')return{json:async()=>({durum:'ok',veri:{surum:'0.4.2',son:'0.5.0',yeni:true,url:'https://github.com/ryocs15/ryocs/releases/tag/v0.5.0'}})};
+  if(p==='/api/guncelleme')return{json:async()=>({durum:'ok',veri:{surum:'0.4.2',son:'0.5.0',yeni:true}})};
   if(p==='/api/open'){acilan=JSON.parse(a.body).url;return{json:async()=>({durum:'ok'})}}
   if(p==='/api/state'&&a?.method==='POST')return{json:async()=>({durum:'ok'})};
   return f0(p,a)};

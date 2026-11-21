@@ -516,7 +516,6 @@ fn guncelleme() -> Result<Value, String> {
     Ok(json!({
         "surum": env!("CARGO_PKG_VERSION"), "son": s,
         "yeni": Some(son) > surum_sayi(env!("CARGO_PKG_VERSION")),
-        "url": format!("https://github.com/ryocs15/ryocs/releases/tag/v{s}"),
     }))
 }
 
@@ -1997,6 +1996,12 @@ fn main() {
 
     // only the instance that owns the port encrypts older files: two at once would write the same temporary files (the write lock is per process)
     sifrele_goc();
+    // installers left in %TEMP% by one-click updates: the update is done once RYOCS runs again (a file still in use goes next time)
+    for e in fs::read_dir(std::env::temp_dir()).into_iter().flatten().flatten() {
+        if e.file_name().to_str().is_some_and(|n| n.starts_with("RYOCS-Setup-") && n.ends_with(".exe")) {
+            fs::remove_file(e.path()).ok();
+        }
+    }
 
     use tao::event::{Event, WindowEvent};
     use tao::event_loop::{ControlFlow, EventLoopBuilder};

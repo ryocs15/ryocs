@@ -66,3 +66,12 @@ q('#aHavaUy').click();q('#aRahatsiz').click();
 esit('and back',[A('havaUyari'),A('rahatsiz')],[true,true]);
 dogru('PIN and encryption under privacy',q('#aPin').closest('.ayBol').dataset.b==='gizlilik');
 q('#ayarlar [data-kapat]').click();await RT.bek(300);
+// hidden in the tray: the background pattern and the Spotify bars stop drawing
+S.ayar.arka='';ayarUygula();gizlendi(true);
+esit('hidden: background paused',getComputedStyle(q('#arka i')).animationPlayState,'paused');
+gizlendi(false);
+// an update never runs after a failed save (the installer closes RYOCS)
+{const f1=window.fetch,yol=[];gunKuruyor=false;
+ window.fetch=async(p,a)=>{yol.push(p);if(p==='/api/state'&&a?.method==='POST')return{json:async()=>({durum:'disk dolu'})};if(p==='/api/guncelle')return{json:async()=>({durum:'ok'})};return f1(p,a)};
+ await gunKur();window.fetch=f1;
+ dogru('failed save: no install',!yol.includes('/api/guncelle')&&q('#aGunD').textContent.includes('kaydedilemedi'));gunKuruyor=false;}

@@ -673,6 +673,8 @@ kbd{font:12px Consolas,monospace;padding:2px 6px;border-radius:6px;box-shadow:va
 :where(:root:not([data-skin=cam]),:root[data-theme=dark]):not([data-arka=yok]) :is(.card,nav){background:var(--bg)}
 #arka i{position:absolute;display:none;will-change:transform;animation:var(--an) var(--t,20s) ease-in-out var(--g,0s) infinite alternate}
 #arka i:nth-child(even){animation-direction:alternate-reverse}
+/* hidden in the tray or behind another window: endless animations pause (WebView2 keeps drawing a hidden window; glass cards re-blur a moving pattern every frame) */
+.uyku :is(#arka i,.dalga i){animation-play-state:paused!important}
 /* Light: two layers of blobs drift at different speeds */
 :root[data-arka=isik] #arka i:nth-child(-n+2){display:block;inset:-20%;--an:isik;--t:22s}
 :root[data-arka=isik] #arka i:nth-child(1){background:radial-gradient(38% 46% at 10% 14%,var(--c1),transparent 70%),radial-gradient(44% 50% at 78% 92%,var(--c3),transparent 70%),radial-gradient(30% 34% at 52% 48%,var(--c5),transparent 70%)}
@@ -1168,7 +1170,9 @@ let ilkTik=true,sonGun=gunStr(new Date());
 // but nothing is redrawn every second and Spotify / news / mail / system / clipboard are not polled.
 let gorunmez=false;
 const gizliMi=()=>gorunmez||document.hidden;
-function gizlendi(g){gorunmez=g;if(!g&&S){ustSon='';tick();saatEk();takvimEk();notBilgi();haberCiz();spotify();haber();mail();sistem();pano()}}
+const uykuYaz=()=>K.classList.toggle('uyku',gorunmez||!document.hasFocus());
+addEventListener('blur',uykuYaz);addEventListener('focus',uykuYaz);
+function gizlendi(g){gorunmez=g;uykuYaz();if(!g&&S){ustSon='';tick();saatEk();takvimEk();notBilgi();haberCiz();spotify();haber();mail();sistem();pano()}}
 function tick(){
   const d=new Date(),sn=d.getHours()*3600+d.getMinutes()*60+d.getSeconds();
   if(gunStr(d)!==sonGun){sonGun=gunStr(d);if(S){ciz();odakIstat()}takvim()} // midnight: refresh everything tied to "today"
@@ -3462,7 +3466,7 @@ $('#kilit form').onsubmit=async e=>{e.preventDefault();const i=$('#kilitPin');if
   if(kilitYanlis>=5){i.disabled=true;$('#kilitHata').textContent=L('Çok fazla deneme, 30 sn bekle','Too many attempts, wait 30 s');setTimeout(()=>{i.disabled=false;i.focus();$('#kilitHata').textContent=''},30e3)}};
 // Rust calls this when the window is closed (hidden to the tray)
 function kapandi(){
-  gorunmez=true;
+  gorunmez=true;uykuYaz();
   for(const d of document.querySelectorAll('dialog[open]'))kapat(d);
   if(S&&!A('tepsiBilgi')){S.ayar.tepsiBilgi=true;api('/api/config').then(c=>bildir(L('RYOCS arka planda çalışıyor','RYOCS is running in the background'),`${L('Açmak için ','To open it use ')}${c.veri?.kisayol?c.veri.kisayol+L(' ya da ',' or '):''}${L('tepsideki simge. Tamamen kapatmak için simgeye sağ tıklayıp Çıkış’ı seçin.','the tray icon. To quit completely, right-click the icon and choose Exit.')}`))}
   kaydetSimdi();if(A('pin'))kilitle();
@@ -3491,8 +3495,8 @@ const gunYaz=m=>{$('#aGunD').textContent=m||(gunV?gunV.yeni?L('yeni sürüm var:
 let gunKuruyor=false;
 async function gunKur(){
   if(gunKuruyor)return;gunKuruyor=true;gunYaz(L('indiriliyor ve doğrulanıyor…','downloading and checking…'));tost(L('Güncelleme indiriliyor…','Downloading the update…'));
-  await kaydetSimdi(); // the installer closes RYOCS: nothing may be left unsaved
-  const r=await api('/api/guncelle',{});
+  const k=await kaydetSimdi(); // the installer closes RYOCS: nothing may be left unsaved
+  const r=k?.durum==='ok'?await api('/api/guncelle',{}):{durum:L('veriler kaydedilemedi','the data could not be saved')};
   if(r.durum==='ok')return tost(L('RYOCS güncelleniyor, birazdan yeniden açılacak','RYOCS is updating and will open again shortly'));
   gunKuruyor=false;gunYaz(L('güncellenemedi: ','could not update: ')+String(r.durum).slice(0,100));tost(L('Güncellenemedi: ','Could not update: ')+String(r.durum).slice(0,100));
 }
