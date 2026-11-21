@@ -2,11 +2,13 @@
 
 All releases: [GitHub Releases](https://github.com/ryocs15/ryocs/releases). Your data (`%APPDATA%\RYOCS`) is kept by every update.
 
-## Unreleased
+## 1.1.8 (2026-11-21)
+
+Every other card got its own round of fixes and features: currency, system, clipboard, Gmail, clock, calendar, apps, tasks, notes and news.
 
 **News**
 - Right-click a story → Save for later or Copy link; the saved list opens from the card's right-click menu.
-- The card's menu can mark every story of the category as read.
+- The card's menu can mark every story of the category as read; the saved list is also in a story's right-click menu.
 - When your hidden sources or words hide every story, the card says so (before: "No news in this category").
 
 **Notes**
