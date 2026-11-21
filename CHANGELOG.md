@@ -2,7 +2,7 @@
 
 All releases: [GitHub Releases](https://github.com/ryocs15/ryocs/releases). Your data (`%APPDATA%\RYOCS`) is kept by every update.
 
-## 1.1.4 (unreleased)
+## 1.1.4 (2026-11-21)
 
 **Changed**
 - Much less GPU use with the glass look: the background pattern behind glass cards moves in small steps instead of every frame (each frame made every card recompute its blur).
