@@ -1627,19 +1627,37 @@ fn disa_aktar() -> Result<Value, String> {
     Ok(json!(hedef))
 }
 
+/// A Spotify player command's query value, checked before any request (the UI is the only caller, but the values reach the URL).
+fn spotify_deger(cmd: &str, b: &str) -> Result<String, String> {
+    let v: Value = serde_json::from_str(b).unwrap_or_default();
+    let hata = || l("Geçersiz değer", "Invalid value").to_string();
+    match cmd {
+        "volume" => v["v"].as_u64().filter(|v| *v <= 100).map(|v| v.to_string()).ok_or(l("Geçersiz ses düzeyi", "Invalid volume").into()),
+        "seek" => v["ms"].as_u64().filter(|v| *v <= 24 * 3_600_000).map(|v| v.to_string()).ok_or_else(hata),
+        "shuffle" => v["on"].as_bool().map(|v| v.to_string()).ok_or_else(hata),
+        "repeat" => v["mod"].as_str().filter(|m| ["off", "context", "track"].contains(m)).map(String::from).ok_or_else(hata),
+        // device ids are letters and digits; the id goes into the JSON body
+        "transfer" => v["id"].as_str().filter(|i| !i.is_empty() && i.len() <= 128 && i.bytes().all(|c| c.is_ascii_alphanumeric())).map(String::from).ok_or_else(hata),
+        _ => Ok(String::new()),
+    }
+}
+
 fn spotify(cmd: &str, b: &str) -> Result<Value, String> {
+    let deger = spotify_deger(cmd, b)?;
     let auth = format!("Bearer {}", token(&provider("spotify")?)?);
     let base = "https://api.spotify.com/v1/me/player";
     body(match cmd {
-        // market: so the hundreds of country codes (available_markets) are not returned
-        "" => AGENT.get(base).query("market", "from_token").set("Authorization", &auth).call(),
+        // market: so the hundreds of country codes (available_markets) are not returned; episode: podcasts too (else item is null)
+        "" => AGENT.get(base).query("market", "from_token").query("additional_types", "track,episode").set("Authorization", &auth).call(),
         "play" | "pause" => AGENT.put(&format!("{base}/{cmd}")).set("Authorization", &auth).send_string(""),
         "next" | "previous" => AGENT.post(&format!("{base}/{cmd}")).set("Authorization", &auth).send_string(""),
-        "queue" => AGENT.get(&format!("{base}/queue")).set("Authorization", &auth).call(),
-        "volume" => {
-            let v = serde_json::from_str::<Value>(b).ok().and_then(|v| v["v"].as_u64()).filter(|v| *v <= 100).ok_or(l("Geçersiz ses düzeyi", "Invalid volume"))?;
-            AGENT.put(&format!("{base}/volume")).query("volume_percent", &v.to_string()).set("Authorization", &auth).send_string("")
-        }
+        "queue" | "devices" => AGENT.get(&format!("{base}/{cmd}")).set("Authorization", &auth).call(),
+        "volume" => AGENT.put(&format!("{base}/volume")).query("volume_percent", &deger).set("Authorization", &auth).send_string(""),
+        "seek" => AGENT.put(&format!("{base}/seek")).query("position_ms", &deger).set("Authorization", &auth).send_string(""),
+        "shuffle" => AGENT.put(&format!("{base}/shuffle")).query("state", &deger).set("Authorization", &auth).send_string(""),
+        "repeat" => AGENT.put(&format!("{base}/repeat")).query("state", &deger).set("Authorization", &auth).send_string(""),
+        // keeps playing on the new device if something was playing
+        "transfer" => AGENT.put(base).set("Authorization", &auth).send_json(json!({ "device_ids": [deger], "play": true })),
         _ => return Err("bilinmeyen komut".into()),
     })
 }
@@ -2417,6 +2435,16 @@ mod tests {
         let b = simdi_ms();
         kayitlari_bekle(); // nothing saving: returns at once
         assert!(simdi_ms() - b < 200);
+    }
+
+    #[test]
+    fn spotify_degerleri() {
+        assert_eq!(spotify_deger("seek", r#"{"ms":61000}"#), Ok("61000".into()));
+        assert!(spotify_deger("seek", r#"{"ms":-1}"#).is_err() && spotify_deger("volume", r#"{"v":101}"#).is_err());
+        assert_eq!(spotify_deger("shuffle", r#"{"on":true}"#), Ok("true".into()));
+        assert_eq!(spotify_deger("repeat", r#"{"mod":"track"}"#), Ok("track".into()));
+        assert!(spotify_deger("repeat", r#"{"mod":"all&x=1"}"#).is_err());
+        assert!(spotify_deger("transfer", r#"{"id":"a1b2"}"#).is_ok() && spotify_deger("transfer", r#"{"id":"../x"}"#).is_err());
     }
 
     #[test]

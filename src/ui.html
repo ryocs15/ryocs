@@ -492,9 +492,14 @@ button.dot:hover{transform:scale(1.3)}
 .tr b,.tr span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .tr b{font-weight:400}.tr span{color:var(--mu);font-size:13px}
 .tr.bekle{opacity:.45;transition:opacity .2s}
-.ilerle{height:4px;border-radius:2px;background:var(--ln);margin-top:8px;overflow:hidden}
+.ilerle{padding:6px 0;margin-top:2px;cursor:pointer;border-radius:4px} /* the padding makes the 4 px bar easy to hit */
+.ilerle>span{display:block;height:4px;border-radius:2px;background:var(--ln);overflow:hidden}
 .ilerle i{display:block;height:100%;width:0;background:var(--ye);transition:width 1s linear}
-#spZaman{display:block;color:var(--mu);font-size:11px;margin-top:2px}
+.spAlt{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-top:-2px}
+#spZaman{display:block;color:var(--mu);font-size:11px;flex:none}
+.spCihaz{border:0;background:none;padding:0;color:var(--mu);font:inherit;font-size:11px;cursor:pointer;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.spCihaz:hover{color:var(--tx)}
+.tr b[data-u]{cursor:pointer}.tr b[data-u]:hover{text-decoration:underline}
 .ctl{display:flex;gap:12px;margin-top:8px}
 #serbest{display:flex;align-items:center;justify-content:center;gap:6px;font-size:12px;margin-top:8px;min-height:28px;color:var(--mu)}
 #serbest b{color:var(--tx);font-variant-numeric:tabular-nums}
@@ -2151,6 +2156,7 @@ addEventListener('contextmenu',e=>{
   if(hx?.k){const r=hb.getBoundingClientRect();return menu(e.clientX||r.left+12,e.clientY||r.bottom,[[hx.k+L(' haberlerini gizle',' – hide its news'),()=>hbKaynakGizle(hx.k)]])}
   const pb=e.target.closest('#pano [data-p]'),pm=pb&&panoL[+pb.dataset.p]?.trim();
   if(pm){const r=pb.getBoundingClientRect();return panoMenu(e.clientX||r.left+12,e.clientY||r.bottom,pm)}
+  const sp=e.target.closest('[data-kart=spotify]');if(sp&&spDurum&&!e.target.closest('#ses')){const r=sp.getBoundingClientRect();return spMenu(e.clientX||r.left+12,e.clientY||r.top+40)}
   const mb=e.target.closest('#mail [data-m]'),mm=mb&&mailV?.liste[+mb.dataset.m];if(mm){const r=mb.getBoundingClientRect();return mailMenu(e.clientX||r.left+12,e.clientY||r.bottom,mm)}
   const kr=e.target.closest('#kur [data-c]');if(kr){const r=kr.getBoundingClientRect();return kurAlarmMenu(e.clientX||r.left+12,e.clientY||r.bottom,kr.dataset.c)}
   const el=e.target.closest('[data-r],.row[data-h],[data-l],[data-n],[data-u]');
@@ -2926,11 +2932,11 @@ const IK={previous:'M6 5h2v14H6zM20 5v14L9 12z',next:'M16 5h2v14h-2zM4 5v14l11-7
 const AD={previous:L('Önceki parça','Previous track'),next:L('Sonraki parça','Next track'),play:L('Oynat','Play'),pause:L('Duraklat','Pause')};
 const dugme=c=>`<button class="rb" data-c="${c}" aria-label="${AD[c]}" title="${AD[c]}"><svg viewBox="0 0 24 24"><path d="${IK[c]}"/></svg></button>`;
 const dkSn=ms=>(ms/6e4|0)+':'+iki((ms/1e3|0)%60);
-let spSon='',spPos=null,sesBekle=0;
+let spSon='',spPos=null,sesBekle=0,spIstekT=0;
 async function spotify(hata){
   if(spMesgul&&hata===undefined)return; // the 5 s poll must not interfere while a command runs
   if(S&&!kartAcik('spotify'))return; // closed card: do not ask every 5 s
-  const r=await api('/api/spotify');
+  spIstekT=Date.now();const r=await api('/api/spotify');
   if(spMesgul&&hata===undefined)return; // a slow response must not undo the optimistic view of a command given meanwhile
   if(r.durum===AG_YOK&&spPos&&hata===undefined){spPos.on=false;return} // offline: keep the last track in its paused state
   spCiz(r,hata);
@@ -2939,12 +2945,16 @@ async function spotify(hata){
 function spCiz(r,hata){
   const el=$('#sp');
   if(baglan(el,r,'Spotify','spotify')){spSon='';spPos=null;$('#ses').hidden=true;spSiraId=null;ekYaz('#spEk','');return}
-  const v=r.veri,it=v&&v.item,img=it&&it.album&&it.album.images&&it.album.images[0];
+  // a podcast episode has the show instead of an album and artists
+  const v=r.veri,it=v&&v.item,img=it&&(it.album?.images?.[0]||it.images?.[0]||it.show?.images?.[0]),alt=it?(it.artists||[]).map(a=>a.name).join(', ')||it.show?.name||'':'';
+  const url=/^https:\/\/open\.spotify\.com\//.test(it?.external_urls?.spotify||'')?it.external_urls.spotify:'';
+  spDurum=v?{shuffle:!!v.shuffle_state,repeat:v.repeat_state||'off',cihaz:v.device?.name||'',url}:null;
   spPos=it?{p:v.progress_ms||0,d:it.duration_ms||0,t:Date.now(),on:!!v.is_playing}:null;
   $('[data-kart=spotify]').classList.toggle('calar',!!spPos?.on); // sound wave in the title
   const h=(img?`<img src="${esc(img.url)}" alt="">`:'<div class="noart"></div>')
-    +`<div class="tr"><b>${esc(it?it.name:L('Şu an çalan bir şey yok','Nothing is playing right now'))}</b><span>${esc(hata||(it?(it.artists||[]).map(a=>a.name).join(', '):L('Spotify\'ı bir cihazda açın','Open Spotify on a device')))}</span>`
-    +(it?'<div class="ilerle" aria-hidden="true"><i id="spBar"></i></div><small id="spZaman"></small>':'')
+    +`<div class="tr"><b${url?` data-u title="${L('Spotify’da aç','Open in Spotify')}"`:''}>${esc(it?it.name:L('Şu an çalan bir şey yok','Nothing is playing right now'))}</b><span>${esc(hata||(it?alt:L('Spotify\'ı bir cihazda açın','Open Spotify on a device')))}</span>`
+    +(it?`<div class="ilerle" id="spIlerle" role="slider" tabindex="0" aria-label="${L('Şarkıda konum','Position in the track')}" aria-valuemin="0" aria-valuemax="${Math.round((it.duration_ms||0)/1e3)}"><span><i id="spBar"></i></span></div>`
+      +`<div class="spAlt"><small id="spZaman"></small><button class="spCihaz" title="${L('Cihaz, karışık çalma ve tekrar','Device, shuffle and repeat')}">${esc(spCihazYazi())}</button></div>`:'')
     +`<div class="ctl">${dugme('previous')}${dugme(v&&v.is_playing?'pause':'play')}${dugme('next')}</div></div>`;
   if(h!==spSon)el.innerHTML=spSon=h; // do not touch if unchanged: the cover must not flicker
   if((it?.id??null)!==spSiraId){spSiraId=it?.id??null;spSira()}
@@ -3224,9 +3234,39 @@ function spIlerle(){
   const b=$('#spBar');if(!spPos||!b)return;
   const p=spIlerleAn().p;
   b.style.width=(spPos.d?p/spPos.d*100:0)+'%';$('#spZaman').textContent=dkSn(p)+' / '+dkSn(spPos.d);
+  const s=$('#spIlerle');s.ariaValueNow=Math.round(p/1e3);s.ariaValueText=dkSn(p);
+  // the track ends before the next 5 s poll: ask once right after it, so the next track shows at once
+  if(spPos.on&&spPos.d&&p>=spPos.d&&!spPos.son){spPos.son=1;setTimeout(()=>gizliMi()||spotify(),900)}
+}
+// Device line: device name, shuffle and repeat; a click (or right-click on the card) opens the player menu
+let spDurum=null;
+const spCihazYazi=()=>spDurum?[spDurum.cihaz,spDurum.shuffle&&L('karışık','shuffle'),spDurum.repeat==='track'?L('tekrar: şarkı','repeat: track'):spDurum.repeat==='context'&&L('tekrar','repeat')].filter(Boolean).join(' · '):'';
+async function spKomut(c,b,tamam){
+  const r=await api('/api/spotify/'+c,b||{});
+  if(r.durum!=='ok')return tost(L('Komut reddedildi (Premium ve açık bir cihaz gerekir)','Command refused (needs Premium and an active device)'));
+  if(tamam)tost(tamam);
+  await new Promise(t=>setTimeout(t,500));spSon='';spotify(''); // Spotify reports the new state a little later
+}
+async function spMenu(x,y){
+  if(!spDurum)return;
+  const r=await api('/api/spotify/devices'),cihazlar=r.durum==='ok'?(r.veri?.devices||[]).filter(d=>d.id&&!d.is_active&&!d.is_restricted):[];
+  const sonraki={off:['context',L('Listeyi tekrarla','Repeat the list')],context:['track',L('Bu şarkıyı tekrarla','Repeat this track')],track:['off',L('Tekrarı kapat','Turn repeat off')]}[spDurum.repeat]||['off',L('Tekrarı kapat','Turn repeat off')];
+  menu(x,y,[[spDurum.shuffle?L('Karışık çalmayı kapat','Turn shuffle off'):L('Karışık çal','Shuffle'),()=>spKomut('shuffle',{on:!spDurum.shuffle})],
+    [sonraki[1],()=>spKomut('repeat',{mod:sonraki[0]})],
+    spDurum.url?[L('Spotify’da aç','Open in Spotify'),()=>api('/api/open',{url:spDurum.url})]:0,
+    ...(cihazlar.length?[null,...cihazlar.map(d=>[L('Şurada çal: ','Play on ')+d.name,()=>spKomut('transfer',{id:d.id},L('Çalma aktarıldı: ','Playback moved to ')+d.name)])]:[])]);
+}
+// Seek: click on the bar or the arrow keys (±10 s); the bar moves at once
+function spAtla(ms){
+  if(!spPos?.d)return;ms=Math.max(0,Math.min(spPos.d-1000,Math.round(ms)));
+  spPos={...spIlerleAn(),p:ms,son:0};spIlerle();
+  spKomut('seek',{ms});
 }
 let spMesgul=false;
 $('#sp').onclick=async e=>{
+  const il=e.target.closest('#spIlerle');if(il&&spPos){const k=il.getBoundingClientRect();return spAtla((e.clientX-k.left)/k.width*spPos.d)}
+  if(e.target.closest('.spCihaz')){const k=e.target.getBoundingClientRect();return spMenu(k.left,k.bottom+4)}
+  if(e.target.closest('.tr b[data-u]')&&spDurum?.url)return api('/api/open',{url:spDurum.url});
   const b=e.target.closest('[data-c]');if(!b||spMesgul)return;
   spMesgul=true;
   // optimistic view: the button responds at once without waiting for the answer on a slow network; on error the refresh below corrects it
@@ -3240,6 +3280,10 @@ $('#sp').onclick=async e=>{
     spSon='';await spotify(r.durum==='ok'?'':L('Komut reddedildi (Premium ve açık bir cihaz gerekir)','Command refused (needs Premium and an active device)'));
   }finally{spMesgul=false;for(const x of $('#sp').querySelectorAll('[data-c]'))x.disabled=false}
 };
+$('#sp').addEventListener('keydown',e=>{
+  if(e.target.id!=='spIlerle'||!spPos)return;const a={ArrowRight:1e4,ArrowLeft:-1e4,ArrowUp:1e4,ArrowDown:-1e4}[e.key];
+  if(a){e.preventDefault();spAtla(spIlerleAn().p+a)}else if(e.key==='Home'){e.preventDefault();spAtla(0)}
+});
 $('#ses').oninput=e=>e.target.title=L('Ses düzeyi: ','Volume: ')+yz(e.target.value);
 $('#ses').onchange=async e=>{
   sesBekle=Date.now()+3000; // Spotify can take a few seconds to report the new value: the slider must not jump back
@@ -3618,7 +3662,7 @@ const gunDenetle=()=>{let t=0;try{t=+localStorage.gunT||0}catch{}if(Date.now()-t
 $('#aGunB').onclick=()=>gunV?.yeni?gunKur():guncelle(true);
 tick();setInterval(tick,1000);yukle().then(hepsi).then(gunDenetle);setInterval(gunDenetle,36e5);
 addEventListener('online',hepsi);setInterval(()=>{if($('main .ag'))hepsi()},3e4);
-setInterval(sistem,3000);setInterval(()=>gizliMi()||mail(),6e4);setInterval(pano,2000);setInterval(kur,18e5);setInterval(()=>gizliMi()||spotify(),5000);setInterval(hava,9e5);setInterval(()=>gizliMi()||haber(),18e4);setInterval(()=>{takvim(true);ileriAl()},6e5);addEventListener('offline',()=>ustSon='');setInterval(hatirlat,15e3);
+setInterval(sistem,3000);setInterval(()=>gizliMi()||mail(),6e4);setInterval(pano,2000);setInterval(kur,18e5);setInterval(()=>gizliMi()||(!spPos?.on&&Date.now()-spIstekT<14e3)||spotify(),5000); // paused or nothing playing: every 15 ssetInterval(hava,9e5);setInterval(()=>gizliMi()||haber(),18e4);setInterval(()=>{takvim(true);ileriAl()},6e5);addEventListener('offline',()=>ustSon='');setInterval(hatirlat,15e3);
 </script>
 </body>
 </html>

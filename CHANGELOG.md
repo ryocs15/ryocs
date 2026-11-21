@@ -5,6 +5,9 @@ All releases: [GitHub Releases](https://github.com/ryocs15/ryocs/releases). Your
 ## Unreleased
 
 **Added**
+- Spotify: click on the progress bar (or use the arrow keys on it) to jump in the track.
+- Spotify: the device, shuffle and repeat show under the bar; click there or right-click the card to turn shuffle and repeat on or off, or move playback to another device.
+- Spotify: click the title to open the track in Spotify.
 - Weather: an icon next to the current temperature (a moon at night).
 - Weather: a line under the current weather says when rain starts or stops in the next 12 hours, and how much warmer or colder it is than yesterday at this hour.
 - Weather: air quality (European index, PM2.5) and, in Europe, pollen in the details when the card is large.
@@ -13,6 +16,8 @@ All releases: [GitHub Releases](https://github.com/ryocs15/ryocs/releases). Your
 - Weather: a note with tomorrow's weather once in the evening, after 6 pm (Settings → Notifications → Tomorrow's weather).
 
 **Fixed**
+- Spotify: podcasts show the episode, the show and its cover (before, the card said nothing was playing).
+- Spotify: the next track shows right when a track ends, and the card asks Spotify only every 15 s while nothing plays (5 s while playing).
 - Weather: clear and partly cloudy nights show a moon instead of a sun (hourly strip, other cities).
 - Weather: for a city in another time zone the hourly strip and the 24-hour curve start at that city's current hour.
 - Weather: the rain chance next to the current temperature says "rain today", because it is the day's highest chance.
