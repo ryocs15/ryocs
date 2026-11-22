@@ -4,6 +4,9 @@ All releases: [GitHub Releases](https://github.com/ryocs15/ryocs/releases). Your
 
 ## Unreleased
 
+**Appearance**
+- New icon: the four stones without a plate, flat, in the cards' own colours; the title bar and the start animation use the same colours.
+
 **Screen time**
 - Renaming a program that already passed its limit today no longer notifies a second time.
 - A screen time file that does not open on this PC (another Windows account, damaged) is kept as `ekran.bozuk.json` instead of being overwritten.
