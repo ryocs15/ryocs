@@ -8,6 +8,9 @@ All releases: [GitHub Releases](https://github.com/ryocs15/ryocs/releases). Your
 - Breaking news (Turkish) comes from seven outlets instead of one: TRT Haber, Sabah, Sözcü, Milliyet, CNN Türk, Habertürk and En Son Haber, in one list, newest first. The same story from several outlets is one row ("+2 kaynak"); right-click opens it at the other outlets. Hiding an outlet works as before. A feed that labels Turkish time as GMT no longer shows its stories in the future.
 - The bold NEW label is gone: a small dot marks only the stories that came since you last looked at the card.
 
+**Tasks**
+- Subtasks: right-click a task → Add subtask (several at once, separated by commas). They show under the task with small boxes and a "2/5" count; right-click one to edit or delete it. A repeating task starts its subtasks over at the next date. Search finds a task by its subtasks too.
+
 **Clock and timers**
 - The clock card's right-click menu starts the free timer and a new stopwatch; both show under the clock. Click the time to pause or resume (a paused timer keeps its remaining time, also after a restart), × stops it. The focus card's timer can be paused too.
 

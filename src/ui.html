@@ -389,6 +389,13 @@ button.dot:hover{transform:scale(1.3)}
 .x:hover{color:var(--kr)}
 .row.yeni{animation:gir .3s var(--yay)}
 .row.cik{animation:cik .22s forwards;overflow:hidden;pointer-events:none}
+.alt{padding:2px 0 6px 21px;border-bottom:1px solid var(--ln);animation:gir .2s}.alt.done{opacity:.6}
+.altO{display:flex;align-items:center;gap:8px;padding:3px 0;font-size:13px;color:var(--mu)}.altO>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;transition:color .3s}
+.altO.bitti>span{text-decoration:line-through}.altO.cik{animation:cik .22s forwards;overflow:hidden;pointer-events:none}
+.altK{width:13px;height:13px;border-radius:4px;padding:0;flex:none;background:var(--bg);box-shadow:var(--in);position:relative}
+.altO.bitti .altK{background:var(--ye);box-shadow:none;animation:noktaPop .35s var(--yay)}
+.altO.bitti .altK::after{content:'';position:absolute;left:4.2px;top:1.6px;width:2.6px;height:6px;border:solid var(--bg);border-width:0 1.6px 1.6px 0;transform:rotate(45deg);animation:tik .3s var(--yay) backwards}
+.altSay{font-variant-numeric:tabular-nums;color:var(--mu);font-size:11px}.altSay.tam{color:var(--ye)}
 .row[draggable=true]{cursor:grab}
 .row.suruk{opacity:.35}
 .row.ustu{box-shadow:inset 0 2px 0 var(--ye)}
@@ -1663,7 +1670,7 @@ function normal(v){
   const o=v&&typeof v==='object'&&!Array.isArray(v)?v:{},dizi=x=>Array.isArray(x)?x:[],nesne=x=>x&&typeof x==='object'&&!Array.isArray(x)?x:{};
   // a damaged entry (hand-edited or cut-off file) must not stop the whole panel from drawing: tasks without text are dropped, notes get text
   const notlar=dizi(o.notlar).filter(x=>x&&typeof x==='object').map(x=>({...x,ad:typeof x.ad==='string'&&x.ad?x.ad:L('Not','Note'),metin:typeof x.metin==='string'?x.metin:''}));
-  const n={...o,todos:dizi(o.todos).filter(t=>typeof t?.t==='string'),links:dizi(o.links),uygulamalar:dizi(o.uygulamalar),aliskanlik:dizi(o.aliskanlik),haberKayit:dizi(o.haberKayit).filter(x=>typeof x?.l==='string'&&typeof x.b==='string'),ayar:nesne(o.ayar),odak:nesne(o.odak),biten:nesne(o.biten),
+  const n={...o,todos:dizi(o.todos).filter(t=>typeof t?.t==='string').map(t=>{if(t.alt===undefined)return t;const alt=dizi(t.alt).filter(a=>typeof a?.t==='string').map(a=>({t:a.t,d:!!a.d}));const {alt:_,...r}=t;return alt.length?{...r,alt}:r}),links:dizi(o.links),uygulamalar:dizi(o.uygulamalar),aliskanlik:dizi(o.aliskanlik),haberKayit:dizi(o.haberKayit).filter(x=>typeof x?.l==='string'&&typeof x.b==='string'),ayar:nesne(o.ayar),odak:nesne(o.odak),biten:nesne(o.biten),
     notlar:notlar.length?notlar:[{ad:L('Not','Note'),metin:typeof o.notes==='string'?o.notes:''}]}; // the old single-note format is migrated
   delete n.notes;
   // Format steps, oldest first; each runs once for saves older than its number (a save without "surum" is format 0)
@@ -1685,7 +1692,7 @@ function normal(v){
 // Tasks and habits
 let sekme='gorev',suz='tumu',surukI=null;
 function gorunur(t){
-  if(!eslesir(t.t))return false;
+  if(!eslesir(t.t)&&!(ara()&&t.alt?.some(a=>eslesir(a.t))))return false; // search finds a task by its subtasks too
   if(t.d&&A('bitenGizle')&&!ara())return false; // card setting: completed tasks hidden (still found by search)
   if(suz==='bugun')return!!t.due&&t.due.slice(0,10)===gunStr(new Date());
   if(suz==='geciken')return!t.d&&!!t.due&&new Date(t.due)<new Date();
@@ -1718,7 +1725,9 @@ function gorevCiz(){
   const satir=(t,i)=>{
     const z=t.due&&new Date(t.due),p=P[t.p]||P[0];
     const zs=z?`<small class="${!t.d&&z<simdi?'gec':''}">${t.tek?`<span title="${tekAd(t.tek)}">${SVG(IKON.tekrar)}</span>`:''}${kisaTarih(z)}</small>`:'';
-    return `<div class="row${t.d?' done':''}${t===yeniGorev?' yeni':''}" data-r="${i}" draggable="${tasinir}"><button class="dot" style="--c:${p.c}" data-i="${i}" aria-label="${t.d?L('Geri al','Undo'):L('Tamamla','Complete')}: ${esc(t.t)} (${p.ad})"></button><span title="${esc(t.t)}">${esc(t.t)}</span>${zs}<button class="x" data-x="${i}${L('" aria-label="Sil: ','" aria-label="Delete: ')}${esc(t.t)}${L('" title="Sil">','" title="Delete">')}${SVG(IKON.kapat)}</button></div>`;
+    const al=t.alt||[],ab=al.filter(a=>a.d).length;
+    return `<div class="row${t.d?' done':''}${t===yeniGorev?' yeni':''}" data-r="${i}" draggable="${tasinir}"><button class="dot" style="--c:${p.c}" data-i="${i}" aria-label="${t.d?L('Geri al','Undo'):L('Tamamla','Complete')}: ${esc(t.t)} (${p.ad})"></button><span title="${esc(t.t)}">${esc(t.t)}</span>${al.length?`<small class="altSay${ab===al.length?' tam':''}">${ab}/${al.length}</small>`:''}${zs}<button class="x" data-x="${i}${L('" aria-label="Sil: ','" aria-label="Delete: ')}${esc(t.t)}${L('" title="Sil">','" title="Delete">')}${SVG(IKON.kapat)}</button></div>`
+      +(al.length?`<div class="alt${t.d?' done':''}" data-ar="${i}">${al.map((a,j)=>`<div class="altO${a.d?' bitti':''}" data-ao="${i}:${j}"><button class="altK" data-ai="${i}:${j}" role="checkbox" aria-checked="${!!a.d}" aria-label="${esc(a.t)}"></button><span>${esc(a.t)}</span></div>`).join('')}</div>`:'');
   };
   const html=S.todos.map((t,i)=>gorunur(t)?satir(t,i):'').join('');
   $('#todos').innerHTML=html||`<p class="m">${ara()||suz!=='tumu'?L('Eşleşen görev yok.','No matching tasks.'):L('Liste boş. Aşağıdan ekleyin.','The list is empty. Add one below.')}</p>`;
@@ -1750,9 +1759,10 @@ const bitenSay=d=>{const g=gunStr(new Date());S.biten[g]=Math.max(0,(S.biten[g]|
 function isaretle(i){
   const t=S.todos[i],r=$(`#todos [data-r="${i}"]`);
   if(t.tek&&!t.d){
-    const eski={due:t.due,n:t.n};t.due=sonraki(t.due,t.tek);delete t.n;bitenSay(1);
+    const eski={due:t.due,n:t.n,alt:t.alt&&t.alt.map(a=>({...a}))};t.due=sonraki(t.due,t.tek);delete t.n;bitenSay(1);
+    if(t.alt)for(const a of t.alt)a.d=false; // the next time starts with its subtasks open
     ciz();kaydet();
-    return tost(L('Sonraki: ','Next: ')+kisaTarih(new Date(t.due)),L('Geri al','Undo'),()=>{t.due=eski.due;if(eski.n)t.n=eski.n;bitenSay(-1);ciz();kaydet()});
+    return tost(L('Sonraki: ','Next: ')+kisaTarih(new Date(t.due)),L('Geri al','Undo'),()=>{t.due=eski.due;if(eski.n)t.n=eski.n;if(eski.alt)t.alt=eski.alt;bitenSay(-1);ciz();kaydet()});
   }
   t.d=!t.d;bitenSay(t.d?1:-1);gorevEk();
   if(r){
@@ -1790,7 +1800,7 @@ async function duzenle(i){
 }
 const gorevMenu=(x,y,i)=>{
   const t=S.todos[i],oncelik=k=>()=>{if(k)t.p=k;else delete t.p;ciz();kaydet()};
-  menu(x,y,[[t.d?L('Geri al','Undo'):t.tek?L('Tamamla (sonrakine geç)','Complete (move to next)'):L('Tamamla','Complete'),()=>isaretle(i)],[L('Düzenle…','Edit…'),()=>duzenle(i)],null,
+  menu(x,y,[[t.d?L('Geri al','Undo'):t.tek?L('Tamamla (sonrakine geç)','Complete (move to next)'):L('Tamamla','Complete'),()=>isaretle(i)],[L('Düzenle…','Edit…'),()=>duzenle(i)],[L('Alt görev ekle…','Add subtask…'),()=>altEkle(i)],null,
     ...P.map((p,k)=>[p.ad,oncelik(k),(t.p||0)===k?'sec':'']),null,
     i>0?[L('Yukarı taşı','Move up'),()=>tasi(i,i-1)]:0,i<S.todos.length-1?[L('Aşağı taşı','Move down'),()=>tasi(i,i+1)]:0,
     t.due&&!t.d?[L('1 saat ertele','Snooze 1 hour'),()=>ertele(t,'saat')]:0,t.due&&!t.d?[L('Yarına ertele','Snooze until tomorrow'),()=>ertele(t,'yarin')]:0,
@@ -1846,7 +1856,20 @@ const aliskanlikMenu=(x,y,i)=>{
   menu(x,y,[[L('Yeniden adlandır…','Rename…'),async()=>{const v=await sor(L('Alışkanlık','Habit'),[{ad:L('Ad','Name'),v:h.ad,zorunlu:1}]);if(v?.[0]){h.ad=v[0].slice(0,100);ciz();kaydet()}}],null,
     [L('Sil','Delete'),()=>{S.aliskanlik.splice(i,1);ciz();kaydet();tost(`"${h.ad}" ${L('silindi','deleted')}`,L('Geri al','Undo'),()=>{S.aliskanlik.splice(i,0,h);ciz();kaydet()})},'teh']]);
 };
+// Subtasks: t.alt = [{t, d}]. Ticking them does not complete the task; a repeating task starts its subtasks over at the next date.
+function altIsaretle(i,j){const a=S.todos[i]?.alt?.[j];if(!a)return;a.d=!a.d;ciz();kaydet()}
+async function altEkle(i){
+  const t=S.todos[i],v=await sor(L('Alt görev ekle','Add subtask'),[{ad:L('Alt görev','Subtask'),zorunlu:1,ipucu:L('Birden çok için virgülle ayır','Separate several with commas')}],L('Ekle','Add'));
+  const l=(v?.[0]||'').split(',').map(s=>s.trim().slice(0,200)).filter(Boolean);if(!t||!l.length)return;
+  t.alt=[...(t.alt||[]),...l.map(s=>({t:s,d:false}))].slice(0,30);ciz();kaydet();
+}
+function altMenu(x,y,i,j){
+  const t=S.todos[i],a=t?.alt?.[j];if(!a)return;
+  menu(x,y,[[a.d?L('Geri al','Undo'):L('Tamamla','Complete'),()=>altIsaretle(i,j)],[L('Düzenle…','Edit…'),async()=>{const v=await sor(L('Alt görevi düzenle','Edit subtask'),[{ad:L('Alt görev','Subtask'),v:a.t,zorunlu:1}]);if(v?.[0]){a.t=v[0].slice(0,200);ciz();kaydet()}}],
+    null,[L('Sil','Delete'),()=>{const el=$(`#todos [data-ao="${i}:${j}"]`);const bitir=()=>{t.alt.splice(j,1);if(!t.alt.length)delete t.alt;ciz();kaydet()};if(el&&K.dataset.anim!=='off'){el.classList.add('cik');setTimeout(bitir,animMs(250))}else bitir()},'teh']]);
+}
 $('#todos').onclick=e=>{
+  const ai=e.target.closest('[data-ai]')?.dataset.ai;if(ai){const [i,j]=ai.split(':');return altIsaretle(+i,+j)}
   const {i,x,h,gun}=e.target.dataset;
   if(gun!==undefined){const a=S.aliskanlik[h];a.g=a.g||{};if(a.g[gun])delete a.g[gun];else a.g[gun]=1;ciz();kaydet();return}
   if(i!==undefined)isaretle(+i);else if(x!==undefined)sil(+x);
@@ -2074,7 +2097,8 @@ function araHesapla(qHam){
   const grup=(ad,l,en=5)=>{l=l.filter(o=>o.p>=0).sort((a,b)=>b.p-a.p).slice(0,en);if(l.length)gruplar.push([ad,l])};
   grup(L('Uygulamalar','Apps'),S.uygulamalar.map((u,i)=>({p:puan(u.ad),si:u.simge?`<img class="si" src="${esc(u.simge)}" alt="">`:`<i class="si" style="background:${harfRenk(u.ad)};color:#fff">${esc((u.ad[0]||'?').toLocaleUpperCase(LOC))}</i>`,ad:eslesmeIsaretle(u.ad,q),alt:L('Aç','Open'),fn:()=>uygAc(i)})));
   grup(L('Komutlar','Commands'),komutlar().map(([ad,ek,fn])=>({p:Math.max(puan(ad),puan(ek)-1),si:simgeSvg('komut'),ad:eslesmeIsaretle(ad,q),alt:'',fn})),4);
-  grup(L('Görevler','Tasks'),S.todos.map((t,i)=>({p:puan(t.t)-(t.d?.5:0),si:simgeSvg('gorev'),ad:eslesmeIsaretle(t.t,q),alt:(t.d?L('Tamamlandı','Completed'):'')+(t.due?(t.d?' · ':'')+new Date(t.due).toLocaleDateString(LOC,{day:'numeric',month:'short'}):''),fn:()=>gorevGoster('gorev',i)})));
+  grup(L('Görevler','Tasks'),S.todos.map((t,i)=>{const a=puan(t.t)<0&&t.alt?.find(a=>katla(a.t).includes(q)); // found by a subtask: shown under the task
+    return {p:(a?.5:puan(t.t))-(t.d?.5:0),si:simgeSvg('gorev'),ad:a?esc(t.t):eslesmeIsaretle(t.t,q),alt:a?eslesmeIsaretle(a.t,q):(t.d?L('Tamamlandı','Completed'):'')+(t.due?(t.d?' · ':'')+new Date(t.due).toLocaleDateString(LOC,{day:'numeric',month:'short'}):''),fn:()=>gorevGoster('gorev',i)}}));
   grup(L('Alışkanlıklar','Habits'),S.aliskanlik.map((h,i)=>({p:puan(h.ad),si:simgeSvg('aliskanlik'),ad:eslesmeIsaretle(h.ad,q),alt:'',fn:()=>gorevGoster('aliskanlik',i)})),3);
   grup(L('Notlar','Notes'),S.notlar.map((n,k)=>{const pa=puan(n.ad),pm=katla(n.metin).includes(q)?1:-1;return{p:Math.max(pa,pm),si:simgeSvg('not'),ad:eslesmeIsaretle(n.ad,q),alt:pm>0?eslesmeIsaretle(n.metin.replace(/\s+/g,' '),q,70):'',fn:()=>notBul(k,q)}}));
   const gor=new Set(),ev=[...ileri,...evler].filter(e=>e.start&&!gor.has(e.id+e._t)&&gor.add(e.id+e._t));
@@ -2282,6 +2306,7 @@ addEventListener('contextmenu',e=>{
   if(pm?.trim()){const r=pb.getBoundingClientRect();return panoMenu(e.clientX||r.left+12,e.clientY||r.bottom,pm)}
   const sp=e.target.closest('#sp');if(sp&&spDurum){const r=sp.getBoundingClientRect();return spMenu(e.clientX||r.left+12,e.clientY||r.top+12)}
   const mb=e.target.closest('#mail [data-m]'),mm=mb&&mailV?.liste[+mb.dataset.m];if(mm){const r=mb.getBoundingClientRect();return mailMenu(e.clientX||r.left+12,e.clientY||r.bottom,mm)}
+  const ao=e.target.closest('#todos [data-ao]');if(ao){const r=ao.getBoundingClientRect(),[i,j]=ao.dataset.ao.split(':');return altMenu(e.clientX||r.left+12,e.clientY||r.bottom,+i,+j)}
   const eb=e.target.closest('#ekran [data-e]');if(eb){const r=eb.getBoundingClientRect();return ekranMenu(e.clientX||r.left+12,e.clientY||r.bottom,eb.dataset.e)}
   const kr=e.target.closest('#kur [data-c]');if(kr){const r=kr.getBoundingClientRect();return kurAlarmMenu(e.clientX||r.left+12,e.clientY||r.bottom,kr.dataset.c)}
   const el=e.target.closest('[data-r],.row[data-h],[data-l],[data-n],[data-u]');

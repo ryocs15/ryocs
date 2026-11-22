@@ -33,7 +33,7 @@ Format version: `surum` (currently **1**). A save without `surum` is format 0 (v
 |---|---|---|
 | `surum` | number | Format version. |
 | `tema` | string | Theme: `""` (light), `"dark"`, another theme name, `"auto"` (follows Windows) or `"gunes"` (follows sunrise and sunset). |
-| `todos` | array | Tasks: `{t, d, due, p, tek, n}`. `t` text · `d` done · `due` local time `YYYY-MM-DDTHH:MM` · `p` priority 1 or 2 · `tek` repeat: `gun`, `isgunu`, `hafta`, `ay` or `g:1,3,5` (weekdays, 0 = Sunday) · `n` reminder already shown. |
+| `todos` | array | Tasks: `{t, d, due, p, tek, n, alt}`. `t` text · `d` done · `due` local time `YYYY-MM-DDTHH:MM` · `p` priority 1 or 2 · `tek` repeat: `gun`, `isgunu`, `hafta`, `ay` or `g:1,3,5` (weekdays, 0 = Sunday) · `n` reminder already shown · `alt` subtasks `[{t, d}]` (at most 30). |
 | `aliskanlik` | array | Habits: `{ad, g}`, `g` = `{"YYYY-MM-DD": 1}` for ticked days. |
 | `notlar`, `aktifNot` | array, number | Notes `{ad, metin, t}` (`t` last edit, ms) and the open note's index. Format 0 had a single `notes` string. |
 | `links` | array | Quick links `{a, u}` (name, address). |
