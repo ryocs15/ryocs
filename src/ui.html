@@ -3320,7 +3320,8 @@ async function sistem(){
 // Screen time: Rust counts seconds per program while this card is open (ekran.json, this PC only); the card asks once a minute,
 // in the tray too while a daily limit is set. S.ayar.ekranGizli: programs left out; S.ayar.ekranSinir: {program: daily minutes}
 let ekranV=null,ekranU=null;
-const ekranAdi=p=>p.charAt(0).toUpperCase()+p.slice(1);
+// program names come from Rust (the exe's own description); under a minute reads "<1 min", not "0 min"
+const ekranSure=s=>s>0&&s<60?'<'+sureYaz(6e4):sureYaz(s*1e3);
 async function ekranAyar(sil){ekranCiz(await api('/api/ekran',{acik:!!S&&kartAcik('ekran'),...sil?{sil:true}:{}}))}
 async function ekran(){if(S&&kartAcik('ekran')&&(!gizliMi()||Object.keys(A('ekranSinir')||{}).length))ekranCiz(await api('/api/ekran',{}))}
 function ekranCiz(r){
@@ -3331,9 +3332,9 @@ function ekranCiz(r){
   ekranUyar(ekranV.gunler[ekranV.bugun]||{},sinir);
   const gun=[...Array(7)].map((_,i)=>{const d=new Date();d.setDate(d.getDate()-6+i);return{ad:d.toLocaleDateString(LOC,{weekday:'short'}),t:say(gunStr(d)).reduce((t,x)=>t+x[1],0)}}),
     enG=Math.max(...gun.map(g=>g.t),1);
-  ekYaz('#ekran',`<div class="ekTop"><b>${sureYaz(top*1e3)}</b><small>${L('bugün','today')}</small></div>`
+  ekYaz('#ekran',`<div class="ekTop"><b>${ekranSure(top)}</b><small>${L('bugün','today')}</small></div>`
     +(l.length?l.slice(0,6).map(([p,s])=>{const dk=+sinir[p]>0?+sinir[p]:0;
-      return `<div data-e="${esc(p)}" tabindex="0"><div class="sisS"><span>${esc(ekranAdi(p))}</span><small>${sureYaz(s*1e3)}${dk?' / '+sureYaz(dk*6e4):''}</small></div><div class="cizgi${dk&&s>=dk*60?' dolu':''}"><i style="width:${100*s/en}%"></i></div></div>`}).join('')
+      return `<div data-e="${esc(p)}" tabindex="0"><div class="sisS"><span>${esc(p)}</span><small>${ekranSure(s)}${dk?' / '+sureYaz(dk*6e4):''}</small></div><div class="cizgi${dk&&s>=dk*60?' dolu':''}"><i style="width:${100*s/en}%"></i></div></div>`}).join('')
       :L('<p class="m">Henüz ölçüm yok. Bu kart açıkken programlarda geçirdiğin süre burada birikir.</p>','<p class="m">Nothing measured yet. Time spent in programs adds up here while this card is open.</p>'))
     +`<div class="ekHafta" role="img" aria-label="${L('Son 7 gün: ','Last 7 days: ')+gun.map(g=>g.ad+' '+sureYaz(g.t*1e3)).join(', ')}">${gun.map((g,i)=>`<i class="${i===6?'bu':''}" style="height:${Math.max(6,100*g.t/enG)}%" title="${g.ad}: ${sureYaz(g.t*1e3)}"></i>`).join('')}</div>`);
 }
@@ -3343,13 +3344,13 @@ function ekranUyar(bugun,sinir){
   if(ekranU?.g!==ekranV.bugun||!Array.isArray(ekranU.p))ekranU={g:ekranV.bugun,p:[]};
   let yeni=false;
   for(const [p,dk] of Object.entries(sinir))if(+dk>0&&(bugun[p]||0)>=dk*60&&!ekranU.p.includes(p)){ekranU.p.push(p);yeni=true;
-    bildir(L('Ekran süresi sınırı','Screen time limit'),ekranAdi(p)+L(': bugünkü ',': today\'s ')+sureYaz(dk*6e4)+L(' sınırını geçtin.',' limit is reached.'))}
+    bildir(L('Ekran süresi sınırı','Screen time limit'),p+L(': bugünkü ',': today\'s ')+sureYaz(dk*6e4)+L(' sınırını geçtin.',' limit is reached.'))}
   if(yeni)try{localStorage.ekranUyar=JSON.stringify(ekranU)}catch{}
 }
 function ekranSinirYaz(p,dk){const o={...A('ekranSinir')};if(dk)o[p]=dk;else delete o[p];S.ayar.ekranSinir=o;if(ekranU)ekranU.p=ekranU.p.filter(x=>x!==p);kaydet();ekranCiz()}
 function ekranMenu(x,y,p){const s=A('ekranSinir')||{};menu(x,y,[
   [s[p]?L('Günlük sınırı değiştir…','Change daily limit…'):L('Günlük sınır koy…','Set a daily limit…'),async()=>{
-    const v=await sor(esc(ekranAdi(p))+L(': günlük sınır',': daily limit'),[{ad:L('Dakika','Minutes'),tip:'number',v:s[p]||60,zorunlu:true}]),dk=Math.round(+v?.[0]);
+    const v=await sor(esc(p)+L(': günlük sınır',': daily limit'),[{ad:L('Dakika','Minutes'),tip:'number',v:s[p]||60,zorunlu:true}]),dk=Math.round(+v?.[0]);
     if(v&&dk>0)ekranSinirYaz(p,Math.min(1440,dk))}],
   s[p]?[L('Sınırı kaldır','Remove limit'),()=>ekranSinirYaz(p,0)]:0,
   null,[L('Listeden gizle','Hide from the list'),()=>{S.ayar.ekranGizli=[...(A('ekranGizli')||[]),p];kaydet();ekranCiz()}]])}

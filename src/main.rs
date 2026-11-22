@@ -808,24 +808,86 @@ fn ekran_kaydet() {
     let v = ekran_veri().clone().unwrap_or_default();
     if write_json("ekran.json", &v).is_err() { EKRAN_KIRLI.store(true, Relaxed); }
 }
-/// The program of the window in front (file name without .exe), None when there is none or the screen is locked / saver on.
-/// shortcut: Store apps (Settings, Calculator) show as ApplicationFrameHost; resolve the child window if that matters.
+/// The program of the window in front, by its readable name (program_adi); None when there is none or the screen is locked.
 fn on_program() -> Option<String> {
+    use windows_sys::{core::BOOL, Win32::Foundation::{HWND, LPARAM}};
+    use windows_sys::Win32::UI::WindowsAndMessaging::{EnumChildWindows, GetForegroundWindow, GetWindowThreadProcessId};
+    // a Store app (Settings, Calculator) runs inside ApplicationFrameHost: its own process owns a child window
+    unsafe extern "system" fn cocuk(h: HWND, l: LPARAM) -> BOOL {
+        let v = unsafe { &mut *(l as *mut (u32, u32)) };
+        let mut p = 0;
+        unsafe { GetWindowThreadProcessId(h, &mut p) };
+        if p != 0 && p != v.0 { v.1 = p; 0 } else { 1 }
+    }
+    let w = unsafe { GetForegroundWindow() };
+    if w.is_null() { return None; }
+    let mut pid = 0u32;
+    unsafe { GetWindowThreadProcessId(w, &mut pid) };
+    if pid == std::process::id() { return Some("RYOCS".into()); }
+    let mut yol = surec_yolu(pid)?;
+    let kok = |y: &str| std::path::Path::new(y).file_stem().map(|s| s.to_string_lossy().to_ascii_lowercase()).unwrap_or_default();
+    if kok(&yol) == "applicationframehost" {
+        let mut v = (pid, 0u32);
+        unsafe { EnumChildWindows(w, Some(cocuk), &mut v as *mut _ as LPARAM) };
+        yol = surec_yolu(v.1).unwrap_or(yol);
+    }
+    (kok(&yol) != "lockapp").then(|| program_adi(&yol))
+}
+fn surec_yolu(pid: u32) -> Option<String> {
     use windows_sys::Win32::Foundation::CloseHandle;
     use windows_sys::Win32::System::Threading::{OpenProcess, QueryFullProcessImageNameW, PROCESS_QUERY_LIMITED_INFORMATION};
-    use windows_sys::Win32::UI::WindowsAndMessaging::{GetForegroundWindow, GetWindowThreadProcessId};
+    if pid == 0 { return None; }
     unsafe {
-        let w = GetForegroundWindow();
-        if w.is_null() { return None; }
-        let mut pid = 0u32;
-        GetWindowThreadProcessId(w, &mut pid);
         let h = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, 0, pid);
         if h.is_null() { return None; }
         let (mut b, mut n) = ([0u16; 1024], 1024u32);
         let ok = QueryFullProcessImageNameW(h, 0, b.as_mut_ptr(), &mut n) != 0;
         CloseHandle(h);
-        let ad = ok.then(|| PathBuf::from(String::from_utf16_lossy(&b[..n as usize])).file_stem().map(|s| s.to_string_lossy().into_owned())).flatten()?;
-        (!ad.is_empty() && ad != "LockApp").then_some(ad)
+        ok.then(|| String::from_utf16_lossy(&b[..n as usize]))
+    }
+}
+/// Readable name of an exe: its file description ("Microsoft Edge", "Windows Explorer"), else its product name, else the
+/// file name. Cached per path. A helper is named after its program: "Steam Client WebHelper" → "Steam".
+fn program_adi(yol: &str) -> String {
+    static AD: LazyLock<Mutex<HashMap<String, String>>> = LazyLock::new(Default::default);
+    if let Some(a) = kilit(&AD).get(yol) { return a.clone(); }
+    let ad = ["FileDescription", "ProductName"].iter().filter_map(|a| surum_alani(yol, a)).map(|s| ad_temizle(&s)).find(|s| !s.is_empty())
+        .unwrap_or_else(|| {
+            let k = std::path::Path::new(yol).file_stem().map(|s| s.to_string_lossy().into_owned()).unwrap_or_default();
+            let mut c = k.chars();
+            c.next().map(|i| i.to_uppercase().chain(c).collect()).unwrap_or(k)
+        });
+    kilit(&AD).insert(yol.into(), ad.clone());
+    ad
+}
+fn ad_temizle(s: &str) -> String {
+    let s = s.replace(['®', '™'], "").replace("(R)", "").replace("(TM)", "");
+    let mut k: Vec<&str> = s.split_whitespace().collect();
+    if k.len() > 1 && k.last().is_some_and(|x| x.to_ascii_lowercase().ends_with("helper")) {
+        k.pop();
+        if k.len() > 1 && k.last().is_some_and(|x| x.eq_ignore_ascii_case("client")) { k.pop(); }
+    }
+    let s = k.join(" ");
+    if s.contains("Operating System") { String::new() } else { s } // Windows files' product name: not a program name
+}
+/// A string from an exe's version resource, in the file's first language.
+fn surum_alani(yol: &str, alan: &str) -> Option<String> {
+    use windows_sys::Win32::Storage::FileSystem::{GetFileVersionInfoSizeW, GetFileVersionInfoW, VerQueryValueW};
+    let w: Vec<u16> = yol.encode_utf16().chain([0]).collect();
+    unsafe {
+        let n = GetFileVersionInfoSizeW(w.as_ptr(), std::ptr::null_mut());
+        if n == 0 { return None; }
+        let mut b = vec![0u8; n as usize];
+        if GetFileVersionInfoW(w.as_ptr(), 0, n, b.as_mut_ptr().cast()) == 0 { return None; }
+        let sorgu = |s: &str| {
+            let q: Vec<u16> = s.encode_utf16().chain([0]).collect();
+            let (mut p, mut l) = (std::ptr::null_mut(), 0u32);
+            (VerQueryValueW(b.as_ptr().cast(), q.as_ptr(), &mut p, &mut l) != 0 && l > 0 && !p.is_null()).then_some((p as *const u16, l))
+        };
+        let (dil, kod) = sorgu("\\VarFileInfo\\Translation").map(|(p, _)| (*p, *p.add(1))).unwrap_or((0x0409, 0x04B0));
+        let (p, l) = sorgu(&format!("\\StringFileInfo\\{dil:04x}{kod:04x}\\{alan}"))?;
+        let s = String::from_utf16_lossy(std::slice::from_raw_parts(p, l as usize));
+        Some(s.trim_end_matches('\0').trim().to_string())
     }
 }
 /// Away from the PC: no input for 2 minutes, unless something runs full screen (a video, a game, a presentation);
@@ -2713,6 +2775,12 @@ mod tests {
         let mut c = json!([1]);
         ekran_ekle(&mut c, "2026-11-01", "a", 5);
         assert_eq!((b["g"]["2026-11-01"]["a"].as_u64(), sifreli_dosya("ekran.json")), (Some(5), true));
+        // readable names from version info
+        let t = ["Steam Client WebHelper", "Battle.net Helper", "Microsoft® Windows® Operating System", "Adobe® Photoshop™", "Helper", "Windows Explorer"].map(ad_temizle);
+        assert_eq!(t, ["Steam", "Battle.net", "", "Adobe Photoshop", "Helper", "Windows Explorer"]);
+        let not = std::env::var("SystemRoot").unwrap_or("C:\\Windows".into()) + "\\explorer.exe";
+        assert!(!program_adi(&not).eq_ignore_ascii_case("explorer"), "explorer.exe has a description"); // reads the real version resource
+        assert_eq!(program_adi("C:\\yok\\benim-oyunum.exe"), "Benim-oyunum"); // no file: the file name
     }
 
     #[test]

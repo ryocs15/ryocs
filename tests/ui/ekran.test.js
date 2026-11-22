@@ -3,7 +3,7 @@
 const {esit,dogru,q,bek}=RT;
 const f0=window.fetch,giden=[],bildirim=[];
 const bugun=gunStr(new Date()),dun=gunStr(new Date(Date.now()-864e5));
-let gunler={[bugun]:{msedge:3*3600,Code:2*3600+600,Discord:1800,'<b>x':60,a:5,b:5,c:5},[dun]:{msedge:3600}};
+let gunler={[bugun]:{'Microsoft Edge':3*3600,'Visual Studio Code':2*3600+600,Discord:1800,'<b>x':60,A:5,B:5,C:5},[dun]:{'Microsoft Edge':3600}};
 window.fetch=async(p,a)=>{
   if(p==='/api/ekran'){const b=JSON.parse(a.body);giden.push(b);if(b.sil)gunler={};return{json:async()=>({durum:'ok',veri:{acik:true,bugun,gunler}})}}
   if(p==='/api/notify'){bildirim.push(JSON.parse(a.body));return{json:async()=>({durum:'ok'})}}
@@ -15,27 +15,27 @@ kartAc('ekran',true);await bek(200);
 esit('opening the card starts measuring',giden.at(-1),{acik:true});
 const satir=()=>[...q('#ekran').querySelectorAll('[data-e] .sisS')].map(s=>s.textContent);
 esit('total today',q('#ekran .ekTop b').textContent,'5 sa 41 dk');
-esit('top six, longest first, name escaped',satir(),['Msedge3 sa','Code2 sa 10 dk','Discord30 dk','<b>x1 dk','A0 dk','B0 dk']);
+esit('top six, longest first, name escaped',satir(),['Microsoft Edge3 sa','Visual Studio Code2 sa 10 dk','Discord30 dk','<b>x1 dk','A<1 dk','B<1 dk']);
 esit('seven day bars, today highlighted',[q('#ekran .ekHafta').children.length,q('#ekran .ekHafta i:last-child').classList.contains('bu')],[7,true]);
 dogru('chart has a text summary',q('#ekran .ekHafta').getAttribute('aria-label').startsWith('Son 7 gün: '));
 
 // hide a program: it leaves the list and the total
-S.ayar.ekranGizli=['msedge'];ekranCiz();
-esit('hidden program',[satir()[0],q('#ekran .ekTop b').textContent],['Code2 sa 10 dk','2 sa 41 dk']);
+S.ayar.ekranGizli=['Microsoft Edge'];ekranCiz();
+esit('hidden program',[satir()[0],q('#ekran .ekTop b').textContent],['Visual Studio Code2 sa 10 dk','2 sa 41 dk']);
 delete S.ayar.ekranGizli;
 
 // daily limit: passed → warning colour and one notification; the next poll does not repeat it
-ekranSinirYaz('msedge',120);await bek(50);
-esit('limit shown',satir()[0],'Msedge3 sa / 2 sa');
-dogru('passed limit in warning colour',q('#ekran [data-e="msedge"] .cizgi').classList.contains('dolu'));
+ekranSinirYaz('Microsoft Edge',120);await bek(50);
+esit('limit shown',satir()[0],'Microsoft Edge3 sa / 2 sa');
+dogru('passed limit in warning colour',q('#ekran [data-e="Microsoft Edge"] .cizgi').classList.contains('dolu'));
 await ekran();await ekran();await bek(50);
 esit('one notification',bildirim.filter(b=>b.baslik==='Ekran süresi sınırı').length,1);
-dogru('notification names the program',bildirim.at(-1).metin.startsWith('Msedge: bugünkü 2 sa'));
+dogru('notification names the program',bildirim.at(-1).metin.startsWith('Microsoft Edge: bugünkü 2 sa'));
 // changing the limit allows a new notification
-ekranSinirYaz('msedge',60);await bek(50);
+ekranSinirYaz('Microsoft Edge',60);await bek(50);
 esit('new limit notifies again',bildirim.filter(b=>b.baslik==='Ekran süresi sınırı').length,2);
-ekranSinirYaz('msedge',0);
-esit('limit removed',[A('ekranSinir'),satir()[0]],[{},'Msedge3 sa']);
+ekranSinirYaz('Microsoft Edge',0);
+esit('limit removed',[A('ekranSinir'),satir()[0]],[{},'Microsoft Edge3 sa']);
 
 // a broken answer does not break the card
 ekranCiz({durum:'hata'});
