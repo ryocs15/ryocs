@@ -2,6 +2,12 @@
 
 All releases: [GitHub Releases](https://github.com/ryocs15/ryocs/releases). Your data (`%APPDATA%\RYOCS`) is kept by every update.
 
+## Unreleased
+
+**Screen time**
+- Renaming a program that already passed its limit today no longer notifies a second time.
+- A screen time file that does not open on this PC (another Windows account, damaged) is kept as `ekran.bozuk.json` instead of being overwritten.
+
 ## 1.1.10 (2026-11-22)
 
 Screen time grows up: past days, a daily average, an early limit warning and your own program names.

@@ -62,9 +62,12 @@ ekranSinirYaz('Discord',10);S.ayar.ekranGizli=['A'];
 ekranAdYaz('Discord','Sohbet');
 esit('renamed row',satir()[2],'Sohbet30 dk / 10 dk');
 esit('limit follows the new name',A('ekranSinir'),{Sohbet:10});
+await ekran();await bek(50);
+dogru('renamed after warning: no second warning',!bildirim.some(b=>b.metin.startsWith('Sohbet:')));
 ekranAdYaz('Visual Studio Code','Sohbet');
 esit('same name merges',satir()[1],'Sohbet2 sa 40 dk / 10 dk');
 esit('total unchanged',q('#ekran .ekTop b').textContent,'5 sa 41 dk');
+ekranSinirYaz('Sohbet',10);await bek(50); // setting the limit again allows a new warning, under the new name
 esit('notification uses the new name',bildirim.at(-1).metin.startsWith('Sohbet: bugünkü 10 dk'),true);
 ekranAdYaz('A','Gizli');
 esit('hidden follows the new name',A('ekranGizli'),['Gizli']);

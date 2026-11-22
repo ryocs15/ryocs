@@ -3347,6 +3347,9 @@ function ekranAdYaz(p,yeni){
     if(sinir[p])for(const n of hedef)sinir[n]??=sinir[p];
     delete sinir[p];S.ayar.ekranSinir=sinir;
     if(gz.includes(p))S.ayar.ekranGizli=[...new Set(gz.filter(x=>x!==p).concat(hedef))];
+    // today's notifications follow too: a renamed program does not warn a second time
+    if(ekranU){for(const k of ['p','o'])if(ekranU[k]?.includes(p))ekranU[k]=[...new Set(ekranU[k].filter(x=>x!==p).concat(hedef))];
+      try{localStorage.ekranUyar=JSON.stringify(ekranU)}catch{}}
   }
   S.ayar.ekranAd=ad;kaydet();ekranCiz();
 }

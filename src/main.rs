@@ -799,8 +799,16 @@ fn ekran_ekle(v: &mut Value, gun: &str, exe: &str, sn: u64) {
 }
 fn ekran_veri() -> std::sync::MutexGuard<'static, Option<Value>> {
     let mut e = kilit(&EKRAN);
-    if e.is_none() { *e = Some(read_json("ekran.json")); } // missing or broken file: starts empty
+    if e.is_none() { *e = Some(ekran_yukle()); }
     e
+}
+/// ekran.json, or empty when there is none. A file that does not open here (another Windows account, damaged) is kept aside
+/// as ekran.bozuk.json, not overwritten by the next save.
+fn ekran_yukle() -> Value {
+    let p = dir().join("ekran.json");
+    let v = fs::read_to_string(&p).ok().map(|s| dpapi_ac(&s).and_then(|s| serde_json::from_str::<Value>(&s).ok()).filter(Value::is_object));
+    if let Some(None) = v { fs::rename(&p, dir().join("ekran.bozuk.json")).ok(); }
+    v.flatten().unwrap_or_else(|| json!({}))
 }
 fn ekran_kaydet() {
     use std::sync::atomic::Ordering::Relaxed;
@@ -2593,6 +2601,19 @@ mod tests {
         fs::create_dir_all(kok.join("RYOCS")).unwrap();
         unsafe { std::env::set_var("APPDATA", &kok) }; // dir() reads from here
         (k, kok)
+    }
+
+    #[test]
+    fn ekran_dosyasi_acilmazsa_saklanir() {
+        let (_k, kok) = test_klasoru("ekran");
+        let r = kok.join("RYOCS");
+        assert_eq!(ekran_yukle(), json!({})); // no file: empty, nothing renamed
+        write_json("ekran.json", &json!({ "g": { "2026-11-01": { "A": 5 } } })).unwrap();
+        assert_eq!(ekran_yukle()["g"]["2026-11-01"]["A"], 5);
+        fs::write(r.join("ekran.json"), format!("{DPAPI_ONEK}AAAA")).unwrap(); // encrypted elsewhere
+        assert_eq!(ekran_yukle(), json!({}));
+        assert!(!r.join("ekran.json").exists() && r.join("ekran.bozuk.json").exists());
+        fs::remove_dir_all(&kok).ok();
     }
 
     #[test]
