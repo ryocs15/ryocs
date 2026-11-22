@@ -217,7 +217,7 @@ fn tokens_yaz(v: &Value) -> Result<(), String> {
 /// Only this Windows user on this PC can open them; config.json keeps only its secrets encrypted (it stays editable by hand).
 const DPAPI_ONEK: &str = "RYOCS-DPAPI1:";
 fn sifreli_dosya(name: &str) -> bool {
-    matches!(name, "data.json" | "onbellek.json" | "tokens.json" | "ekran.json") || name.starts_with("yedekler")
+    matches!(name, "data.json" | "onbellek.json" | "tokens.json" | "ekran.json" | "pano.json") || name.starts_with("yedekler")
 }
 fn dpapi_sar(s: &str) -> Result<String, String> {
     use base64::Engine;
@@ -773,6 +773,16 @@ fn pano_izle() {
         }
     }
 }
+/// Pinned items survive a restart: pano.json (DPAPI) holds them, [{m, t}]. Unpinned copies stay in memory only.
+fn pano_sabit_kaydet(l: &[PanoOge]) {
+    let s: Vec<Value> = l.iter().filter(|x| x.sabit).map(|x| json!({ "m": x.m, "t": x.t })).collect();
+    if let Err(e) = write_json("pano.json", &json!(s)) { hata_kaydet(&format!("pano.json: {e}")); }
+}
+fn pano_sabit_oku() -> Vec<PanoOge> {
+    read_json("pano.json").as_array().into_iter().flatten()
+        .filter_map(|x| Some(PanoOge { m: x["m"].as_str().filter(|m| !m.trim().is_empty())?.to_string(), t: x["t"].as_u64().unwrap_or(0), sabit: true }))
+        .take(200).collect()
+}
 /// {acik, temizle: true (unpinned) | "hepsi" (all, when the card closes), sil: text, sabitle: {m, on}, surum}
 fn pano(b: &str) -> Value {
     use std::sync::atomic::Ordering::Relaxed;
@@ -780,9 +790,12 @@ fn pano(b: &str) -> Value {
     if let Some(a) = r["acik"].as_bool() { PANO_ACIK.store(a, Relaxed); }
     let mut l = kilit(&PANO);
     let n = l.len();
+    let sabit_say = |l: &Vec<PanoOge>| l.iter().filter(|x| x.sabit).count();
+    let s0 = sabit_say(&l);
     if r["temizle"] == "hepsi" { l.clear(); } else if r["temizle"] == true { l.retain(|x| x.sabit); }
     if let Some(m) = r["sil"].as_str() { l.retain(|x| x.m != m); }
     let mut degisti = l.len() != n;
+    let mut sabit_degisti = sabit_say(&l) != s0 || r["temizle"] == "hepsi"; // closing the card also removes the saved pins
     if let (Some(m), Some(on)) = (r["sabitle"]["m"].as_str(), r["sabitle"]["on"].as_bool()) {
         if let Some(i) = l.iter().position(|x| x.m == m && x.sabit != on) {
             let mut o = l.remove(i);
@@ -790,8 +803,10 @@ fn pano(b: &str) -> Value {
             let j = if on { 0 } else { l.iter().take_while(|x| x.sabit).count() };
             l.insert(j, o);
             degisti = true;
+            sabit_degisti = true;
         }
     }
+    if sabit_degisti { pano_sabit_kaydet(&l); }
     if degisti { PANO_SURUM.fetch_add(1, Relaxed); }
     let surum = PANO_SURUM.load(Relaxed);
     let mut v = json!({ "acik": PANO_ACIK.load(Relaxed), "surum": surum });
@@ -2379,6 +2394,7 @@ fn main() {
     unsafe { windows_sys::Win32::UI::Shell::SetCurrentProcessExplicitAppUserModelID(tepsi::w(AUMID).as_ptr()) };
     let gizli = std::env::args().any(|a| a == "--gizli"); // at Windows startup: start in the tray only
     tepsi::baslat();
+    *kilit(&PANO) = pano_sabit_oku();
     thread::spawn(pano_izle);
     thread::spawn(ekran_izle);
     thread::spawn(|| {
@@ -2622,6 +2638,22 @@ mod tests {
         fs::create_dir_all(kok.join("RYOCS")).unwrap();
         unsafe { std::env::set_var("APPDATA", &kok) }; // dir() reads from here
         (k, kok)
+    }
+
+    #[test]
+    fn pano_sabitleri_kalici() {
+        let (_k, kok) = test_klasoru("pano");
+        let mut l = Vec::new();
+        for (i, m) in ["bir", "iki", "üç"].iter().enumerate() { pano_ekle(&mut l, m.to_string(), i as u64); }
+        l.iter_mut().find(|x| x.m == "iki").unwrap().sabit = true;
+        pano_sabit_kaydet(&l);
+        let d = fs::read_to_string(kok.join("RYOCS").join("pano.json")).unwrap();
+        assert!(d.starts_with(DPAPI_ONEK) && !d.contains("iki")); // encrypted, like the other files with personal text
+        let o = pano_sabit_oku();
+        assert_eq!(o.iter().map(|x| (x.m.as_str(), x.sabit)).collect::<Vec<_>>(), [("iki", true)]); // only the pinned one comes back
+        pano_sabit_kaydet(&[]);
+        assert!(pano_sabit_oku().is_empty());
+        fs::remove_dir_all(&kok).ok();
     }
 
     #[test]

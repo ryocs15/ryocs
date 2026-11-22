@@ -154,7 +154,7 @@ Pushing a tag such as `v0.3.0` builds the installer on GitHub Actions and attach
 - Data, credentials and tokens are stored only in `%APPDATA%\RYOCS` ([what is in each file](docs/DATA.md)).
 - The local server answers only requests from its own page.
 - Screen time is measured only while its card is open, stays in `ekran.json` on this PC (encrypted, not synced) and can be deleted from the card's right-click menu.
-- Clipboard history is kept in memory only and skips content that password managers mark as private.
+- Clipboard history is kept in memory and skips content that password managers mark as private; only the items you pin are stored, in `pano.json` (encrypted).
 - `data.json`, its backups and the client secrets are encrypted with Windows DPAPI: only your Windows account on this PC can open them. Use *Settings → Data and backups → Export* for a plain copy (moving to another PC, Windows reinstall).
 - The OneDrive copy can be password-encrypted (*Settings → Data and backups → Password…*); without a password it is plain JSON.
 - The PIN lock is a privacy screen on top of that.
