@@ -16,8 +16,16 @@ esit('opening the card starts measuring',giden.at(-1),{acik:true});
 const satir=()=>[...q('#ekran').querySelectorAll('[data-e] .sisS')].map(s=>s.textContent);
 esit('total today',q('#ekran .ekTop b').textContent,'5 sa 41 dk');
 esit('top six, longest first, name escaped',satir(),['Microsoft Edge3 sa','Visual Studio Code2 sa 10 dk','Discord30 dk','<b>x1 dk','A<1 dk','B<1 dk']);
-esit('seven day bars, today highlighted',[q('#ekran .ekHafta').children.length,q('#ekran .ekHafta i:last-child').classList.contains('bu')],[7,true]);
-dogru('chart has a text summary',q('#ekran .ekHafta').getAttribute('aria-label').startsWith('Son 7 gün: '));
+esit('seven day bars, today highlighted',[q('#ekran .ekHafta').children.length,q('#ekran .ekHafta button:last-child').classList.contains('bu')],[7,true]);
+dogru('bars are named for screen readers',q('#ekran .ekHafta button:last-child').getAttribute('aria-label').endsWith(': 5 sa 41 dk'));
+// daily average of the days before today that have time (only yesterday here: 1 h)
+esit('average line',q('#ekran .ekOrt').textContent,'Günlük ort. 1 sa · ortalamadan 4 sa 41 dk fazla');
+// click yesterday's bar: the list and the total show that day; clicking it again goes back to today
+q(`#ekran [data-g="${dun}"]`).click();
+esit('a past day',[satir(),q('#ekran .ekTop b').textContent,q(`#ekran [data-g="${dun}"]`).getAttribute('aria-pressed')],[['Microsoft Edge1 sa'],'1 sa','true']);
+dogru('day named in the header',q('#ekran .ekTop small').textContent!=='bugün');
+q(`#ekran [data-g="${dun}"]`).click();
+esit('back to today',[q('#ekran .ekTop small').textContent,satir().length],['bugün',6]);
 
 // hide a program: it leaves the list and the total
 S.ayar.ekranGizli=['Microsoft Edge'];ekranCiz();
@@ -36,6 +44,18 @@ ekranSinirYaz('Microsoft Edge',60);await bek(50);
 esit('new limit notifies again',bildirim.filter(b=>b.baslik==='Ekran süresi sınırı').length,2);
 ekranSinirYaz('Microsoft Edge',0);
 esit('limit removed',[A('ekranSinir'),satir()[0]],[{},'Microsoft Edge3 sa']);
+// 10 minutes before a limit: one early notification, not repeated
+ekranSinirYaz('Microsoft Edge',185);await ekran();await bek(50);
+esit('early warning',[bildirim.filter(b=>b.baslik==='Ekran süresi sınırı').length,bildirim.at(-1).metin],[3,'Microsoft Edge: bugünkü sınırına 10 dk kaldı.']);
+ekranSinirYaz('Microsoft Edge',0);
+
+// hidden programs come back one by one, or all at once
+const menuBas=t=>[...q('#menu').querySelectorAll('button')].find(b=>b.textContent===t).click();
+S.ayar.ekranGizli=['A','B'];ekranCiz();
+ekranGizliMenu(10,10);menuBas('Göster: A');
+esit('one comes back',A('ekranGizli'),['B']);
+ekranGizliMenu(10,10);menuBas('Hepsini göster');
+esit('all come back',A('ekranGizli'),undefined);
 
 // rename: the row shows the new name; two programs with the same name share one row and their time adds up
 ekranSinirYaz('Discord',10);S.ayar.ekranGizli=['A'];

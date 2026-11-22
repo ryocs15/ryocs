@@ -276,7 +276,8 @@ main [data-kart][hidden]{display:none!important} /* a closed card (the card layo
 #sistem .cizgi{margin-bottom:6px}
 #sistem .cizgi.dolu i,#ekran .cizgi.dolu i{background:#e58f9a}
 #ekran .cizgi{margin-bottom:6px}.ekTop{display:flex;align-items:baseline;gap:6px;margin-bottom:4px}.ekTop b{font-size:20px;font-weight:600}.ekTop small{color:var(--mu);font-size:11px}
-.ekHafta{display:flex;align-items:flex-end;gap:4px;height:34px;margin-top:6px}.ekHafta i{flex:1;min-height:2px;border-radius:2px;background:var(--ye);opacity:.45}.ekHafta i.bu{opacity:1}
+.ekHafta{display:flex;align-items:flex-end;gap:4px;height:34px;margin-top:6px}.ekHafta button{flex:1;min-height:2px;padding:0;border:0;border-radius:2px;background:var(--ye);opacity:.45;cursor:pointer;transition:opacity .2s}.ekHafta button:hover{opacity:.7}.ekHafta button.bu{opacity:1}
+.ekOrt{display:block;margin-top:4px;color:var(--mu);font-size:11px}
 .sisEgri{width:57px;height:14px;margin-left:8px;vertical-align:-2px;overflow:visible}.sisEgri polyline{fill:none;stroke:var(--ye);stroke-width:1.5;stroke-linejoin:round;vector-effect:non-scaling-stroke}
 .sisAcik{display:block;color:var(--mu);font-size:11px;margin-top:2px}
 #pano,#mail{flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column;gap:2px;contain:size;min-height:90px}
@@ -2281,7 +2282,7 @@ addEventListener('contextmenu',e=>{
   const el=e.target.closest('[data-r],.row[data-h],[data-l],[data-n],[data-u]');
   if(!el){const kk=e.target.closest('main [data-kart]');if(kk){const r=kk.getBoundingClientRect(),k=kk.dataset.kart;menu(e.clientX||r.left+12,e.clientY||r.top+12,[[KART_AD[k]+L(' ayarları…',' settings…'),()=>kartAyar(k)],null,[L('Kartı büyüt','Enlarge card'),()=>kartBoyDeg(k,1.25)],[L('Kartı küçült','Shrink card'),()=>kartBoyDeg(k,.8)],A('kartBoy')?.[k]||A('kartMin')?.[k]?[L('Boyutu sıfırla','Reset size'),()=>kartBoyDeg(k,0)]:0,null,[L('Kartı kapat','Close card'),()=>kartAc(k,false)],k==='haber'&&A('haberGizli')?.length?[L('Gizlenen kaynakları göster (','Show hidden sources (')+A('haberGizli').length+')',()=>{delete S.ayar.haberGizli;kaydet();haberCiz()}]:0,
     k==='haber'?null:0,k==='haber'?[L('Sonra okunacaklar','Saved for later')+(S.haberKayit?.length?` (${S.haberKayit.length})…`:'…'),hbKayitPencere]:0,k==='haber'?[L('Tümünü okundu say','Mark all as read'),hbTumOkundu]:0,
-    k==='ekran'?null:0,k==='ekran'&&A('ekranGizli')?.length?[L('Gizlenen programları göster (','Show hidden programs (')+A('ekranGizli').length+')',()=>{delete S.ayar.ekranGizli;kaydet();ekranCiz()}]:0,
+    k==='ekran'?null:0,k==='ekran'&&A('ekranGizli')?.length?[L('Gizlenen programlar (','Hidden programs (')+A('ekranGizli').length+')…',()=>ekranGizliMenu(e.clientX||r.left+12,e.clientY||r.top+12)]:0,
     k==='ekran'?[L('Ölçülen verileri sil…','Delete measured data…'),async()=>{if(await sor(L('Ekran süresi verileri silinsin mi?','Delete screen time data?'),[],L('Sil','Delete'),L('Son 30 günün bütün ölçümleri silinir. Geri alınamaz.','Every measurement of the last 30 days is deleted. This cannot be undone.'),true))ekranAyar(true)},'teh']:0])}return} // empty space on a card: card settings
   const k=el.getBoundingClientRect(),x=e.clientX||k.left+12,y=e.clientY||k.bottom,d=el.dataset; // opened from the keyboard (Shift+F10) there is no cursor position
   if(d.r!==undefined)gorevMenu(x,y,+d.r);
@@ -2483,7 +2484,7 @@ const KART_AYAR={
       ['kurTur',L('Kur türü (yalnız TRY, TCMB)','Rate type (TRY only, TCMB)'),'seg',{'':L('Satış','Selling'),al:L('Alış','Buying'),ef:L('Efektif satış','Banknote')},''],
       ['altinBirim',L('Altın ve gümüş birimi','Gold and silver unit'),'seg',{gram:'Gram',ons:L('Ons','Ounce')},ONS0],
       ['gumus',L('Gümüş satırı','Silver row'),'sw',0,false],['kurDegisim',L('Önceki güne göre değişim','Change since the previous day'),'sw',0,true]],
-    gizle:[['altin',L('Altın ve gümüş satırları','Gold and silver rows'),'.kurAltin'],['kaynak',L('Kaynak ve güncelleme satırı','Source and update line'),'#kurAlt']]},sistem:{ayar:[],gizle:[]},ekran:{ayar:[],gizle:[['hafta',L('Son 7 gün grafiği','Last 7 days chart'),'.ekHafta']]},pano:{ayar:[],gizle:[]},mail:{ayar:[['mailBildir',L('Yeni mail gelince bildir','Notify about new email'),'sw',0,true]],gizle:[]},
+    gizle:[['altin',L('Altın ve gümüş satırları','Gold and silver rows'),'.kurAltin'],['kaynak',L('Kaynak ve güncelleme satırı','Source and update line'),'#kurAlt']]},sistem:{ayar:[],gizle:[]},ekran:{ayar:[],gizle:[['hafta',L('Son 7 gün grafiği','Last 7 days chart'),'.ekHaftaK']]},pano:{ayar:[],gizle:[]},mail:{ayar:[['mailBildir',L('Yeni mail gelince bildir','Notify about new email'),'sw',0,true]],gizle:[]},
   odak:{ayar:[['calisma',L('Çalışma süresi (dk)','Work time (min)'),'sayi',[1,180],25],['mola',L('Mola süresi (dk)','Break time (min)'),'sayi',[1,180],5],['uzunMola',L('Uzun mola (dk, 0: kapalı)','Long break (min, 0: off)'),'sayi',[0,60],15],['uzunAralik',L('Uzun mola kaç turda bir','Long break every … rounds'),'sayi',[2,10],4],['hedef',L('Günlük hedef (tur)','Daily goal (rounds)'),'sayi',[1,20],4],['calismaAd',L('Çalışma adı (boşsa “Çalışma”)','Work label (empty: “Work”)'),'metin',0,''],['molaAd',L('Mola adı (boşsa “Mola”)','Break label (empty: “Break”)'),'metin',0,''],['odakOto',L('Tur bitince sonrakini kendiliğinden başlat','Start the next round automatically'),'sw',0,false],['rahatsiz',L('Çalışırken bildirimleri biriktir, tur bitince tek bildirimle göster','Hold notifications while working, show them in one notification when the round ends'),'sw',0,true]],
     gizle:[['ne',L('Üzerinde çalışılan iş','What you are working on'),'#odakNe'],['hafta',L('Bu hafta neye çalıştın (kart büyükken)','This week by task (when the card is large)'),'.odNe'],['sayac',L('Serbest sayaç','Free timer'),'#serbest'],['spark',L('Başlıkta 7 günlük mini grafik','7-day mini chart in the title'),'#odakIst .spark'],['ek',L('Bugün, seri, hedef ve grafik (kart büyükken)','Today, streak, goal and chart (when the card is large)'),'#odakEk']]}};
 document.head.insertAdjacentHTML('beforeend','<style>'+Object.entries(KART_AYAR).flatMap(([k,a])=>a.gizle.filter(g=>g[2]).map(([id,,sel])=>`[data-kart=${k}][data-gizle~=${id}] ${sel}{display:none!important}`)).join('')+'</style>');
@@ -3329,7 +3330,7 @@ async function sistem(){
 }
 // Screen time: Rust counts seconds per program while this card is open (ekran.json, this PC only); the card asks once a minute,
 // in the tray too while a daily limit is set. S.ayar.ekranGizli: programs left out; S.ayar.ekranSinir: {program: daily minutes}
-let ekranV=null,ekranU=null;
+let ekranV=null,ekranU=null,ekranGun=null;
 // program names come from Rust (the exe's own description); under a minute reads "<1 min", not "0 min"
 const ekranSure=s=>s>0&&s<60?'<'+sureYaz(6e4):sureYaz(s*1e3);
 // S.ayar.ekranAd: {measured name: name the user gave}; programs given the same name share one row. Hide and limit go by the shown name.
@@ -3355,26 +3356,42 @@ function ekranCiz(r){
   if(r){if(r.durum!=='ok'||!r.veri?.gunler)return ekYaz('#ekran',L('<p class="m">Ekran süresi okunamadı.</p>','<p class="m">Could not read screen time.</p>'));ekranV=r.veri}
   if(!ekranV)return;
   const gz=Array.isArray(A('ekranGizli'))?A('ekranGizli'):[],sinir=A('ekranSinir')||{},say=g=>Object.entries(ekranTopla(g)).filter(([p,s])=>!gz.includes(p)&&s>0);
-  const l=say(ekranV.bugun).sort((a,b)=>b[1]-a[1]),top=l.reduce((t,x)=>t+x[1],0),en=l[0]?.[1]||1;
   ekranUyar(ekranTopla(ekranV.bugun),sinir);
-  const gun=[...Array(7)].map((_,i)=>{const d=new Date();d.setDate(d.getDate()-6+i);return{ad:d.toLocaleDateString(LOC,{weekday:'short'}),t:say(gunStr(d)).reduce((t,x)=>t+x[1],0)}}),
+  const gun=[...Array(7)].map((_,i)=>{const d=new Date();d.setDate(d.getDate()-6+i);const g=i===6?ekranV.bugun:gunStr(d);
+      return{g,ad:d.toLocaleDateString(LOC,{weekday:'short'}),uzun:d.toLocaleDateString(LOC,{weekday:'long',day:'numeric',month:'long'}),t:say(g).reduce((t,x)=>t+x[1],0)}}),
     enG=Math.max(...gun.map(g=>g.t),1);
-  ekYaz('#ekran',`<div class="ekTop"><b>${ekranSure(top)}</b><small>${L('bugün','today')}</small></div>`
+  // a clicked bar shows that day; today when nothing is picked or the picked day left the last 7
+  const sec=gun.find(x=>x.g===ekranGun)||gun[6];if(sec===gun[6])ekranGun=null;
+  const l=say(sec.g).sort((a,b)=>b[1]-a[1]),top=sec.t,en=l[0]?.[1]||1;
+  // daily average of the 6 days before today that have any time
+  const once=gun.slice(0,6).filter(g=>g.t>0),ort=once.length?once.reduce((t,g)=>t+g.t,0)/once.length:0,fark=top-ort;
+  ekYaz('#ekran',`<div class="ekTop"><b>${ekranSure(top)}</b><small>${ekranGun?esc(sec.uzun):L('bugün','today')}</small></div>`
     +(l.length?l.slice(0,6).map(([p,s])=>{const dk=+sinir[p]>0?+sinir[p]:0;
       return `<div data-e="${esc(p)}" tabindex="0"><div class="sisS"><span>${esc(p)}</span><small>${ekranSure(s)}${dk?' / '+sureYaz(dk*6e4):''}</small></div><div class="cizgi${dk&&s>=dk*60?' dolu':''}"><i style="width:${100*s/en}%"></i></div></div>`}).join('')
+      :ekranGun?L('<p class="m">Bu gün ölçüm yok.</p>','<p class="m">Nothing measured that day.</p>')
       :L('<p class="m">Henüz ölçüm yok. Bu kart açıkken programlarda geçirdiğin süre burada birikir.</p>','<p class="m">Nothing measured yet. Time spent in programs adds up here while this card is open.</p>'))
-    +`<div class="ekHafta" role="img" aria-label="${L('Son 7 gün: ','Last 7 days: ')+gun.map(g=>g.ad+' '+sureYaz(g.t*1e3)).join(', ')}">${gun.map((g,i)=>`<i class="${i===6?'bu':''}" style="height:${Math.max(6,100*g.t/enG)}%" title="${g.ad}: ${sureYaz(g.t*1e3)}"></i>`).join('')}</div>`);
+    +`<div class="ekHaftaK"><div class="ekHafta" role="group" aria-label="${L('Son 7 gün','Last 7 days')}">${gun.map(g=>`<button type="button" data-g="${g.g}" class="${g===sec?'bu':''}" aria-pressed="${g===sec}" style="height:${Math.max(6,100*g.t/enG)}%" title="${g.ad}: ${sureYaz(g.t*1e3)}" aria-label="${esc(g.uzun)}: ${sureYaz(g.t*1e3)}"></button>`).join('')}</div>`
+    +(ort?`<small class="ekOrt">${L('Günlük ort. ','Daily avg. ')+ekranSure(ort)}${top&&Math.abs(fark)>=60?' · '+(fark>0?L('ortalamadan '+ekranSure(fark)+' fazla',ekranSure(fark)+' above average'):L('ortalamadan '+ekranSure(-fark)+' az',ekranSure(-fark)+' below average')):''}</small>`:'')+'</div>');
+  $('#ekran .ekHafta').onclick=e=>{const b=e.target.closest('[data-g]');if(b){ekranGun=b.dataset.g===ekranGun||b.dataset.g===ekranV.bugun?null:b.dataset.g;ekranCiz()}};
 }
-// a daily limit passed: one notification per program per day, remembered across restarts (in memory if storage fails)
+// a daily limit: one notification 10 minutes before it (limits over 10 minutes) and one when it is passed, per program per day,
+// remembered across restarts (in memory if storage fails). ekranU: {g: day, p: passed, o: warned before}
 function ekranUyar(bugun,sinir){
   if(!ekranU)try{ekranU=JSON.parse(localStorage.ekranUyar||'null')}catch{}
   if(ekranU?.g!==ekranV.bugun||!Array.isArray(ekranU.p))ekranU={g:ekranV.bugun,p:[]};
+  if(!Array.isArray(ekranU.o))ekranU.o=[];
   let yeni=false;
-  for(const [p,dk] of Object.entries(sinir))if(+dk>0&&(bugun[p]||0)>=dk*60&&!ekranU.p.includes(p)){ekranU.p.push(p);yeni=true;
-    bildir(L('Ekran süresi sınırı','Screen time limit'),p+L(': bugünkü ',': today\'s ')+sureYaz(dk*6e4)+L(' sınırını geçtin.',' limit is reached.'))}
+  for(const [p,dk] of Object.entries(sinir)){const s=bugun[p]||0;if(!(+dk>0))continue;
+    if(s>=dk*60&&!ekranU.p.includes(p)){ekranU.p.push(p);yeni=true;
+      bildir(L('Ekran süresi sınırı','Screen time limit'),p+L(': bugünkü ',': today\'s ')+sureYaz(dk*6e4)+L(' sınırını geçtin.',' limit is reached.'))}
+    else if(dk>10&&s<dk*60&&s>=(dk-10)*60&&!ekranU.o.includes(p)){ekranU.o.push(p);yeni=true;
+      bildir(L('Ekran süresi sınırı','Screen time limit'),p+L(': bugünkü sınırına 10 dk kaldı.',': 10 min left of today\'s limit.'))}}
   if(yeni)try{localStorage.ekranUyar=JSON.stringify(ekranU)}catch{}
 }
-function ekranSinirYaz(p,dk){const o={...A('ekranSinir')};if(dk)o[p]=dk;else delete o[p];S.ayar.ekranSinir=o;if(ekranU)ekranU.p=ekranU.p.filter(x=>x!==p);kaydet();ekranCiz()}
+function ekranSinirYaz(p,dk){const o={...A('ekranSinir')};if(dk)o[p]=dk;else delete o[p];S.ayar.ekranSinir=o;if(ekranU){ekranU.p=ekranU.p.filter(x=>x!==p);ekranU.o=(ekranU.o||[]).filter(x=>x!==p)}kaydet();ekranCiz()}
+// hidden programs: bring one back, or all
+function ekranGizliMenu(x,y){const gz=A('ekranGizli')||[],yaz=l=>{if(l.length)S.ayar.ekranGizli=l;else delete S.ayar.ekranGizli;kaydet();ekranCiz()};
+  menu(x,y,[...gz.map(p=>[L('Göster: ','Show: ')+p,()=>yaz(gz.filter(z=>z!==p))]),null,[L('Hepsini göster','Show all'),()=>yaz([])]])}
 function ekranMenu(x,y,p){const s=A('ekranSinir')||{};menu(x,y,[
   [s[p]?L('Günlük sınırı değiştir…','Change daily limit…'):L('Günlük sınır koy…','Set a daily limit…'),async()=>{
     const v=await sor(esc(p)+L(': günlük sınır',': daily limit'),[{ad:L('Dakika','Minutes'),tip:'number',v:s[p]||60,zorunlu:true}]),dk=Math.round(+v?.[0]);

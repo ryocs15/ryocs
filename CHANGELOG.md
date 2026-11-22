@@ -2,9 +2,15 @@
 
 All releases: [GitHub Releases](https://github.com/ryocs15/ryocs/releases). Your data (`%APPDATA%\RYOCS`) is kept by every update.
 
-## Unreleased
+## 1.1.10 (2026-11-22)
+
+Screen time grows up: past days, a daily average, an early limit warning and your own program names.
 
 **Screen time**
+- Click a bar of the last 7 days: the list and the total show that day; click it again for today.
+- Under the bars: the daily average of the days before today, and how far the shown day is above or below it.
+- A daily limit over 10 minutes also notifies once 10 minutes before it.
+- Hidden programs come back one by one from the card's right-click menu, or all at once.
 - Right-click a program → Rename: your name is used on the card, in the 7-day bars and in the limit notification. Programs given the same name share one row and their time adds up; "Back to its own name" undoes it.
 - Spotify showed with stray characters after its name; Electron apps that never set their own name showed as "Electron" and now show by their file name.
 
