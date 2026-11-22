@@ -968,7 +968,7 @@ fn ekran_izle() {
         }
     }
 }
-/// {acik, sil: true} → {acik, bugun, gunler: {day: {program: seconds}}} (the 7 newest days)
+/// {acik, sil: true} → {acik, bugun, gunler: {day: {program: seconds}}} (the 14 newest days)
 fn ekran(b: &str) -> Value {
     use std::sync::atomic::Ordering::Relaxed;
     let r: Value = serde_json::from_str(b).unwrap_or_default();
@@ -983,7 +983,7 @@ fn ekran(b: &str) -> Value {
     if let Some(g) = v["g"].as_object() {
         let mut k: Vec<&String> = g.keys().collect();
         k.sort();
-        for d in k.into_iter().rev().take(7) { gunler.insert(d.clone(), g[d].clone()); }
+        for d in k.into_iter().rev().take(14) { gunler.insert(d.clone(), g[d].clone()); } // 14: the weekly summary compares with the week before
     }
     drop(e);
     if r["sil"] == true { ekran_kaydet(); } // deleted data leaves the disk now, not a minute later

@@ -8,6 +8,9 @@ All releases: [GitHub Releases](https://github.com/ryocs15/ryocs/releases). Your
 - Breaking news (Turkish) comes from seven outlets instead of one: TRT Haber, Sabah, Sözcü, Milliyet, CNN Türk, Habertürk and En Son Haber, in one list, newest first. The same story from several outlets is one row ("+2 kaynak"); right-click opens it at the other outlets. Hiding an outlet works as before. A feed that labels Turkish time as GMT no longer shows its stories in the future.
 - The bold NEW label is gone: a small dot marks only the stories that came since you last looked at the card.
 
+**Weekly summary**
+- On Sunday at 20:00 a notification says your week is ready: focus rounds and time (and what you worked on most), completed tasks, habits, screen time with the top three programs, each against last week. Any time: Ctrl+F → "özet" shows this week so far against the same days of last week. Only cards you use appear; Settings → Notifications turns it off.
+
 **Tasks**
 - Subtasks: right-click a task → Add subtask (several at once, separated by commas). They show under the task with small boxes and a "2/5" count; right-click one to edit or delete it. A repeating task starts its subtasks over at the next date. Search finds a task by its subtasks too.
 
