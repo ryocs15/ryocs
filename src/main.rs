@@ -217,7 +217,7 @@ fn tokens_yaz(v: &Value) -> Result<(), String> {
 /// Only this Windows user on this PC can open them; config.json keeps only its secrets encrypted (it stays editable by hand).
 const DPAPI_ONEK: &str = "RYOCS-DPAPI1:";
 fn sifreli_dosya(name: &str) -> bool {
-    matches!(name, "data.json" | "onbellek.json" | "tokens.json") || name.starts_with("yedekler")
+    matches!(name, "data.json" | "onbellek.json" | "tokens.json" | "ekran.json") || name.starts_with("yedekler")
 }
 fn dpapi_sar(s: &str) -> Result<String, String> {
     use base64::Engine;
@@ -778,6 +778,106 @@ fn pano(b: &str) -> Value {
         v["liste"] = l.iter().map(|x| json!({ "m": x.m, "t": x.t, "s": x.sabit })).collect();
     }
     v
+}
+
+/// Screen time: seconds per program per local day ({"g": {"2026-11-22": {"msedge": 3600}}}), the 30 newest days, in ekran.json (DPAPI).
+/// Counted only while the card is open (EKRAN_ACIK, set by the UI like the clipboard); stays on this PC, not synced.
+static EKRAN: Mutex<Option<Value>> = Mutex::new(None);
+static EKRAN_ACIK: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+static EKRAN_KIRLI: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+fn ekran_ekle(v: &mut Value, gun: &str, exe: &str, sn: u64) {
+    if !v.is_object() { *v = json!({}); }
+    if !v["g"].is_object() { v["g"] = json!({}); }
+    let g = v["g"].as_object_mut().expect("object");
+    let d = g.entry(gun).or_insert_with(|| json!({}));
+    if !d.is_object() { *d = json!({}); }
+    d[exe] = json!(d[exe].as_u64().unwrap_or(0) + sn);
+    while g.len() > 30 {
+        let eski = g.keys().min().cloned().expect("not empty");
+        g.remove(&eski);
+    }
+}
+fn ekran_veri() -> std::sync::MutexGuard<'static, Option<Value>> {
+    let mut e = kilit(&EKRAN);
+    if e.is_none() { *e = Some(read_json("ekran.json")); } // missing or broken file: starts empty
+    e
+}
+fn ekran_kaydet() {
+    use std::sync::atomic::Ordering::Relaxed;
+    if !EKRAN_KIRLI.swap(false, Relaxed) { return; }
+    let v = ekran_veri().clone().unwrap_or_default();
+    if write_json("ekran.json", &v).is_err() { EKRAN_KIRLI.store(true, Relaxed); }
+}
+/// The program of the window in front (file name without .exe), None when there is none or the screen is locked / saver on.
+/// shortcut: Store apps (Settings, Calculator) show as ApplicationFrameHost; resolve the child window if that matters.
+fn on_program() -> Option<String> {
+    use windows_sys::Win32::Foundation::CloseHandle;
+    use windows_sys::Win32::System::Threading::{OpenProcess, QueryFullProcessImageNameW, PROCESS_QUERY_LIMITED_INFORMATION};
+    use windows_sys::Win32::UI::WindowsAndMessaging::{GetForegroundWindow, GetWindowThreadProcessId};
+    unsafe {
+        let w = GetForegroundWindow();
+        if w.is_null() { return None; }
+        let mut pid = 0u32;
+        GetWindowThreadProcessId(w, &mut pid);
+        let h = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, 0, pid);
+        if h.is_null() { return None; }
+        let (mut b, mut n) = ([0u16; 1024], 1024u32);
+        let ok = QueryFullProcessImageNameW(h, 0, b.as_mut_ptr(), &mut n) != 0;
+        CloseHandle(h);
+        let ad = ok.then(|| PathBuf::from(String::from_utf16_lossy(&b[..n as usize])).file_stem().map(|s| s.to_string_lossy().into_owned())).flatten()?;
+        (!ad.is_empty() && ad != "LockApp").then_some(ad)
+    }
+}
+/// Away from the PC: no input for 2 minutes, unless something runs full screen (a video, a game, a presentation);
+/// also away while the screen is locked or the screen saver runs.
+fn ekran_bosta() -> bool {
+    use windows_sys::Win32::System::SystemInformation::GetTickCount;
+    use windows_sys::Win32::UI::Input::KeyboardAndMouse::{GetLastInputInfo, LASTINPUTINFO};
+    use windows_sys::Win32::UI::Shell::SHQueryUserNotificationState;
+    let mut q = 0;
+    let durum = if unsafe { SHQueryUserNotificationState(&mut q) } == 0 { q } else { 0 };
+    if durum == 1 { return true; } // QUNS_NOT_PRESENT: locked, screen saver, fast user switching
+    if matches!(durum, 2..=4) { return false; } // busy / full-screen D3D / presentation mode
+    let mut l = LASTINPUTINFO { cbSize: size_of::<LASTINPUTINFO>() as u32, dwTime: 0 };
+    unsafe { GetLastInputInfo(&mut l) != 0 && GetTickCount().wrapping_sub(l.dwTime) > 120_000 }
+}
+fn ekran_izle() {
+    use std::sync::atomic::Ordering::Relaxed;
+    let mut son_yaz = std::time::Instant::now();
+    loop {
+        thread::sleep(Duration::from_secs(5));
+        if EKRAN_ACIK.load(Relaxed) && !ekran_bosta() {
+            if let Some(p) = on_program() {
+                ekran_ekle(ekran_veri().get_or_insert_with(|| json!({})), &bugun(), &p, 5);
+                EKRAN_KIRLI.store(true, Relaxed);
+            }
+        }
+        if son_yaz.elapsed() >= Duration::from_secs(60) {
+            ekran_kaydet();
+            son_yaz = std::time::Instant::now();
+        }
+    }
+}
+/// {acik, sil: true} → {acik, bugun, gunler: {day: {program: seconds}}} (the 7 newest days)
+fn ekran(b: &str) -> Value {
+    use std::sync::atomic::Ordering::Relaxed;
+    let r: Value = serde_json::from_str(b).unwrap_or_default();
+    if let Some(a) = r["acik"].as_bool() { EKRAN_ACIK.store(a, Relaxed); }
+    let mut e = ekran_veri();
+    let v = e.get_or_insert_with(|| json!({}));
+    if r["sil"] == true {
+        *v = json!({});
+        EKRAN_KIRLI.store(true, Relaxed);
+    }
+    let mut gunler = serde_json::Map::new();
+    if let Some(g) = v["g"].as_object() {
+        let mut k: Vec<&String> = g.keys().collect();
+        k.sort();
+        for d in k.into_iter().rev().take(7) { gunler.insert(d.clone(), g[d].clone()); }
+    }
+    drop(e);
+    if r["sil"] == true { ekran_kaydet(); } // deleted data leaves the disk now, not a minute later
+    json!({ "acik": EKRAN_ACIK.load(Relaxed), "bugun": bugun(), "gunler": gunler })
 }
 
 /// OneDrive sync: data.json is paired with <OneDrive>\RYOCS\data.json. esitle.json: {acik, klasor, oz}.
@@ -1920,6 +2020,8 @@ fn handle(mut req: Request) {
         Ok(sistem())
     } else if post && path == "/api/pano" {
         Ok(pano(&b))
+    } else if post && path == "/api/ekran" {
+        Ok(ekran(&b))
     } else if post && path == "/api/esitle" {
         esitle(&b)
     } else if !post && path == "/api/onbellek" {
@@ -2183,6 +2285,7 @@ fn main() {
     let gizli = std::env::args().any(|a| a == "--gizli"); // at Windows startup: start in the tray only
     tepsi::baslat();
     thread::spawn(pano_izle);
+    thread::spawn(ekran_izle);
     thread::spawn(|| {
         aumid_kaydet();
         thread::sleep(Duration::from_secs(3));
@@ -2277,6 +2380,7 @@ fn main() {
                 window.set_visible(false);
                 thread::spawn(|| {
                     thread::sleep(Duration::from_millis(400)); // the UI's last save starts
+                    ekran_kaydet();
                     kayitlari_bekle();
                     olay(Olay::Cik);
                 });
@@ -2593,6 +2697,22 @@ mod tests {
         assert_eq!(cpu_yuzde(Some((10, 100)), (10, 100)), None); // time has not passed
         assert_eq!(cpu_yuzde(Some((0, 0)), (75, 100)), Some(25.0));
         assert_eq!(cpu_yuzde(Some((50, 100)), (40, 200)), None); // the counter went backwards
+    }
+
+    #[test]
+    fn ekran_toplama() {
+        let mut v = json!({});
+        for p in ["msedge", "msedge", "Code"] { ekran_ekle(&mut v, "2026-11-01", p, 5); }
+        assert_eq!(v["g"]["2026-11-01"], json!({ "msedge": 10, "Code": 5 }));
+        for d in 2..=31 { ekran_ekle(&mut v, &format!("2026-11-{d:02}"), "x", 1); }
+        let g = v["g"].as_object().unwrap();
+        assert_eq!((g.len(), g.contains_key("2026-11-01"), g.contains_key("2026-11-31")), (30, false, true)); // the oldest day goes
+        // a broken shape is replaced, not a panic
+        let mut b = json!({ "g": { "2026-11-01": 5 } });
+        ekran_ekle(&mut b, "2026-11-01", "a", 5);
+        let mut c = json!([1]);
+        ekran_ekle(&mut c, "2026-11-01", "a", 5);
+        assert_eq!((b["g"]["2026-11-01"]["a"].as_u64(), sifreli_dosya("ekran.json")), (Some(5), true));
     }
 
     #[test]

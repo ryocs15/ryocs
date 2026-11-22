@@ -32,6 +32,7 @@ The interface is in **English** and **Turkish**. It follows the Windows display 
 - **Focus timer** (pomodoro) with long breaks, skipping a round or adding 5 minutes (right-click), daily goal, streak, your own labels, a *what am I working on* note with a weekly breakdown, and *do not disturb* (notifications wait until the round ends)
 - **Gmail** last 15 inbox messages, unread ones in bold, a notification for new mail; right-click to mark as read or unread, or to archive
 - **Currency and gold** with a converter and rate, gold and silver alerts, in your home currency (about 160 currencies; TCMB for TRY, ECB and world rates otherwise), **system** info (CPU with its last minute, memory, every drive, battery time left, uptime), **clipboard history** (pin, delete)
+- **Screen time**: how long you spent in each program today and over the last 7 days, hidden programs, a daily limit per program with a notification (off until you open the card; measured on this PC only)
 - Quick search and command palette (Ctrl+F), app and game launcher, quick links with site icons, search in Settings
 - Lives in the tray with a global shortcut you can choose; remembers its window size and position
 - Drag cards to move them, drag the gaps between them to resize; save and restore layouts
@@ -150,6 +151,7 @@ Pushing a tag such as `v0.3.0` builds the installer on GitHub Actions and attach
 
 - Data, credentials and tokens are stored only in `%APPDATA%\RYOCS` ([what is in each file](docs/DATA.md)).
 - The local server answers only requests from its own page.
+- Screen time is measured only while its card is open, stays in `ekran.json` on this PC (encrypted, not synced) and can be deleted from the card's right-click menu.
 - Clipboard history is kept in memory only and skips content that password managers mark as private.
 - `data.json`, its backups and the client secrets are encrypted with Windows DPAPI: only your Windows account on this PC can open them. Use *Settings → Data and backups → Export* for a plain copy (moving to another PC, Windows reinstall).
 - The OneDrive copy can be password-encrypted (*Settings → Data and backups → Password…*); without a password it is plain JSON.

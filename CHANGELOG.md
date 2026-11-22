@@ -2,6 +2,14 @@
 
 All releases: [GitHub Releases](https://github.com/ryocs15/ryocs/releases). Your data (`%APPDATA%\RYOCS`) is kept by every update.
 
+## Unreleased
+
+**Screen time** (new card, off until you open it)
+- How long you spent in each program today (the top six) and a bar for each of the last 7 days.
+- Counted every 5 seconds from the window in front; not counted after 2 minutes without mouse or keyboard, unless something runs full screen (a video, a game), nor while the screen is locked.
+- Right-click a program: hide it, or set a daily limit; passing it shows one notification that day.
+- Stays on this PC (`ekran.json`, encrypted, the last 30 days); the card's right-click menu deletes it.
+
 ## 1.1.8 (2026-11-21)
 
 Every other card got its own round of fixes and features: currency, system, clipboard, Gmail, clock, calendar, apps, tasks, notes and news.
