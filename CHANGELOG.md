@@ -5,6 +5,7 @@ All releases: [GitHub Releases](https://github.com/ryocs15/ryocs/releases). Your
 ## Unreleased
 
 **Screen time**
+- Right-click a program → Rename: your name is used on the card, in the 7-day bars and in the limit notification. Programs given the same name share one row and their time adds up; "Back to its own name" undoes it.
 - Spotify showed with stray characters after its name; Electron apps that never set their own name showed as "Electron" and now show by their file name.
 
 ## 1.1.9 (2026-11-22)

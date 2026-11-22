@@ -3332,14 +3332,31 @@ async function sistem(){
 let ekranV=null,ekranU=null;
 // program names come from Rust (the exe's own description); under a minute reads "<1 min", not "0 min"
 const ekranSure=s=>s>0&&s<60?'<'+sureYaz(6e4):sureYaz(s*1e3);
+// S.ayar.ekranAd: {measured name: name the user gave}; programs given the same name share one row. Hide and limit go by the shown name.
+const ekranAdi=p=>A('ekranAd')?.[p]||p;
+function ekranTopla(g){const o={};for(const [p,s] of Object.entries(ekranV.gunler[g]||{}))o[ekranAdi(p)]=(o[ekranAdi(p)]||0)+s;return o}
+// rename the row shown as p (every measured name behind it); an empty name, or the measured one, goes back to the measured names
+function ekranAdYaz(p,yeni){
+  yeni=String(yeni||'').trim().slice(0,60);
+  const ad={...A('ekranAd')},asil=[...new Set(Object.values(ekranV?.gunler||{}).flatMap(Object.keys).concat(p))].filter(k=>ekranAdi(k)===p);
+  for(const k of asil)if(!yeni||yeni===k)delete ad[k];else ad[k]=yeni;
+  // the hide and the limit follow the row to its new name(s)
+  const hedef=[...new Set(asil.map(k=>ad[k]||k))].filter(n=>n!==p),sinir={...A('ekranSinir')},gz=A('ekranGizli')||[];
+  if(hedef.length){
+    if(sinir[p])for(const n of hedef)sinir[n]??=sinir[p];
+    delete sinir[p];S.ayar.ekranSinir=sinir;
+    if(gz.includes(p))S.ayar.ekranGizli=[...new Set(gz.filter(x=>x!==p).concat(hedef))];
+  }
+  S.ayar.ekranAd=ad;kaydet();ekranCiz();
+}
 async function ekranAyar(sil){ekranCiz(await api('/api/ekran',{acik:!!S&&kartAcik('ekran'),...sil?{sil:true}:{}}))}
 async function ekran(){if(S&&kartAcik('ekran')&&(!gizliMi()||Object.keys(A('ekranSinir')||{}).length))ekranCiz(await api('/api/ekran',{}))}
 function ekranCiz(r){
   if(r){if(r.durum!=='ok'||!r.veri?.gunler)return ekYaz('#ekran',L('<p class="m">Ekran süresi okunamadı.</p>','<p class="m">Could not read screen time.</p>'));ekranV=r.veri}
   if(!ekranV)return;
-  const gz=Array.isArray(A('ekranGizli'))?A('ekranGizli'):[],sinir=A('ekranSinir')||{},say=g=>Object.entries(ekranV.gunler[g]||{}).filter(([p,s])=>!gz.includes(p)&&s>0);
+  const gz=Array.isArray(A('ekranGizli'))?A('ekranGizli'):[],sinir=A('ekranSinir')||{},say=g=>Object.entries(ekranTopla(g)).filter(([p,s])=>!gz.includes(p)&&s>0);
   const l=say(ekranV.bugun).sort((a,b)=>b[1]-a[1]),top=l.reduce((t,x)=>t+x[1],0),en=l[0]?.[1]||1;
-  ekranUyar(ekranV.gunler[ekranV.bugun]||{},sinir);
+  ekranUyar(ekranTopla(ekranV.bugun),sinir);
   const gun=[...Array(7)].map((_,i)=>{const d=new Date();d.setDate(d.getDate()-6+i);return{ad:d.toLocaleDateString(LOC,{weekday:'short'}),t:say(gunStr(d)).reduce((t,x)=>t+x[1],0)}}),
     enG=Math.max(...gun.map(g=>g.t),1);
   ekYaz('#ekran',`<div class="ekTop"><b>${ekranSure(top)}</b><small>${L('bugün','today')}</small></div>`
@@ -3363,7 +3380,9 @@ function ekranMenu(x,y,p){const s=A('ekranSinir')||{};menu(x,y,[
     const v=await sor(esc(p)+L(': günlük sınır',': daily limit'),[{ad:L('Dakika','Minutes'),tip:'number',v:s[p]||60,zorunlu:true}]),dk=Math.round(+v?.[0]);
     if(v&&dk>0)ekranSinirYaz(p,Math.min(1440,dk))}],
   s[p]?[L('Sınırı kaldır','Remove limit'),()=>ekranSinirYaz(p,0)]:0,
-  null,[L('Listeden gizle','Hide from the list'),()=>{S.ayar.ekranGizli=[...(A('ekranGizli')||[]),p];kaydet();ekranCiz()}]])}
+  null,[L('Yeniden adlandır…','Rename…'),async()=>{const v=await sor(L('Programın adı','Program name'),[{ad:L('Ad','Name'),v:p}]);if(v)ekranAdYaz(p,v[0])}],
+  Object.values(A('ekranAd')||{}).includes(p)?[L('Özgün adına dön','Back to its own name'),()=>ekranAdYaz(p,'')]:0,
+  [L('Listeden gizle','Hide from the list'),()=>{S.ayar.ekranGizli=[...(A('ekranGizli')||[]),p];kaydet();ekranCiz()}]])}
 // Clipboard history: the last 20 texts, in memory only (cleared when RYOCS closes), collected only while the card is open.
 // Copies that password managers mark "exclude from history" are skipped on the Rust side. Clicking a row copies the text again.
 // panoL: [{m: text, t: copied (ms), s: pinned}]; panoSurum: the server's version of the list we have (only a change is sent)

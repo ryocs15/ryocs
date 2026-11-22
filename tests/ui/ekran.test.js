@@ -37,6 +37,24 @@ esit('new limit notifies again',bildirim.filter(b=>b.baslik==='Ekran süresi sı
 ekranSinirYaz('Microsoft Edge',0);
 esit('limit removed',[A('ekranSinir'),satir()[0]],[{},'Microsoft Edge3 sa']);
 
+// rename: the row shows the new name; two programs with the same name share one row and their time adds up
+ekranSinirYaz('Discord',10);S.ayar.ekranGizli=['A'];
+ekranAdYaz('Discord','Sohbet');
+esit('renamed row',satir()[2],'Sohbet30 dk / 10 dk');
+esit('limit follows the new name',A('ekranSinir'),{Sohbet:10});
+ekranAdYaz('Visual Studio Code','Sohbet');
+esit('same name merges',satir()[1],'Sohbet2 sa 40 dk / 10 dk');
+esit('total unchanged',q('#ekran .ekTop b').textContent,'5 sa 41 dk');
+esit('notification uses the new name',bildirim.at(-1).metin.startsWith('Sohbet: bugünkü 10 dk'),true);
+ekranAdYaz('A','Gizli');
+esit('hidden follows the new name',A('ekranGizli'),['Gizli']);
+// back to the own names: both rows return, each keeps the limit
+ekranAdYaz('Sohbet','');
+esit('own names back',[A('ekranAd'),satir().slice(1,3)],[{A:'Gizli'},['Visual Studio Code2 sa 10 dk / 10 dk','Discord30 dk / 10 dk']]);
+ekranAdYaz('Gizli','  ');
+esit('empty name goes back',[A('ekranAd'),A('ekranGizli')],[{},['A']]);
+delete S.ayar.ekranSinir;delete S.ayar.ekranGizli;ekranCiz();
+
 // a broken answer does not break the card
 ekranCiz({durum:'hata'});
 esit('error text',q('#ekran').textContent,'Ekran süresi okunamadı.');
