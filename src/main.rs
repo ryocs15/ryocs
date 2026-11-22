@@ -868,7 +868,8 @@ fn ad_temizle(s: &str) -> String {
         if k.len() > 1 && k.last().is_some_and(|x| x.eq_ignore_ascii_case("client")) { k.pop(); }
     }
     let s = k.join(" ");
-    if s.contains("Operating System") { String::new() } else { s } // Windows files' product name: not a program name
+    // Windows files' product name and the runtime that Electron apps ship unchanged: not a program name
+    if s.contains("Operating System") || s.eq_ignore_ascii_case("electron") { String::new() } else { s }
 }
 /// A string from an exe's version resource, in the file's first language.
 fn surum_alani(yol: &str, alan: &str) -> Option<String> {
@@ -886,8 +887,11 @@ fn surum_alani(yol: &str, alan: &str) -> Option<String> {
         };
         let (dil, kod) = sorgu("\\VarFileInfo\\Translation").map(|(p, _)| (*p, *p.add(1))).unwrap_or((0x0409, 0x04B0));
         let (p, l) = sorgu(&format!("\\StringFileInfo\\{dil:04x}{kod:04x}\\{alan}"))?;
-        let s = String::from_utf16_lossy(std::slice::from_raw_parts(p, l as usize));
-        Some(s.trim_end_matches('\0').trim().to_string())
+        // some exes (Spotify) give the length in bytes, not characters: stay inside the buffer and stop at the first NUL
+        let kalan = (b.as_ptr().add(b.len()) as usize).saturating_sub(p as usize) / 2;
+        let s = std::slice::from_raw_parts(p, (l as usize).min(kalan));
+        let s = &s[..s.iter().position(|&c| c == 0).unwrap_or(s.len())];
+        Some(String::from_utf16_lossy(s).trim().to_string())
     }
 }
 /// Away from the PC: no input for 2 minutes, unless something runs full screen (a video, a game, a presentation);
@@ -2776,11 +2780,14 @@ mod tests {
         ekran_ekle(&mut c, "2026-11-01", "a", 5);
         assert_eq!((b["g"]["2026-11-01"]["a"].as_u64(), sifreli_dosya("ekran.json")), (Some(5), true));
         // readable names from version info
-        let t = ["Steam Client WebHelper", "Battle.net Helper", "Microsoft® Windows® Operating System", "Adobe® Photoshop™", "Helper", "Windows Explorer"].map(ad_temizle);
-        assert_eq!(t, ["Steam", "Battle.net", "", "Adobe Photoshop", "Helper", "Windows Explorer"]);
+        let t = ["Steam Client WebHelper", "Battle.net Helper", "Microsoft® Windows® Operating System", "Adobe® Photoshop™", "Helper", "Windows Explorer", "Electron"].map(ad_temizle);
+        assert_eq!(t, ["Steam", "Battle.net", "", "Adobe Photoshop", "Helper", "Windows Explorer", ""]);
         let not = std::env::var("SystemRoot").unwrap_or("C:\\Windows".into()) + "\\explorer.exe";
         assert!(!program_adi(&not).eq_ignore_ascii_case("explorer"), "explorer.exe has a description"); // reads the real version resource
         assert_eq!(program_adi("C:\\yok\\benim-oyunum.exe"), "Benim-oyunum"); // no file: the file name
+        // Spotify gives its string lengths in bytes: only checked where Spotify is installed
+        let sp = std::env::var("APPDATA").unwrap_or_default() + "\\Spotify\\Spotify.exe";
+        if std::path::Path::new(&sp).exists() { assert_eq!(program_adi(&sp), "Spotify"); }
     }
 
     #[test]

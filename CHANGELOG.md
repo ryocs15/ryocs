@@ -2,6 +2,11 @@
 
 All releases: [GitHub Releases](https://github.com/ryocs15/ryocs/releases). Your data (`%APPDATA%\RYOCS`) is kept by every update.
 
+## Unreleased
+
+**Screen time**
+- Spotify showed with stray characters after its name; Electron apps that never set their own name showed as "Electron" and now show by their file name.
+
 ## 1.1.9 (2026-11-22)
 
 A new screen time card and a random background.
