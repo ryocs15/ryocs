@@ -36,7 +36,7 @@ The interface is in **English** and **Turkish**. It follows the Windows display 
 - Quick search and command palette (Ctrl+F), app and game launcher, quick links with site icons, search in Settings
 - Lives in the tray with a global shortcut you can choose; remembers its window size and position
 - Drag cards to move them, drag the gaps between them to resize; save and restore layouts
-- 16 themes, glass look, 11 animated backgrounds (lava lamp, snow, fireflies, aurora…), PIN lock
+- 16 themes, glass look, 11 animated backgrounds (lava lamp, snow, fireflies, aurora…) or a random one each time, PIN lock
 - Optional OneDrive sync between two computers, daily backups, JSON export/import
 - Update check: a notice with a download link when a new version is on GitHub (nothing is installed by itself)
 
@@ -139,7 +139,7 @@ Tests (they also run on every push):
 
 ```bash
 cargo test --release
-node test_sonraki.js
+node tests/sonraki.test.js
 python tests/ui/calis.py
 ```
 

@@ -26,7 +26,7 @@ jobs:
         run: cargo test --release --locked
 
       - name: Repeat logic
-        run: node test_sonraki.js
+        run: node tests/sonraki.test.js
 
       - name: UI tests (headless Edge)
         run: python tests/ui/calis.py

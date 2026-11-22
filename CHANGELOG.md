@@ -9,6 +9,13 @@ All releases: [GitHub Releases](https://github.com/ryocs15/ryocs/releases). Your
 - Counted every 5 seconds from the window in front; not counted after 2 minutes without mouse or keyboard, unless something runs full screen (a video, a game), nor while the screen is locked.
 - Right-click a program: hide it, or set a daily limit; passing it shows one notification that day.
 - Stays on this PC (`ekran.json`, encrypted, the last 30 days); the card's right-click menu deletes it.
+- Programs show by their own names ("Microsoft Edge", "Steam", "Settings"), not by their file names.
+
+**Appearance**
+- Background → Random: a different pattern each time RYOCS starts or the window comes back from the tray, never the same one twice in a row.
+
+**Project**
+- The node self-check moved to `tests/sonraki.test.js`.
 
 ## 1.1.8 (2026-11-21)
 
