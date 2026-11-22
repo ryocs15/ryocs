@@ -2,7 +2,9 @@
 
 All releases: [GitHub Releases](https://github.com/ryocs15/ryocs/releases). Your data (`%APPDATA%\RYOCS`) is kept by every update.
 
-## Unreleased
+## 1.1.9 (2026-11-22)
+
+A new screen time card and a random background.
 
 **Screen time** (new card, off until you open it)
 - How long you spent in each program today (the top six) and a bar for each of the last 7 days.
@@ -16,6 +18,7 @@ All releases: [GitHub Releases](https://github.com/ryocs15/ryocs/releases). Your
 
 **Project**
 - The node self-check moved to `tests/sonraki.test.js`.
+- Release notes now come from this changelog: a short summary, the changes by card, and the download.
 
 ## 1.1.8 (2026-11-21)
 
