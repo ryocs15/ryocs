@@ -394,7 +394,12 @@ button.dot:hover{transform:scale(1.3)}
 .row:hover .x,.x:focus-visible{opacity:1}
 .x:hover{color:var(--kr)}
 .row.yeni{animation:gir .3s var(--yay)}
-.row.cik{animation:cik .22s forwards;overflow:hidden;pointer-events:none}
+.row.cik,.hb.cik,.pn.cik{animation:cik .22s forwards;overflow:hidden;pointer-events:none}
+.gecis{animation:sekGir .24s cubic-bezier(.2,.8,.3,1)}@keyframes sekGir{from{opacity:0;transform:translateY(6px)}}
+.satirGir{animation:satirGir .4s cubic-bezier(.2,.8,.3,1) backwards}@keyframes satirGir{from{opacity:0;transform:translateX(-10px)}}
+/* closing: menus and the toast leave the way they came (transition-behavior keeps them on screen until it ends) */
+.menu{transition:opacity .12s,transform .12s,display .12s allow-discrete,overlay .12s allow-discrete}.menu:not(:popover-open){opacity:0;transform:translateY(-4px) scale(.98)}
+#tost{transition:opacity .2s,transform .2s,display .2s allow-discrete,overlay .2s allow-discrete}#tost:not(:popover-open){opacity:0;transform:translateY(10px)}
 .alt{padding:2px 0 6px 21px;border-bottom:1px solid var(--ln);animation:gir .2s}.alt.done{opacity:.6}
 .altO{display:flex;align-items:center;gap:8px;padding:3px 0;font-size:13px;color:var(--mu)}.altO>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;transition:color .3s}
 .altO.bitti>span{text-decoration:line-through}.altO.cik{animation:cik .22s forwards;overflow:hidden;pointer-events:none}
@@ -1746,6 +1751,18 @@ function gorevCiz(){
 }
 // Short bounce when a number changes (counter, rounds, temperature); not on first write
 function sayiPop(el){if(!el||K.dataset.anim==='off')return;el.classList.remove('pop');void el.offsetWidth;el.classList.add('pop')}
+// A tab the user switches to: its content fades in from slightly below (not on refreshes). sec: selector of one or more elements.
+function gecisOynat(sec){if(K.dataset.anim==='off')return;for(const el of document.querySelectorAll(sec)){el.classList.remove('gecis');void el.offsetWidth;el.classList.add('gecis')}}
+// Rows that appear on a refresh slide in; rows already on screen stay still. k: list name, l: [[row element, id]].
+// The first drawing of a list animates nothing (startup, switching tabs).
+const satirSon=new Map();
+function yeniSatirlar(k,l){
+  const o=satirSon.get(k);satirSon.set(k,new Set(l.map(x=>x[1])));
+  if(!o||K.dataset.anim==='off')return;
+  for(const [el,id] of l)if(!o.has(id))el.classList.add('satirGir');
+}
+// a row leaving (deleted, hidden) shrinks away, then fn redraws
+function satirCik(els,fn){els=els.filter(Boolean);if(!els.length||K.dataset.anim==='off')return fn();for(const e of els)e.classList.add('cik');setTimeout(fn,animMs(220))}
 function sayac(){
   const e=$('#sayac'),y=sekme==='gorev'
     ?(S.todos.length?S.todos.filter(t=>t.d).length+'/'+S.todos.length:'')
@@ -1899,7 +1916,7 @@ $('#todos').ondragover=e=>{
 };
 $('#todos').ondrop=e=>{e.preventDefault();const r=e.target.closest('[data-r]');if(r&&surukI!==null){const a=surukI;surukI=null;tasi(a,+r.dataset.r)}};
 $('#todos').ondragend=()=>{surukI=null;ciz()};
-$('#sekme').onclick=e=>{const v=e.target.dataset.v;if(v&&S){sekme=v;ciz()}};
+$('#sekme').onclick=e=>{const v=e.target.dataset.v;if(v&&S&&v!==sekme){sekme=v;ciz();gecisOynat('#todos')}};
 const SUZ={tumu:L('Tümü','All'),bugun:L('Bugün','Today'),geciken:L('Geciken','Overdue')};
 $('#suzEt').onclick=()=>{suz='tumu';ciz()};
 $('#tmenu').onclick=e=>{
@@ -1958,7 +1975,7 @@ function notSay(){
   else{const k=(m.match(/^\s*- \[[ xX]\]/gm)||[]).length;if(k)t=(m.match(/^\s*- \[[xX]\]/gm)||[]).length+'/'+k+' ✓'}
   $('#nsay').textContent=t;notBilgi();
 }
-const notSec=i=>{S.aktifNot=i;araPos=0;notCiz();kaydet()};
+const notSec=i=>{const d=i!==S.aktifNot;S.aktifNot=i;araPos=0;notCiz();kaydet();if(d)gecisOynat('#not')};
 async function notAdi(i){const n=S.notlar[i],v=await sor(L('Notun adı','Note name'),[{ad:L('Ad','Name'),v:n.ad,zorunlu:1}]);if(v?.[0]){n.ad=v[0].slice(0,40);notCiz();kaydet()}}
 // checked list items ("- [x] …") of a note, with what is nested under them (deeper indented lines)
 function isaretliSil(m){
@@ -3331,6 +3348,7 @@ function haberCiz(){
     +`<span><b>${gor.has(y.l)?'':`<i class="hbNokta" role="img" aria-label="${L('yeni','new')}"></i>`}${esc(x.b)}</b><small>${esc(x.k)}${x.d.length?L(' +'+x.d.length+' kaynak',' +'+x.d.length+(x.d.length>1?' sources':' source')):''}${t?' · '+oncesi(t):''}</small></span>`
     +(x.g?`<img class="hbGorsel" src="${esc(x.g)}" alt="" loading="lazy">`:'')+'</button>'}).join('')
     ||(l.length?`<p class="m">${l.length}${L(' haberin hepsi gizlenen kaynaklara ya da kelimelere takıldı.',' stories are all hidden by your sources or words.')}</p>`:L('<p class="m">Bu kategoride haber yok.</p>','<p class="m">No news in this category.</p>')));
+  yeniSatirlar('haber:'+k,[...$('#haberler').querySelectorAll('[data-h]')].map(b=>[b,l[+b.dataset.h].l]));
 }
 // Saved for later: S.haberKayit = [{b,l,k,t}] (newest first, at most 50); read from the card's menu
 const hbKayitli=x=>(S.haberKayit||[]).some(y=>y.l===x.l);
@@ -3359,11 +3377,15 @@ function hbTumOkundu(){
   hbOkundu=[...l,...hbOkundu].slice(0,300);try{localStorage.hbOkundu=JSON.stringify(hbOkundu)}catch{}haberCiz();
 }
 function hbKaynakGizle(k){
+  const gz=A('haberGizli')||[],l=haberV[haberK()]||[];
+  satirCik([...$('#haberler').querySelectorAll('[data-h]')].filter(b=>{const y=l[+b.dataset.h];return y&&hbGoster(y,gz)?.k===k}),()=>hbKaynakGizle2(k));
+}
+function hbKaynakGizle2(k){
   S.ayar.haberGizli=[...new Set([...(A('haberGizli')||[]),k])];kaydet();haberCiz();
   tost(k+L(' haberleri gizlendi',' news hidden'),L('Geri al','Undo'),()=>{S.ayar.haberGizli=(A('haberGizli')||[]).filter(x=>x!==k);kaydet();haberCiz()});
 }
 $('#hYenile').onclick=()=>{$('#haberler').scrollTop=0;haber(true)};
-$('#hKat').onclick=e=>{const v=e.target.dataset.v;if(!v||!S||v===haberK())return;S.ayar.haberKat=v;kaydet();$('#haberler').scrollTop=0;haber()};
+$('#hKat').onclick=e=>{const v=e.target.dataset.v;if(!v||!S||v===haberK())return;S.ayar.haberKat=v;kaydet();$('#haberler').scrollTop=0;haber();gecisOynat('#haberler')};
 const hbSatir=b=>{const y=b&&haberV[haberK()]?.[+b.dataset.h];return y&&hbGoster(y,A('haberGizli')||[])};
 $('#haberler').onclick=e=>{const b=e.target.closest('[data-h]'),x=hbSatir(b);if(!x||!/^https?:\/\//i.test(x.l))return;api('/api/open',{url:x.l});
   if(!hbOkundu.includes(x.l)){hbOkundu=[x.l,...hbOkundu].slice(0,300);try{localStorage.hbOkundu=JSON.stringify(hbOkundu)}catch{}b.classList.add('okundu')}};
@@ -3537,7 +3559,7 @@ function ekranCiz(r){
       :L('<p class="m">Henüz ölçüm yok. Bu kart açıkken programlarda geçirdiğin süre burada birikir.</p>','<p class="m">Nothing measured yet. Time spent in programs adds up here while this card is open.</p>'))
     +`<div class="ekHaftaK"><div class="ekHafta" role="group" aria-label="${L('Son 7 gün','Last 7 days')}">${gun.map(g=>`<button type="button" data-g="${g.g}" class="${g===sec?'bu':''}" aria-pressed="${g===sec}" style="height:${Math.max(6,100*g.t/enG)}%" title="${g.ad}: ${sureYaz(g.t*1e3)}" aria-label="${esc(g.uzun)}: ${sureYaz(g.t*1e3)}"></button>`).join('')}</div>`
     +(ort?`<small class="ekOrt">${L('Günlük ort. ','Daily avg. ')+ekranSure(ort)}${top&&Math.abs(fark)>=60?' · '+(fark>0?L('ortalamadan '+ekranSure(fark)+' fazla',ekranSure(fark)+' above average'):L('ortalamadan '+ekranSure(-fark)+' az',ekranSure(-fark)+' below average')):''}</small>`:'')+'</div>');
-  $('#ekran .ekHafta').onclick=e=>{const b=e.target.closest('[data-g]');if(b){ekranGun=b.dataset.g===ekranGun||b.dataset.g===ekranV.bugun?null:b.dataset.g;ekranCiz()}};
+  $('#ekran .ekHafta').onclick=e=>{const b=e.target.closest('[data-g]');if(b){ekranGun=b.dataset.g===ekranGun||b.dataset.g===ekranV.bugun?null:b.dataset.g;ekranCiz();gecisOynat('#ekran :is(.ekTop,[data-e],p.m)')}};
 }
 // a daily limit: one notification 10 minutes before it (limits over 10 minutes) and one when it is passed, per program per day,
 // remembered across restarts (in memory if storage fails). ekranU: {g: day, p: passed, o: warned before}
@@ -3584,6 +3606,7 @@ function panoCiz(r){
   panoCizT=Date.now();
   ekYaz('#pano',panoL.map(({m,t,s},i)=>`<button class="pn${s?' sabit':''}" data-p="${i}" title="${esc(m.slice(0,300))}"><span>${s?'📌 ':''}${esc(m.trim().slice(0,160))}</span>${t?`<small>${oncesi(t)}</small>`:''}</button>`).join('')
     ||`<p class="m">${panoDurdu?L('Duraklatıldı: kopyaladıkların toplanmıyor.','Paused: your copies are not being collected.'):L('Kopyaladığın metinler burada görünür. RYOCS kapanınca silinir; sabitlediklerin kalır.','Text you copy appears here. Cleared when RYOCS closes; what you pin stays.')}</p>`);
+  yeniSatirlar('pano',[...$('#pano').querySelectorAll('[data-p]')].map(b=>[b,panoL[+b.dataset.p]?.m]));
 }
 $('#pano').onclick=e=>{const b=e.target.closest('[data-p]'),m=b&&panoL[+b.dataset.p]?.m;if(m)navigator.clipboard.writeText(m).then(()=>tost(L('Panoya kopyalandı','Copied to clipboard')),()=>tost(L('Kopyalanamadı','Could not copy')))};
 // server change from the menu: the answer carries the new list
@@ -3591,7 +3614,7 @@ const panoIs=async b=>{panoCiz(await api('/api/pano',b))};
 function panoMenu(x,y,m){
   const o=panoL.find(x=>x.m===m);
   menu(x,y,[o?[o.s?L('Sabitlemeyi kaldır','Unpin'):L('Sabitle','Pin'),()=>panoIs({sabitle:{m,on:!o.s}})]:0,
-    o?[L('Sil','Delete'),()=>panoIs({sil:m}),'teh']:0,null,[L('Görev olarak ekle','Add as task'),()=>{S.todos.push({t:m.split('\n')[0].slice(0,300),d:false});ciz();kaydet();tost(L('Görevlere eklendi','Added to tasks'))}],
+    o?[L('Sil','Delete'),()=>satirCik([$(`#pano [data-p="${panoL.indexOf(o)}"]`)],()=>panoIs({sil:m})),'teh']:0,null,[L('Görev olarak ekle','Add as task'),()=>{S.todos.push({t:m.split('\n')[0].slice(0,300),d:false});ciz();kaydet();tost(L('Görevlere eklendi','Added to tasks'))}],
     [L('Nota ekle','Add to note'),()=>{const n=S.notlar[S.aktifNot];n.metin+=(n.metin&&!n.metin.endsWith('\n')?'\n':'')+m;n.t=Date.now();notCiz();kaydet();tost(`"${n.ad}" ${L('notuna eklendi','note updated')}`)}]])}
 $('#panoDur').onclick=()=>{panoDurdu=!panoDurdu;try{localStorage.panoDur=panoDurdu?'1':''}catch{}panoAyar()};
 $('#panoSil').onclick=()=>panoAyar(true);
@@ -3628,6 +3651,7 @@ function mailCiz(){
   if(!mailV)return ekYaz('#mail',L('<p class="m yuk">Mailler yükleniyor…</p>','<p class="m yuk">Loading mail…</p>'));
   ekYaz('#mail',mailV.liste.map((m,i)=>`<button class="hb${m.yeni?' yeni':''}" data-m="${i}" title="${esc(m.konu||L('(konusuz)','(no subject)'))} — ${esc(m.kimden)}${m.ozet?'\n\n'+esc(mailOzet(m.ozet)):''}"><span><b>${esc(m.konu||L('(konusuz)','(no subject)'))}</b><small>${esc(mailAd(m.kimden))}${m.t?' · '+oncesi(m.t):''}</small></span></button>`).join('')
     ||L('<p class="m">Gelen kutusu boş.</p>','<p class="m">The inbox is empty.</p>'));
+  yeniSatirlar('mail',[...el.querySelectorAll('[data-m]')].map(b=>[b,mailV.liste[+b.dataset.m]?.id??b.title]));
   $('#mailAlt').textContent='Gmail · '+L(oncesi(mailT)+' güncellendi','updated '+oncesi(mailT))+(mailHata?L(' · yenilenemedi',' · could not refresh'):'');
 }
 // The card changes at once; a failed request puts it back (opening the mail in Gmail marks it read anyway, so a click stays quiet)

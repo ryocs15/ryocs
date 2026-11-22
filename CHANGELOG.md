@@ -20,6 +20,9 @@ All releases: [GitHub Releases](https://github.com/ryocs15/ryocs/releases). Your
 **Clipboard**
 - Pinned items are kept after RYOCS closes (`pano.json`, encrypted); unpinned copies are still cleared. Closing the card removes the pinned ones too.
 
+**Animations**
+- Menus and the toast now close the way they open. Switching tabs (news categories, tasks / habits, notes, a screen time day) fades the new content in. On a refresh only new news, clipboard items and mail slide in; rows already on screen stay still. Deleting a clipboard item or hiding a news source lets the rows shrink away. All of it follows Settings → Animations and Windows' "reduce animations".
+
 **Appearance**
 - Settings → Appearance → Card height: "Fit content" keeps every card at the height of its content (free space stays at the bottom of the column). News, clipboard, mail, tasks and notes grow up to half the window, then scroll inside. Sizes set by hand still count. "Fill the space" is the old layout and stays the default.
 - New icon: the four stones without a plate, flat, in the cards' own colours; the title bar and the start animation use the same colours.
