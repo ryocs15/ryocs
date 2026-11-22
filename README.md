@@ -17,6 +17,8 @@ The interface is in **English** and **Turkish**. It follows the Windows display 
 | ![Dark theme with Gmail, calendar, news, currency, system and clipboard cards](docs/img/dark.png) | ![Search results grouped into commands, tasks, habits, notes and events](docs/img/search.png) |
 | **Themes** | **Glass look** |
 | ![Appearance settings with light and dark themes](docs/img/settings.png) | ![The dashboard in the glass look](docs/img/glass.png) |
+| **Weather, made large** | **Screen time** |
+| ![A large weather card with details, a 24-hour curve, air quality and a 7-day forecast](docs/img/weather.png) | ![The screen time card under the focus timer](docs/img/screentime.png) |
 
 *Screenshots use demo data.*
 
