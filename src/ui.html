@@ -257,7 +257,7 @@ main [data-kart][hidden]{display:none!important} /* a closed card (the card layo
 #hKat{flex:0 1 auto;min-width:0;overflow-x:auto;scrollbar-width:none}
 #hKat button{white-space:nowrap;flex:none} /* "Breaking" must not wrap onto two lines: a tab that does not fit scrolls sideways */ /* 6 tabs do not fit on a narrow card: they scroll sideways */
 .hb.okundu b{opacity:.55}
-.hbYeni{font:700 9px "Segoe UI",sans-serif;letter-spacing:.04em;color:var(--yeYazi,#fff);background:var(--ye);border-radius:5px;padding:1px 5px;margin-right:6px;vertical-align:1px}
+.hbNokta{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--ye);margin-right:7px;vertical-align:2px;animation:noktaPop .5s ease-out}
 #haberler{flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column;gap:2px;contain:size;padding-top:5px;margin-top:-5px} /* contain: 30 news items must not stretch the card, they scroll in the remaining space; top padding: focus ring */
 .hb{display:flex;align-items:center;gap:10px;padding:7px 6px;border-radius:12px;text-align:left;min-width:0;width:100%;flex:none;transition:background-color .2s}
 .hb:hover{background:var(--ln)}
@@ -1215,7 +1215,7 @@ const bostaDenetle=()=>{const b=!gorunmez&&Date.now()-sonGirdi>=BOSTA_MS;if(b!==
 for(const o of ['pointermove','pointerdown','keydown','wheel'])addEventListener(o,girdi,{passive:true,capture:true});
 setInterval(bostaDenetle,3e4);
 addEventListener('blur',uykuYaz);addEventListener('focus',girdi);addEventListener('focus',uykuYaz);
-function gizlendi(g){gorunmez=g;if(g)arkaYenile();if(!g){sonGirdi=Date.now();bosta=false}uykuYaz();if(!g&&S){ustSon='';tick();saatEk();takvimEk();notBilgi();haberCiz();spotify();haber();mail();sistem();pano()}}
+function gizlendi(g){gorunmez=g;if(g)arkaYenile();if(!g){sonGirdi=Date.now();bosta=false}uykuYaz();if(!g&&S){ustSon='';tick();saatEk();takvimEk();notBilgi();hbIsle(haberK());haberCiz();spotify();haber();mail();sistem();pano()}}
 function tick(){
   const d=new Date(),sn=d.getHours()*3600+d.getMinutes()*60+d.getSeconds();
   if(gunStr(d)!==sonGun){sonGun=gunStr(d);if(S){ciz();odakIstat()}takvim()} // midnight: refresh everything tied to "today"
@@ -2271,7 +2271,7 @@ addEventListener('contextmenu',e=>{
   e.preventDefault();if(!S)return;
   const om=e.target.closest('.odak');if(om){const r=om.getBoundingClientRect();return odakMenu(e.clientX||r.left+12,e.clientY||r.top+12)}
   const sk=e.target.closest('[data-kart=saat]');if(sk){const r=sk.getBoundingClientRect();return saatMenu(e.clientX||r.left+12,e.clientY||r.top+12)}
-  const hb=e.target.closest('#haberler [data-h]'),hx=hb&&haberV[haberK()]?.[+hb.dataset.h];
+  const hb=e.target.closest('#haberler [data-h]'),hx=hbSatir(hb);
   if(hx){const r=hb.getBoundingClientRect();return haberMenu(e.clientX||r.left+12,e.clientY||r.bottom,hx)}
   const pb=e.target.closest('#pano [data-p]'),pm=pb&&panoL[+pb.dataset.p]?.m;
   if(pm?.trim()){const r=pb.getBoundingClientRect();return panoMenu(e.clientX||r.left+12,e.clientY||r.bottom,pm)}
@@ -3134,10 +3134,43 @@ function spCiz(r,hata){
 $('#hKat').innerHTML=Object.entries(HKAT).map(([v,ad])=>`<button data-v="${v}">${ad}</button>`).join('');
 const hGizli=v=>(A('kartGizle')?.haber||[]).includes('k'+v);
 const haberK=()=>{const v0=DIL==='tr'?'gundem':'en_top',k=A('haberKat')??v0;return HKAT[k]&&!hGizli(k)?k:Object.keys(HKAT).find(v=>!hGizli(v))||v0};
-const rssMi=k=>k==='sondakika'||k.startsWith('en_'),hKaynak=k=>k==='sondakika'?'TRT Haber':k.startsWith('en_')?'BBC News':'Bundle'; // if the selected tab was hidden, the first visible one
-let haberV={},haberT={},haberHata={},hbOkundu=[];
+const rssMi=k=>k==='sondakika'||k.startsWith('en_'),hKaynak=k=>k==='sondakika'?(hbKaynakSay?hbKaynakSay+L(' kaynak',' sources'):L('Son dakika kaynakları','Breaking news sources')):k.startsWith('en_')?'BBC News':'Bundle'; // if the selected tab was hidden, the first visible one
+let haberV={},haberT={},haberHata={},hbOkundu=[],hbKaynakSay=0;
 try{haberT=JSON.parse(localStorage.hbT||'{}');hbOkundu=JSON.parse(localStorage.hbOkundu||'[]')}catch{}
-const trtAyir=(s,kay='TRT Haber')=>[...new DOMParser().parseFromString(s,'text/xml').querySelectorAll('item')].map(i=>{const g=n=>i.querySelector(n)?.textContent.trim()||'';return {b:g('title'),l:g('link'),k:kay,lg:'',g:g('imageUrl')||i.getElementsByTagName('media:thumbnail')[0]?.getAttribute('url')||'',t:g('pubDate'),o:g('description').slice(0,300)}});
+// publication time in ms; a feed that writes Turkish time but labels it GMT (CNN Türk) lands in the future: taken back 3 hours
+function hbZaman(t){
+  let v=Date.parse(t);if(isNaN(v))v=Date.parse(String(t).replace(/\s+Z$/,' GMT').replace(/\s{2,}/g,' '));
+  if(isNaN(v))return 0;
+  return v>Date.now()+3e5?v-108e5:v;
+}
+const trtAyir=(s,kay='TRT Haber')=>[...new DOMParser().parseFromString(s,'text/xml').querySelectorAll('item')].map(i=>{const g=n=>i.querySelector(n)?.textContent.trim()||'';const z=hbZaman(g('pubDate'));return {b:g('title'),l:g('link'),k:kay,lg:'',g:g('imageUrl')||i.getElementsByTagName('media:thumbnail')[0]?.getAttribute('url')||'',t:z?new Date(z).toISOString():'',o:g('description').slice(0,300)}});
+// Same story from several outlets: the words of 4+ letters of the two headlines, at least half of the shorter one's (and at least 2)
+// in common, published within 3 hours. The first outlet stays as the row, the others go to d: [{k, l, t}].
+const hbKelimeler=b=>new Set(trK(b).replace(/son dakika|flaş|haberi|açıklama/g,' ').replace(/[^\p{L}\p{N}\s]/gu,' ').split(/\s+/).filter(w=>w.length>=4));
+function hbBirlestir(l){
+  const gruplar=[];
+  for(const x of [...l].sort((a,b)=>(hbZaman(a.t)||0)-(hbZaman(b.t)||0))){
+    const w=hbKelimeler(x.b),t=hbZaman(x.t);
+    const g=w.size>=2&&gruplar.find(g=>{if(Math.abs((g.z||t)-t)>108e5)return false;let o=0;for(const k of w)if(g.w.has(k))o++;return o>=2&&o>=Math.min(w.size,g.w.size)/2});
+    if(!g){gruplar.push({x:{...x,d:[]},w,z:t});continue}
+    if(g.x.k!==x.k&&!g.x.d.some(y=>y.k===x.k))g.x.d.push({k:x.k,l:x.l,t:x.t});
+  }
+  return gruplar.map(g=>g.x);
+}
+// what a row shows once hidden sources are left out: the first outlet that is not hidden; null if all are
+function hbGoster(x,gz){
+  const l=[x,...(x.d||[])].filter(y=>!gz.includes(y.k));
+  return l.length?{...x,k:l[0].k,l:l[0].l,d:l.slice(1)}:null;
+}
+// "New" dot: a story counts as seen once it was on screen while the window was visible; that is taken into account on the next
+// refresh (or when the window comes back), so the dot stays for that look. hbGor: {category: seen links (500)}, hbBek: shown, not yet counted.
+let hbGor={};const hbBek={};
+try{hbGor=JSON.parse(localStorage.hbGorulen||'{}')||{}}catch{}
+const hbGorYaz=()=>{try{localStorage.hbGorulen=JSON.stringify(hbGor)}catch{}};
+function hbIsle(k){
+  const b=hbBek[k];if(!b?.size)return;
+  hbGor[k]=[...b,...(hbGor[k]||[]).filter(u=>!b.has(u))].slice(0,500);hbBek[k]=new Set();hbGorYaz();
+}
 async function haber(zorla){
   if(!S||!kartAcik('haber'))return;const k=haberK(); // no request for a closed card
   for(const b of $('#hKat').children)b.setAttribute('aria-pressed',b.dataset.v===k);
@@ -3148,11 +3181,13 @@ async function haber(zorla){
   const r=await api('/api/haber',{kat:k});
   $('#hYenile').classList.remove('don');
   if(k!==haberK())return; // the category changed in the meantime
-  const l=r.durum!=='ok'?null:rssMi(k)?typeof r.veri==='string'&&trtAyir(r.veri,hKaynak(k))
+  const l=r.durum!=='ok'?null:k==='sondakika'?Array.isArray(r.veri)&&(hbKaynakSay=r.veri.length,hbBirlestir(r.veri.flatMap(f=>typeof f?.x==='string'?trtAyir(f.x,String(f.k||'')):[])))
+    :rssMi(k)?typeof r.veri==='string'&&trtAyir(r.veri,hKaynak(k))
     :Array.isArray(r.veri)&&r.veri.map(x=>({b:String(x.title||''),l:String(x.link||''),k:String(x.channelName||x.channel_name||''),lg:x.channel_logo_src||'',g:x.imageLink||'',t:/^\d{4}-\d\d-\d\dT\d\d:\d\d(:\d\d)?$/.test(x.pubDate)?x.pubDate+'Z':x.pubDate||''}));
   haberHata[k]=!l?.length;
   if(l?.length){
     const zt=x=>Date.parse(x.t)||0;l.sort((a,b)=>zt(b)-zt(a));
+    hbIsle(k); // what was on screen until now counts as seen: only what arrived since gets the dot
     haberT[k]=Date.now();haberV[k]=l.slice(0,30);
     try{localStorage['haber_'+k]=JSON.stringify(haberV[k]);localStorage.hbT=JSON.stringify(haberT)}catch{}
   }else if(!haberV[k])return ekYaz('#haberler',r.durum===AG_YOK?agYok():`${L('<p class="m">Haberler alınamadı. ','<p class="m">Could not load the news. ')}${hKaynak(k)}${L(' akışı değişmiş olabilir.</p>',' feed may have changed.</p>')}${tekrarB()}`);
@@ -3165,10 +3200,13 @@ function haberCiz(){
   const k=haberK(),l=haberV[k],gz=A('haberGizli')||[],kl=hbKelime();
   $('#hbAlt').textContent=hKaynak(k)+(haberT[k]?L(' · '+oncesi(haberT[k])+' güncellendi',' · updated '+oncesi(haberT[k])):'')+(haberHata[k]&&haberV[k]?L(' · yenilenemedi',' · could not refresh'):'');
   if(!l)return;
-  ekYaz('#haberler',l.map((x,i)=>{if(gz.includes(x.k))return'';if(kl.length){const m=trK(x.b+' '+(x.o||''));if(kl.some(w=>m.includes(w)))return''}const t=x.t?new Date(x.t).getTime():0;
-    return `<button class="hb${hbOkundu.includes(x.l)?' okundu':''}" data-h="${i}" title="${esc(x.b)} — ${esc(x.k)}">`
+  if(!hbGor[k]){hbGor[k]=l.map(x=>x.l).slice(0,500);hbGorYaz()} // first time in this category: nothing is "new"
+  const gor=new Set(hbGor[k]);
+  if(!gizliMi())hbBek[k]=new Set(l.map(x=>x.l));
+  ekYaz('#haberler',l.map((y,i)=>{const x=hbGoster(y,gz);if(!x)return'';if(kl.length){const m=trK(x.b+' '+(x.o||''));if(kl.some(w=>m.includes(w)))return''}const t=x.t?new Date(x.t).getTime():0;
+    return `<button class="hb${hbOkundu.includes(x.l)?' okundu':''}" data-h="${i}" title="${esc(x.b)} — ${esc([x.k,...x.d.map(d=>d.k)].join(', '))}">`
     +(x.lg?`<img class="hbLogo" src="${esc(x.lg)}" alt="" loading="lazy">`:'')
-    +`<span><b>${t&&Date.now()-t<18e5?L('<em class="hbYeni">YENİ</em>','<em class="hbYeni">NEW</em>'):''}${esc(x.b)}</b><small>${esc(x.k)}${t?' · '+oncesi(t):''}</small></span>`
+    +`<span><b>${gor.has(y.l)?'':`<i class="hbNokta" role="img" aria-label="${L('yeni','new')}"></i>`}${esc(x.b)}</b><small>${esc(x.k)}${x.d.length?L(' +'+x.d.length+' kaynak',' +'+x.d.length+(x.d.length>1?' sources':' source')):''}${t?' · '+oncesi(t):''}</small></span>`
     +(x.g?`<img class="hbGorsel" src="${esc(x.g)}" alt="" loading="lazy">`:'')+'</button>'}).join('')
     ||(l.length?`<p class="m">${l.length}${L(' haberin hepsi gizlenen kaynaklara ya da kelimelere takıldı.',' stories are all hidden by your sources or words.')}</p>`:L('<p class="m">Bu kategoride haber yok.</p>','<p class="m">No news in this category.</p>')));
 }
@@ -3180,6 +3218,7 @@ function haberMenu(x,y,h){
       S.haberKayit=hbKayitli(h)?S.haberKayit.filter(y=>y.l!==h.l):[{b:h.b.slice(0,300),l:h.l,k:h.k,t:Date.now()},...S.haberKayit||[]].slice(0,50);kaydet();
       tost(hbKayitli(h)?L('Sonra okumak için kaydedildi','Saved for later'):L('Kaydedilenlerden çıkarıldı','Removed from saved'))}]:0,
     ok?[L('Bağlantıyı kopyala','Copy link'),()=>navigator.clipboard.writeText(h.l).then(()=>tost(L('Bağlantı kopyalandı','Link copied')),()=>tost(L('Kopyalanamadı','Could not copy')))]:0,
+    ...(h.d||[]).filter(d=>/^https?:\/\//i.test(d.l)).flatMap((d,i)=>[i?0:null,[L('Kaynakta aç: ','Open at ')+d.k,()=>api('/api/open',{url:d.l})]]),
     h.k?null:0,h.k?[h.k+L(' haberlerini gizle',' – hide its news'),()=>hbKaynakGizle(h.k)]:0,
     S.haberKayit?.length?null:0,S.haberKayit?.length?[L('Sonra okunacaklar','Saved for later')+` (${S.haberKayit.length})…`,hbKayitPencere]:0].filter(o=>o!==0));
 }
@@ -3203,7 +3242,8 @@ function hbKaynakGizle(k){
 }
 $('#hYenile').onclick=()=>{$('#haberler').scrollTop=0;haber(true)};
 $('#hKat').onclick=e=>{const v=e.target.dataset.v;if(!v||!S||v===haberK())return;S.ayar.haberKat=v;kaydet();$('#haberler').scrollTop=0;haber()};
-$('#haberler').onclick=e=>{const b=e.target.closest('[data-h]'),x=b&&haberV[haberK()]?.[+b.dataset.h];if(!x||!/^https?:\/\//i.test(x.l))return;api('/api/open',{url:x.l});
+const hbSatir=b=>{const y=b&&haberV[haberK()]?.[+b.dataset.h];return y&&hbGoster(y,A('haberGizli')||[])};
+$('#haberler').onclick=e=>{const b=e.target.closest('[data-h]'),x=hbSatir(b);if(!x||!/^https?:\/\//i.test(x.l))return;api('/api/open',{url:x.l});
   if(!hbOkundu.includes(x.l)){hbOkundu=[x.l,...hbOkundu].slice(0,300);try{localStorage.hbOkundu=JSON.stringify(hbOkundu)}catch{}b.classList.add('okundu')}};
 // Currency and gold: USD/EUR from the TCMB daily rate (renewed at 15:30 on working days; on weekends the last working day),
 // gram gold is computed from the gold-api.com ounce price (ounce × dollar ÷ 31.1035). The last successful data is in localStorage.

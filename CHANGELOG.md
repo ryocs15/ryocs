@@ -4,6 +4,10 @@ All releases: [GitHub Releases](https://github.com/ryocs15/ryocs/releases). Your
 
 ## Unreleased
 
+**News**
+- Breaking news (Turkish) comes from seven outlets instead of one: TRT Haber, Sabah, Sözcü, Milliyet, CNN Türk, Habertürk and En Son Haber, in one list, newest first. The same story from several outlets is one row ("+2 kaynak"); right-click opens it at the other outlets. Hiding an outlet works as before. A feed that labels Turkish time as GMT no longer shows its stories in the future.
+- The bold NEW label is gone: a small dot marks only the stories that came since you last looked at the card.
+
 **Appearance**
 - New icon: the four stones without a plate, flat, in the cards' own colours; the title bar and the start animation use the same colours.
 

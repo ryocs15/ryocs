@@ -502,12 +502,33 @@ fn haber_kat(b: &str) -> &'static str {
         .into_iter().find(|x| *x == k).unwrap_or("gundem")
 }
 
+/// Breaking news: several outlets' RSS feeds, merged in the UI. Addresses only from here, never from the request.
+/// shortcut: undocumented feeds; one that changes drops out quietly while the others still come (all failing shows the error).
+const SON_DAKIKA: [(&str, &str); 7] = [
+    ("TRT Haber", "https://www.trthaber.com/sondakika.rss"),
+    ("Sabah", "https://www.sabah.com.tr/rss/sondakika.xml"),
+    ("Sözcü", "https://www.sozcu.com.tr/feeds-son-dakika"),
+    ("Milliyet", "https://www.milliyet.com.tr/rss/rssnew/sondakikarss.xml"),
+    ("CNN Türk", "https://www.cnnturk.com/feed/rss/all/news"),
+    ("Habertürk", "https://www.haberturk.com/rss"),
+    ("En Son Haber", "https://www.ensonhaber.com/rss/ensonhaber.xml"),
+];
+/// [{k: outlet, x: raw RSS}] for the feeds that answered, fetched at the same time; Err only when none did.
+fn son_dakika(getir: impl Fn(&str) -> Result<String, String> + Sync) -> Result<Value, String> {
+    let sonuc: Vec<_> = thread::scope(|k| {
+        let is: Vec<_> = SON_DAKIKA.iter().map(|(ad, u)| { let g = &getir; k.spawn(move || (*ad, g(u))) }).collect();
+        is.into_iter().filter_map(|i| i.join().ok()).collect()
+    });
+    let hata = sonuc.iter().find_map(|(_, r)| r.as_ref().err().cloned());
+    let l: Vec<Value> = sonuc.into_iter().filter_map(|(ad, r)| r.ok().map(|x| json!({ "k": ad, "x": x }))).collect();
+    if l.is_empty() { Err(hata.unwrap_or_else(|| AG_YOK.into())) } else { Ok(json!(l)) }
+}
+
 fn haber(b: &str) -> Result<Value, String> {
-    // Bundle has no breaking news: the TRT Haber RSS goes to the UI as raw text and is parsed there with DOMParser.
-    // shortcut: not a documented API; if TRT changes the address the card says "could not load".
-    // English tabs: BBC News RSS feeds, parsed in the UI like the TRT feed.
+    // Bundle has no breaking news: several outlets' RSS feeds go to the UI as raw text and are parsed there with DOMParser.
+    // English tabs: BBC News RSS feeds, parsed in the UI the same way.
     let rss = match haber_kat(b) {
-        "sondakika" => Some("https://www.trthaber.com/sondakika.rss"),
+        "sondakika" => return son_dakika(metin),
         "en_top" => Some("https://feeds.bbci.co.uk/news/rss.xml"),
         "en_world" => Some("https://feeds.bbci.co.uk/news/world/rss.xml"),
         "en_business" => Some("https://feeds.bbci.co.uk/news/business/rss.xml"),
@@ -2849,6 +2870,17 @@ mod tests {
         assert_eq!(haber_kat(r#"{"kat":"../api/x"}"#), "gundem");
         assert_eq!(haber_kat(r#"{"kat":"en_tech"}"#), "en_tech");
         assert_eq!(haber_kat("bozuk"), "gundem");
+    }
+
+    #[test]
+    fn son_dakika_kaynaklari() {
+        // every address is https and fixed; one failing feed does not stop the others; all failing gives the error
+        assert!(SON_DAKIKA.iter().all(|(_, u)| u.starts_with("https://")));
+        let r = son_dakika(|u| if u.contains("sabah") { Err("500".into()) } else { Ok(format!("<rss>{u}</rss>")) }).unwrap();
+        let l = r.as_array().unwrap();
+        assert_eq!(l.len(), 6);
+        assert!(l.iter().any(|x| x["k"] == "TRT Haber" && x["x"].as_str().unwrap().contains("trthaber")) && !l.iter().any(|x| x["k"] == "Sabah"));
+        assert_eq!(son_dakika(|_| Err(AG_YOK.into())), Err(AG_YOK.into()));
     }
 
     #[test]
