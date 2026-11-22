@@ -26,9 +26,10 @@ kartAc('ekran',false);await bek(50);
 await haftaOzet(bas,true);await bek(50);
 dogru('closed card: no screen time line',!sat().some(s=>s.startsWith('Ekran')));
 for(const x of document.querySelectorAll('dialog[open]'))x.close();
-// this week so far: compared with the same days
+// this week so far: compared with the same days; on Monday the finished week before
 await haftaOzet();await bek(50);
-dogru('so far',q('#sor p.m').textContent.includes('şimdiye kadar')||new Date().getDay()===0);
+const gun=new Date().getDay();
+dogru('so far, or last week on Monday / a full week on Sunday',gun===0||gun===1?!q('#sor p.m').textContent.includes('şimdiye kadar'):q('#sor p.m').textContent.includes('şimdiye kadar'));
 for(const x of document.querySelectorAll('dialog[open]'))x.close();
 // notification: Sunday 20:30 of this week
 const pz=new Date(bas);pz.setDate(pz.getDate()+6);pz.setHours(20,30,0,0);

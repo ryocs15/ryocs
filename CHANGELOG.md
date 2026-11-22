@@ -18,7 +18,7 @@ All releases: [GitHub Releases](https://github.com/ryocs15/ryocs/releases). Your
 - The clock card's right-click menu starts the free timer and a new stopwatch; both show under the clock. Click the time to pause or resume (a paused timer keeps its remaining time, also after a restart), × stops it. The focus card's timer can be paused too.
 
 **Clipboard**
-- Pinned items are kept after RYOCS closes (`pano.json`, encrypted); unpinned copies are still cleared. Closing the card removes the pinned ones too.
+- Pinned items are kept after RYOCS closes (`pano.json`, encrypted); unpinned copies are still cleared. Closing the card (or Clear) drops only the unpinned ones; a pinned item goes when you unpin or delete it.
 
 **Animations**
 - Menus and the toast now close the way they open. Switching tabs (news categories, tasks / habits, notes, a screen time day) fades the new content in. On a refresh only new news, clipboard items and mail slide in; rows already on screen stay still. Deleting a clipboard item or hiding a news source lets the rows shrink away. All of it follows Settings → Animations and Windows' "reduce animations".

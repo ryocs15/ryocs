@@ -783,7 +783,7 @@ fn pano_sabit_oku() -> Vec<PanoOge> {
         .filter_map(|x| Some(PanoOge { m: x["m"].as_str().filter(|m| !m.trim().is_empty())?.to_string(), t: x["t"].as_u64().unwrap_or(0), sabit: true }))
         .take(200).collect()
 }
-/// {acik, temizle: true (unpinned) | "hepsi" (all, when the card closes), sil: text, sabitle: {m, on}, surum}
+/// {acik, temizle: true (the unpinned ones; also when the card closes), sil: text, sabitle: {m, on}, surum}
 fn pano(b: &str) -> Value {
     use std::sync::atomic::Ordering::Relaxed;
     let r: Value = serde_json::from_str(b).unwrap_or_default();
@@ -792,10 +792,10 @@ fn pano(b: &str) -> Value {
     let n = l.len();
     let sabit_say = |l: &Vec<PanoOge>| l.iter().filter(|x| x.sabit).count();
     let s0 = sabit_say(&l);
-    if r["temizle"] == "hepsi" { l.clear(); } else if r["temizle"] == true { l.retain(|x| x.sabit); }
+    if r["temizle"] == true { l.retain(|x| x.sabit); }
     if let Some(m) = r["sil"].as_str() { l.retain(|x| x.m != m); }
     let mut degisti = l.len() != n;
-    let mut sabit_degisti = sabit_say(&l) != s0 || r["temizle"] == "hepsi"; // closing the card also removes the saved pins
+    let mut sabit_degisti = sabit_say(&l) != s0;
     if let (Some(m), Some(on)) = (r["sabitle"]["m"].as_str(), r["sabitle"]["on"].as_bool()) {
         if let Some(i) = l.iter().position(|x| x.m == m && x.sabit != on) {
             let mut o = l.remove(i);
@@ -842,9 +842,13 @@ fn ekran_veri() -> std::sync::MutexGuard<'static, Option<Value>> {
 /// as ekran.bozuk.json, not overwritten by the next save.
 fn ekran_yukle() -> Value {
     let p = dir().join("ekran.json");
-    let v = fs::read_to_string(&p).ok().map(|s| dpapi_ac(&s).and_then(|s| serde_json::from_str::<Value>(&s).ok()).filter(Value::is_object));
-    if let Some(None) = v { fs::rename(&p, dir().join("ekran.bozuk.json")).ok(); }
-    v.flatten().unwrap_or_else(|| json!({}))
+    // only "not found" is empty; any other read error (locked by antivirus or OneDrive) also keeps the file aside
+    let v = match fs::read_to_string(&p) {
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return json!({}),
+        r => r.ok().and_then(|s| dpapi_ac(&s)).and_then(|s| serde_json::from_str::<Value>(&s).ok()).filter(Value::is_object),
+    };
+    if v.is_none() { fs::rename(&p, dir().join("ekran.bozuk.json")).ok(); }
+    v.unwrap_or_else(|| json!({}))
 }
 fn ekran_kaydet() {
     use std::sync::atomic::Ordering::Relaxed;
@@ -2666,6 +2670,10 @@ mod tests {
         fs::write(r.join("ekran.json"), format!("{DPAPI_ONEK}AAAA")).unwrap(); // encrypted elsewhere
         assert_eq!(ekran_yukle(), json!({}));
         assert!(!r.join("ekran.json").exists() && r.join("ekran.bozuk.json").exists());
+        fs::remove_file(r.join("ekran.bozuk.json")).unwrap();
+        fs::create_dir(r.join("ekran.json")).unwrap(); // unreadable (a read error other than "not found"): kept aside too
+        assert_eq!(ekran_yukle(), json!({}));
+        assert!(!r.join("ekran.json").exists());
         fs::remove_dir_all(&kok).ok();
     }
 

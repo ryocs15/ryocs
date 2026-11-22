@@ -22,6 +22,7 @@ ac(0);await bek(30);esit('pinned: unpin offered',!!sec('Sabitlemeyi kaldır'),tr
 // delete
 ac(1);await bek(30);sec('Sil').click();await bek(50);
 esit('deleted',[...q('#pano').querySelectorAll('.pn span')].map(s=>s.textContent),['📌 ikinci']);
-// "Clear" keeps the pinned ones; closing the card clears all
+// "Clear" and closing the card keep the pinned ones (an undone close must not lose them)
 istek.length=0;await panoAyar(true);esit('clear: unpinned only',istek[0].temizle,true);
-istek.length=0;kartAc('pano',false);await bek(100);esit('card closed: all',istek.at(-1)?.temizle,'hepsi');
+istek.length=0;kartAc('pano',false);await bek(100);esit('card closed: unpinned only',[istek.at(-1)?.temizle,istek.at(-1)?.acik],[true,false]);
+kartAc('pano',true);await bek(100);

@@ -1908,13 +1908,15 @@ $('#todos').onkeydown=e=>{
   if(tasi(+i,j))$(`#todos [data-i="${j}"]`)?.focus();
 };
 $('#todos').ondragstart=e=>{const r=e.target.closest('[data-r]');if(!r)return;surukI=+r.dataset.r;r.classList.add('suruk');e.dataTransfer.effectAllowed='move'};
+// the row under the pointer; a task's subtask list counts as the task
+const hedefSatir=e=>e.target.closest('[data-r]')||$(`#todos [data-r="${e.target.closest('[data-ar]')?.dataset.ar}"]`);
 $('#todos').ondragover=e=>{
   if(surukI===null)return;e.preventDefault();
-  const r=e.target.closest('[data-r]');
+  const r=hedefSatir(e);
   for(const x of document.querySelectorAll('.ustu'))if(x!==r)x.classList.remove('ustu');
   r?.classList.add('ustu');
 };
-$('#todos').ondrop=e=>{e.preventDefault();const r=e.target.closest('[data-r]');if(r&&surukI!==null){const a=surukI;surukI=null;tasi(a,+r.dataset.r)}};
+$('#todos').ondrop=e=>{e.preventDefault();const r=hedefSatir(e);if(r&&surukI!==null){const a=surukI;surukI=null;tasi(a,+r.dataset.r)}};
 $('#todos').ondragend=()=>{surukI=null;ciz()};
 $('#sekme').onclick=e=>{const v=e.target.dataset.v;if(v&&S&&v!==sekme){sekme=v;ciz();gecisOynat('#todos')}};
 const SUZ={tumu:L('Tümü','All'),bugun:L('Bugün','Today'),geciken:L('Geciken','Overdue')};
@@ -2090,7 +2092,9 @@ async function haftaVeri(bas,n){
   return r;
 }
 // tam: a finished week (from the notification); otherwise this week so far, against the same days of last week
-async function haftaOzet(bas=pztGun(new Date()),tam=false){
+async function haftaOzet(bas,tam=false){
+  // on Monday the new week has one day: the finished week before it is the useful one
+  if(!bas){bas=pztGun(new Date());if(new Date().getDay()===1){bas.setDate(bas.getDate()-7);tam=true}}
   const n=tam||pztGun(new Date())-bas!==0?7:(new Date().getDay()+6)%7+1,r=await haftaVeri(bas,n);
   const son=new Date(bas);son.setDate(son.getDate()+6);
   const fark=(a,b,f=x=>x)=>a===b?L('geçen haftayla aynı','same as last week'):(a>b?'↑ ':'↓ ')+f(Math.abs(a-b));
@@ -3285,7 +3289,8 @@ function hbZaman(t){
 const trtAyir=(s,kay='TRT Haber')=>[...new DOMParser().parseFromString(s,'text/xml').querySelectorAll('item')].map(i=>{const g=n=>i.querySelector(n)?.textContent.trim()||'';const z=hbZaman(g('pubDate'));return {b:g('title'),l:g('link'),k:kay,lg:'',g:g('imageUrl')||i.getElementsByTagName('media:thumbnail')[0]?.getAttribute('url')||'',t:z?new Date(z).toISOString():'',o:g('description').slice(0,300)}});
 // Same story from several outlets: the words of 4+ letters of the two headlines, at least half of the shorter one's (and at least 2)
 // in common, published within 3 hours. The first outlet stays as the row, the others go to d: [{k, l, t}].
-const hbKelimeler=b=>new Set(trK(b).replace(/son dakika|flaş|haberi|açıklama/g,' ').replace(/[^\p{L}\p{N}\s]/gu,' ').split(/\s+/).filter(w=>w.length>=4));
+const HB_BOS=new Set(['için','olarak','sonra','kadar','daha','gibi','değil','oldu','yeni','büyük','önce','ilgili','yaptı','dedi','geldi']); // in almost every headline
+const hbKelimeler=b=>new Set(trK(b).replace(/son dakika|flaş|haberi|açıklama/g,' ').replace(/[^\p{L}\p{N}\s]/gu,' ').split(/\s+/).filter(w=>w.length>=4&&!HB_BOS.has(w)));
 function hbBirlestir(l){
   const gruplar=[];
   for(const x of [...l].sort((a,b)=>(hbZaman(a.t)||0)-(hbZaman(b.t)||0))){
@@ -3593,7 +3598,9 @@ function ekranMenu(x,y,p){const s=A('ekranSinir')||{};menu(x,y,[
 let panoL=[],panoDurdu=false,panoSurum=0,panoCizT=0;try{panoDurdu=localStorage.panoDur==='1'}catch{}
 async function panoAyar(temizle){
   const acik=!!S&&kartAcik('pano');
-  const r=await api('/api/pano',{acik:acik&&!panoDurdu,...!acik?{temizle:'hepsi'}:temizle?{temizle:true}:{}}); // closing the card clears all, "Clear" keeps the pinned ones
+  // closing the card and "Clear" both drop the unpinned copies; pinned ones stay until you unpin or delete them (an undone close
+  // must not lose them, nor a start whose data could not load)
+  const r=await api('/api/pano',{acik:acik&&!panoDurdu,...!acik||temizle?{temizle:true}:{}});
   $('#panoDur').textContent=panoDurdu?L('Devam et','Resume'):L('Duraklat','Pause');$('#panoDur').title=panoDurdu?L('Kopyalananları yeniden topla','Collect copied text again'):L('Kopyalananları toplamayı durdur','Stop collecting copied text');
   panoCiz(r);
 }

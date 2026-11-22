@@ -49,6 +49,7 @@ esit('hidden outlet: next one shows',deprem().querySelector('small').textContent
 S.ayar.haberGizli=[];
 
 // different stories are not merged; all feeds failing shows the error, the last list stays
+esit('common words do not merge stories',hbBirlestir([{b:'Bakan için yeni karar sonra açıklandı',l:'a',k:'A',t:dk(1).toISOString()},{b:'Takım için yeni teknik direktör sonra geliyor',l:'b',k:'B',t:dk(2).toISOString()}]).length,2);
 esit('different stories stay apart',hbBirlestir([{b:'Ankara deprem sarsıldı',l:'a',k:'A',t:dk(1).toISOString()},{b:'Ankara trafik kazası oldu',l:'b',k:'B',t:dk(2).toISOString()}]).length,2);
 cevap=()=>({durum:'No internet connection'});
 await haber(true);await bek(30);
