@@ -21,6 +21,7 @@ All releases: [GitHub Releases](https://github.com/ryocs15/ryocs/releases). Your
 - Pinned items are kept after RYOCS closes (`pano.json`, encrypted); unpinned copies are still cleared. Closing the card removes the pinned ones too.
 
 **Appearance**
+- Settings → Appearance → Card height: "Fit content" keeps every card at the height of its content (free space stays at the bottom of the column). News, clipboard, mail, tasks and notes grow up to half the window, then scroll inside. Sizes set by hand still count. "Fill the space" is the old layout and stays the default.
 - New icon: the four stones without a plate, flat, in the cards' own colours; the title bar and the start animation use the same colours.
 
 **Screen time**
