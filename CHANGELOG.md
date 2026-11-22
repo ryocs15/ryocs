@@ -8,6 +8,12 @@ All releases: [GitHub Releases](https://github.com/ryocs15/ryocs/releases). Your
 - Breaking news (Turkish) comes from seven outlets instead of one: TRT Haber, Sabah, Sözcü, Milliyet, CNN Türk, Habertürk and En Son Haber, in one list, newest first. The same story from several outlets is one row ("+2 kaynak"); right-click opens it at the other outlets. Hiding an outlet works as before. A feed that labels Turkish time as GMT no longer shows its stories in the future.
 - The bold NEW label is gone: a small dot marks only the stories that came since you last looked at the card.
 
+**Clock and timers**
+- The clock card's right-click menu starts the free timer and a new stopwatch; both show under the clock. Click the time to pause or resume (a paused timer keeps its remaining time, also after a restart), × stops it. The focus card's timer can be paused too.
+
+**Clipboard**
+- Pinned items are kept after RYOCS closes (`pano.json`, encrypted); unpinned copies are still cleared. Closing the card removes the pinned ones too.
+
 **Appearance**
 - New icon: the four stones without a plate, flat, in the cards' own colours; the title bar and the start animation use the same colours.
 
