@@ -24,20 +24,20 @@ The interface is in **English** and **Turkish**. It follows the Windows display 
 
 ## Features
 
-- **Clock** with several dial styles, alarms, a second clock (about 35 cities), sunrise/sunset and countdowns
+- **Clock** with several dial styles, alarms, a second clock (about 35 cities), sunrise/sunset, countdowns, a free timer you can pause and a stopwatch
 - **Google Calendar**: month and week views, add, edit and delete events, birthdays and important dates, regional holidays
-- **Tasks and habits** with reminders (type "tomorrow 15:00" at the end of a task), snooze, repeats (daily, weekdays, weekly, monthly or specific days) and streaks
+- **Tasks and habits** with reminders (type "tomorrow 15:00" at the end of a task), snooze, repeats (daily, weekdays, weekly, monthly or specific days), subtasks and streaks
 - **Notes** with checklists
 - **Weather** from Open-Meteo for up to five cities (switch in the card; when several places share a name you pick the right one): hourly and 7-day forecast (click a day for its hours), when rain starts or stops, the difference from yesterday, air quality and pollen, a morning alert (rain, frost, storms, snow, wind, heat, poor air) and an evening note for tomorrow
-- **News**: BBC News in English, Bundle and TRT Haber in Turkish; keyword filter, hidden sources, save for later
+- **News**: BBC News in English, Bundle in Turkish, and breaking news from seven Turkish outlets in one list (the same story from several outlets is one row); a small dot marks what came since you last looked; keyword filter, hidden sources, save for later
 - **Spotify** now playing (podcasts too), controls, seeking, shuffle and repeat, moving playback to another device, and up next
 - **Focus timer** (pomodoro) with long breaks, skipping a round or adding 5 minutes (right-click), daily goal, streak, your own labels, a *what am I working on* note with a weekly breakdown, and *do not disturb* (notifications wait until the round ends)
 - **Gmail** last 15 inbox messages, unread ones in bold, a notification for new mail; right-click to mark as read or unread, or to archive
-- **Currency and gold** with a converter and rate, gold and silver alerts, in your home currency (about 160 currencies; TCMB for TRY, ECB and world rates otherwise), **system** info (CPU with its last minute, memory, every drive, battery time left, uptime), **clipboard history** (pin, delete)
-- **Screen time**: how long you spent in each program today and on each of the last 7 days, a daily average, your own names for programs, hidden programs, a daily limit per program with a notification 10 minutes before and when it is passed (off until you open the card; measured on this PC only)
+- **Currency and gold** with a converter and rate, gold and silver alerts, in your home currency (about 160 currencies; TCMB for TRY, ECB and world rates otherwise), **system** info (CPU with its last minute, memory, every drive, battery time left, uptime), **clipboard history** (pinned items are kept, encrypted; delete)
+- **Screen time**: how long you spent in each program today and on each of the last 7 days, a daily average, your own names for programs, hidden programs, a daily limit per program with a notification 10 minutes before and when it is passed, and a **weekly summary** of focus, tasks, habits and screen time every Sunday evening (off until you open the card; measured on this PC only)
 - Quick search and command palette (Ctrl+F), app and game launcher, quick links with site icons, search in Settings
 - Lives in the tray with a global shortcut you can choose; remembers its window size and position
-- Drag cards to move them, drag the gaps between them to resize; save and restore layouts
+- Drag cards to move them, drag the gaps between them to resize; cards fill the free space or fit their content; save and restore layouts
 - 16 themes, glass look, 11 animated backgrounds (lava lamp, snow, fireflies, aurora…) or a random one each time, PIN lock
 - Optional OneDrive sync between two computers, daily backups, JSON export/import
 - Update check: a notice with a download link when a new version is on GitHub (nothing is installed by itself)
