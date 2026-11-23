@@ -79,6 +79,14 @@ fn provider(name: &str) -> Result<Provider, String> {
             // to get a refresh_token
             extra: &[("access_type", "offline"), ("prompt", "consent")],
         }),
+        // an extra Gmail account: mail only (no calendar), with the main Google client; Google asks which account
+        "gmail" => Ok(Provider {
+            name: "gmail",
+            auth: "https://accounts.google.com/o/oauth2/v2/auth",
+            token: "https://oauth2.googleapis.com/token",
+            scope: "https://www.googleapis.com/auth/gmail.modify",
+            extra: &[("access_type", "offline"), ("prompt", "select_account consent")],
+        }),
         "spotify" => Ok(Provider {
             name: "spotify",
             auth: "https://accounts.spotify.com/authorize",
@@ -1206,10 +1214,15 @@ fn creds_set(p: &Provider, b: &str) -> Result<Value, String> {
     }
     config_yaz(&c)?;
     disconnect(p)?; // old tokens do not work with new credentials; whoever redoes the setup is reconnecting anyway
+    if p.name == "google" { // the extra Gmail accounts were signed in with the old client too: they stay listed, to reconnect
+        let e: Vec<String> = tokens_oku()["posta"].as_object().map(|o| o.keys().cloned().collect()).unwrap_or_default();
+        for x in e { posta_kaydet(&x, None); }
+    }
     connect(p)
 }
 
 fn creds(p: &str) -> Result<(String, String), String> {
+    let p = if p == "gmail" { "google" } else { p }; // extra Gmail accounts sign in with the main Google client
     let c = read_json("config.json");
     let id = c[p]["client_id"].as_str().unwrap_or("").trim();
     if id.is_empty() {
@@ -1232,6 +1245,9 @@ fn config_get() -> Value {
         "spotify_id": c["spotify"]["client_id"].as_str().unwrap_or(""),
         "google_izin": google_tam_izin(), // whether the calendar list permission was granted too
         "google": hesap("google"), "spotify": hesap("spotify"),
+        // extra Gmail accounts: address and whether they still work
+        "posta": t["posta"].as_object().into_iter().flatten()
+            .map(|(e, v)| json!({ "eposta": e, "durum": if v["refresh_token"].is_string() { "ok" } else { "bagli_degil" } })).collect::<Vec<_>>(),
         "surum": env!("CARGO_PKG_VERSION"),
         "kisayol": tepsi::kisayol(),
         "kisayollar": tepsi::adlar(),
@@ -1288,26 +1304,88 @@ fn save_token(p: &str, mut t: Value) {
 fn token(p: &Provider) -> Result<String, String> {
     let (id, secret) = creds(p.name)?;
     let _tek = kilit(&YENILEME[(p.name == "spotify") as usize]); // if another request is refreshing, wait for it and use its result
-    let all = tokens_oku();
-    let t = &all[p.name];
+    match tazele(p, &tokens_oku()[p.name], &id, &secret)? {
+        Tazele::Gecerli(a) => Ok(a),
+        Tazele::Yeni(n) => { save_token(p.name, n.clone()); n["access_token"].as_str().map(String::from).ok_or("bagli_degil".into()) }
+        Tazele::Iptal => { disconnect(p).ok(); Err("bagli_degil".into()) }
+    }
+}
+enum Tazele { Gecerli(String), Yeni(Value), Iptal }
+/// The stored access token if it is still good, otherwise a refreshed one; Iptal when the refresh token was revoked or expired
+/// (a Google project in "Testing" mode: after 7 days): retrying never helps, so the card offers to reconnect.
+fn tazele(p: &Provider, t: &Value, id: &str, secret: &str) -> Result<Tazele, String> {
     if t["expires_at"].as_u64().unwrap_or(0) > now() + 60 {
-        if let Some(a) = t["access_token"].as_str() {
-            return Ok(a.into());
-        }
+        if let Some(a) = t["access_token"].as_str() { return Ok(Tazele::Gecerli(a.into())); }
     }
     let rt = t["refresh_token"].as_str().ok_or("bagli_degil")?;
-    let n = match body(AGENT.post(p.token).send_form(&gizli_ekle(vec![
-        ("grant_type", "refresh_token"), ("refresh_token", rt), ("client_id", &id),
-    ], &secret))) {
-        // the refresh token was revoked or expired (a Google project in "Testing" mode: after 7 days): retrying never helps, so the card offers to reconnect
-        Err(e) if iptal_edildi(&e) => {
-            disconnect(p).ok();
-            return Err("bagli_degil".into());
+    match body(AGENT.post(p.token).send_form(&gizli_ekle(vec![("grant_type", "refresh_token"), ("refresh_token", rt), ("client_id", id)], secret))) {
+        Err(e) if iptal_edildi(&e) => Ok(Tazele::Iptal),
+        r => Ok(Tazele::Yeni(r?)),
+    }
+}
+
+/// Extra Gmail accounts (mail only): tokens.json "posta": {address: {access_token, refresh_token, expires_at, scope}}.
+/// A revoked one stays listed without tokens, so the card can offer to reconnect it.
+fn posta_token(eposta: &str) -> Result<String, String> {
+    let p = provider("gmail")?;
+    let (id, secret) = creds("gmail")?;
+    let _tek = kilit(&YENILEME[0]);
+    match tazele(&p, &tokens_oku()["posta"][eposta], &id, &secret)? {
+        Tazele::Gecerli(a) => Ok(a),
+        Tazele::Yeni(n) => { posta_kaydet(eposta, Some(n.clone())); n["access_token"].as_str().map(String::from).ok_or("bagli_degil".into()) }
+        Tazele::Iptal => { posta_kaydet(eposta, None); Err("bagli_degil".into()) }
+    }
+}
+/// Writes an extra account's token (None: revoked, the address stays without tokens).
+fn posta_kaydet(eposta: &str, t: Option<Value>) {
+    let _d = kilit(&BELIRTEC_DOSYASI);
+    let mut all = tokens_oku();
+    if !all.is_object() { all = json!({}); }
+    if !all["posta"].is_object() { all["posta"] = json!({}); }
+    let v = match t {
+        Some(mut t) if t.is_object() => {
+            if t["refresh_token"].is_null() { t["refresh_token"] = all["posta"][eposta]["refresh_token"].clone(); }
+            t["expires_at"] = json!(now() + t["expires_in"].as_u64().unwrap_or(3600));
+            t
         }
-        r => r?,
+        _ => json!({}),
     };
-    save_token(p.name, n.clone());
-    n["access_token"].as_str().map(String::from).ok_or("bagli_degil".into())
+    all["posta"][eposta] = v;
+    if let Err(e) = tokens_yaz(&all) { hata_kaydet(&format!("tokens.json write failed: {e}")); }
+}
+/// The Gmail address behind an access token.
+fn gmail_adresi(auth: &str) -> Result<String, String> {
+    let r = body(AGENT.get("https://gmail.googleapis.com/gmail/v1/users/me/profile").query("fields", "emailAddress").set("Authorization", auth).call())?;
+    r["emailAddress"].as_str().filter(|e| e.contains('@')).map(|e| e.to_lowercase()).ok_or("profil okunamadı".into())
+}
+/// The main Google account's address, read once and kept with its token.
+fn ana_eposta(auth: &str) -> Option<String> {
+    if let Some(e) = tokens_oku()["google"]["eposta"].as_str() { return Some(e.into()); }
+    let e = gmail_adresi(auth).ok()?;
+    let _d = kilit(&BELIRTEC_DOSYASI);
+    let mut all = tokens_oku();
+    if all["google"].is_object() { all["google"]["eposta"] = json!(e); tokens_yaz(&all).ok(); }
+    Some(e)
+}
+/// After signing in an extra account: its address is read and the token stored under it. The main account is not added twice.
+fn posta_ekle(t: Value) -> Result<(), String> {
+    let a = t["access_token"].as_str().ok_or("bagli_degil")?;
+    let auth = format!("Bearer {a}");
+    let e = gmail_adresi(&auth)?;
+    let ana = token(&provider("google")?).ok().and_then(|x| ana_eposta(&format!("Bearer {x}")));
+    if ana.as_deref() == Some(e.as_str()) {
+        return Err(l("Bu hesap zaten ana Google hesabın; başka bir hesap seç.", "This is already your main Google account; choose another one.").into());
+    }
+    posta_kaydet(&e, Some(t));
+    Ok(())
+}
+fn posta_sil(b: &str) -> Result<Value, String> {
+    let e = serde_json::from_str::<Value>(b).ok().and_then(|v| v["eposta"].as_str().map(String::from)).ok_or("eposta yok")?;
+    let _d = kilit(&BELIRTEC_DOSYASI);
+    let mut all = tokens_oku();
+    if let Some(o) = all["posta"].as_object_mut() { o.remove(&e); }
+    tokens_yaz(&all)?;
+    Ok(Value::Null)
 }
 
 /// Token endpoint answer for a refresh token that no longer works (Google and Spotify: 400 invalid_grant).
@@ -1609,6 +1687,7 @@ fn callback(p: &Provider, path_and_query: &str) -> Result<(), String> {
         ("grant_type", "authorization_code"), ("code", code), ("redirect_uri", &red),
         ("client_id", &id), ("code_verifier", &dogrulayici),
     ], &secret)))?;
+    if p.name == "gmail" { return posta_ekle(t); }
     save_token(p.name, t);
     Ok(())
 }
@@ -1634,37 +1713,65 @@ fn mail_id(i: &str) -> bool {
 
 /// Gmail: unread count in the inbox and the headers of the last 15 inbox messages, each with its unread state.
 /// Reading works with the old gmail.readonly permission too; marking as read needs gmail.modify ("izin_yok" otherwise).
+/// All accounts: the main Google one (its failure is the card's error, as before) and the extra Gmail accounts (each fetched at
+/// the same time; a failing one is reported in "hesaplar" and the others still come). Mail of all accounts, newest first.
 fn mail() -> Result<Value, String> {
     let auth = format!("Bearer {}", token(&provider("google")?)?);
     if !tokens_oku()["google"]["scope"].as_str().is_some_and(|s| s.contains("gmail.readonly") || s.contains("gmail.modify")) {
         return Err("izin_yok".into());
     }
+    let ana = ana_eposta(&auth).unwrap_or_default();
+    let ekler: Vec<String> = tokens_oku()["posta"].as_object().map(|o| o.keys().filter(|e| **e != ana).cloned().collect()).unwrap_or_default();
+    let (a, ek) = thread::scope(|k| {
+        let is: Vec<_> = ekler.iter().map(|e| k.spawn(move || (e.clone(), posta_token(e).and_then(|t| mail_kutusu(e, &format!("Bearer {t}")))))).collect();
+        let a = mail_kutusu(&ana, &auth);
+        (a, is.into_iter().filter_map(|i| i.join().ok()).collect::<Vec<_>>())
+    });
+    let a = a?;
+    let mut hesaplar = vec![json!({ "eposta": ana, "ana": true, "okunmamis": a["okunmamis"] })];
+    let mut liste: Vec<Value> = a["liste"].as_array().cloned().unwrap_or_default();
+    let mut top = a["okunmamis"].as_u64().unwrap_or(0);
+    for (e, r) in ek {
+        match r {
+            Ok(v) => {
+                top += v["okunmamis"].as_u64().unwrap_or(0);
+                hesaplar.push(json!({ "eposta": e, "okunmamis": v["okunmamis"] }));
+                liste.extend(v["liste"].as_array().cloned().unwrap_or_default());
+            }
+            Err(h) => hesaplar.push(json!({ "eposta": e, "hata": h })),
+        }
+    }
+    liste.sort_by_key(|m| std::cmp::Reverse(m["t"].as_i64().unwrap_or(0)));
+    Ok(json!({ "okunmamis": top, "liste": liste, "hesaplar": hesaplar }))
+}
+/// One mailbox: unread count in the inbox and the last 15 inbox messages; each message carries its account ("hesap").
+fn mail_kutusu(hesap: &str, auth: &str) -> Result<Value, String> {
     let g = "https://gmail.googleapis.com/gmail/v1/users/me";
-    let kutu = body(AGENT.get(&format!("{g}/labels/INBOX")).query("fields", "messagesUnread").set("Authorization", &auth).call())?;
+    let kutu = body(AGENT.get(&format!("{g}/labels/INBOX")).query("fields", "messagesUnread").set("Authorization", auth).call())?;
     let idler_al = |q: &str| -> Result<Vec<String>, String> {
         let l = body(AGENT.get(&format!("{g}/messages")).query("q", q).query("maxResults", "15")
-            .query("fields", "messages(id)").set("Authorization", &auth).call())?;
+            .query("fields", "messages(id)").set("Authorization", auth).call())?;
         Ok(l["messages"].as_array().into_iter().flatten().filter_map(|m| m["id"].as_str()).filter(|i| mail_id(i)).map(String::from).collect())
     };
     let idler = idler_al("in:inbox")?;
     // the unread state changes, the headers do not: a second id-only list says which of the 15 are unread
     let okunmamis = idler_al("is:unread in:inbox")?;
-    // headers of a message do not change: only new ids are fetched; the memory keeps just the current list
-    static ONBELLEK: LazyLock<Mutex<HashMap<String, Value>>> = LazyLock::new(Default::default);
-    let yeni: Vec<&String> = { let o = kilit(&ONBELLEK); idler.iter().filter(|i| !o.contains_key(*i)).collect() };
+    // headers of a message do not change: only new ids are fetched; the memory keeps just the current list, per account
+    static ONBELLEK: LazyLock<Mutex<HashMap<String, HashMap<String, Value>>>> = LazyLock::new(Default::default);
+    let yeni: Vec<&String> = { let o = kilit(&ONBELLEK); idler.iter().filter(|i| !o.get(hesap).is_some_and(|h| h.contains_key(*i))).collect() };
     let gelen: Vec<Value> = thread::scope(|k| {
-        let isler: Vec<_> = yeni.iter().map(|id| { let auth = &auth; k.spawn(move || {
+        let isler: Vec<_> = yeni.iter().map(|id| { k.spawn(move || {
             body(AGENT.get(&format!("{g}/messages/{id}")).query("format", "metadata")
                 .query("metadataHeaders", "From").query("metadataHeaders", "Subject")
                 .query("fields", "id,threadId,internalDate,snippet,payload/headers").set("Authorization", auth).call())
         })}).collect();
         isler.into_iter().filter_map(|h| h.join().ok()?.ok()).collect()
     });
-    let mailler = mail_birlestir(&mut kilit(&ONBELLEK), gelen, &idler);
+    let mailler = mail_birlestir(kilit(&ONBELLEK).entry(hesap.to_string()).or_default(), gelen, &idler);
     let baslik = |m: &Value, ad: &str| m["payload"]["headers"].as_array().into_iter().flatten()
         .find(|h| h["name"].as_str().is_some_and(|n| n.eq_ignore_ascii_case(ad))).and_then(|h| h["value"].as_str()).unwrap_or("").to_string();
     let liste: Vec<Value> = mailler.iter().map(|m| json!({
-        "id": m["id"], "konu": baslik(m, "Subject"), "kimden": baslik(m, "From"),         "zincir": m["threadId"], "t": m["internalDate"].as_str().and_then(|t| t.parse::<i64>().ok()),
+        "id": m["id"], "hesap": hesap, "konu": baslik(m, "Subject"), "kimden": baslik(m, "From"),         "zincir": m["threadId"], "t": m["internalDate"].as_str().and_then(|t| t.parse::<i64>().ok()),
         "yeni": m["id"].as_str().is_some_and(|i| okunmamis.iter().any(|o| o == i)),
         "ozet": m["snippet"].as_str().map(|t| t.chars().take(200).collect::<String>()),
     })).collect();
@@ -1682,10 +1789,17 @@ fn mail_islem(req_body: &str) -> Result<Value, String> {
         "arsiv" => json!({ "removeLabelIds": ["INBOX"] }),
         _ => return Err("geçersiz işlem".into()),
     };
-    let auth = format!("Bearer {}", token(&provider("google")?)?);
-    if !tokens_oku()["google"]["scope"].as_str().is_some_and(|s| s.contains("gmail.modify")) {
-        return Err("izin_yok".into());
-    }
+    // an extra account by its address; the main one when none is given or it is the main address
+    let hesap = v["hesap"].as_str().unwrap_or("");
+    let auth = if !hesap.is_empty() && tokens_oku()["posta"][hesap].is_object() {
+        format!("Bearer {}", posta_token(hesap)?)
+    } else {
+        let a = format!("Bearer {}", token(&provider("google")?)?);
+        if !tokens_oku()["google"]["scope"].as_str().is_some_and(|s| s.contains("gmail.modify")) {
+            return Err("izin_yok".into());
+        }
+        a
+    };
     body(AGENT.post(&format!("https://gmail.googleapis.com/gmail/v1/users/me/messages/{id}/modify")).set("Authorization", &auth)
         .send_json(degisim))?;
     Ok(json!(true))
@@ -2042,7 +2156,7 @@ fn handle(mut req: Request) {
         if sonuc.is_ok() {
             olay(Olay::Goster(true)); // the user should return from the browser to the app
         }
-        let servis = if name == "google" { l("Google Takvim", "Google Calendar") } else { "Spotify" };
+        let servis = match name { "google" => l("Google Takvim", "Google Calendar"), "gmail" => "Gmail", _ => "Spotify" };
         return send(req, 200, HTML, sonuc_sayfasi(servis, sonuc));
     }
     let out: Result<Value, String> = if !post && path == "/api/state" {
@@ -2127,6 +2241,8 @@ fn handle(mut req: Request) {
         mail()
     } else if post && path == "/api/mail_islem" {
         mail_islem(&b)
+    } else if post && path == "/api/posta_sil" {
+        posta_sil(&b)
     } else if let (false, "/api/kur" | "/api/kur_ecb") = (post, path) {
         let q = |k: &str| url.split_once('?').is_some_and(|(_, s)| url::form_urlencoded::parse(s.as_bytes()).any(|(a, b)| a == k && b == "1"));
         if path == "/api/kur" { kur(q("ag"), q("dunya")) } else { kur_ecb(q("ag"), q("dunya")) }
@@ -2642,6 +2758,24 @@ mod tests {
         fs::create_dir_all(kok.join("RYOCS")).unwrap();
         unsafe { std::env::set_var("APPDATA", &kok) }; // dir() reads from here
         (k, kok)
+    }
+
+    #[test]
+    fn ek_gmail_hesaplari() {
+        let (_k, kok) = test_klasoru("posta");
+        fs::write(kok.join("RYOCS").join("config.json"), r#"{"google":{"client_id":"x.apps.googleusercontent.com","client_secret":"gizli"}}"#).unwrap();
+        assert_eq!(creds("gmail").unwrap(), creds("google").unwrap()); // the main Google client
+        posta_kaydet("is@gmail.com", Some(json!({ "access_token": "a", "refresh_token": "r", "expires_in": 3600 })));
+        assert_eq!(posta_token("is@gmail.com").unwrap(), "a"); // still valid: no refresh
+        posta_kaydet("is@gmail.com", Some(json!({ "access_token": "b", "expires_in": 3600 })));
+        assert_eq!(tokens_oku()["posta"]["is@gmail.com"]["refresh_token"], "r"); // a refresh without a new refresh token keeps the old one
+        posta_kaydet("is@gmail.com", None); // revoked: listed, to reconnect
+        assert_eq!(config_get()["posta"], json!([{ "eposta": "is@gmail.com", "durum": "bagli_degil" }]));
+        assert_eq!(posta_token("is@gmail.com"), Err("bagli_degil".into()));
+        posta_sil(r#"{"eposta":"is@gmail.com"}"#).unwrap();
+        assert_eq!(config_get()["posta"], json!([]));
+        assert!(fs::read_to_string(kok.join("RYOCS").join("tokens.json")).unwrap().starts_with(DPAPI_ONEK));
+        fs::remove_dir_all(&kok).ok();
     }
 
     #[test]
