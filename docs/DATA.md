@@ -5,9 +5,9 @@ Everything RYOCS stores lives in `%APPDATA%\RYOCS`. Nothing is sent anywhere exc
 | File | What it holds |
 |---|---|
 | `data.json` | Your tasks, notes, settings and layout (below). Written by the app on every change. Encrypted (see below). |
-| `config.json` | Weather city and the Google / Spotify keys you created. Plain JSON you can edit; only `client_secret` is stored encrypted. |
+| `config.json` | Weather city and the Google / Spotify / Microsoft (Outlook) keys you created. Plain JSON you can edit; only `client_secret` is stored encrypted. |
 | `onbellek.json` | Cached for a fast start: calendar events, held notifications, the last weather (with the place), the last Spotify track, your name for the start screen. Encrypted. |
-| `tokens.json` | Sign-in tokens for Google and Spotify, and under `posta` those of extra Gmail accounts by address (mail only), encrypted with Windows DPAPI (only your Windows account on this PC can read them; deleted by *Disconnect*). |
+| `tokens.json` | Sign-in tokens for Google and Spotify, and under `posta` those of extra mail accounts by address (mail only; `tur`: `gmail` or `microsoft`), encrypted with Windows DPAPI (only your Windows account on this PC can read them; deleted by *Disconnect*). |
 | `esitle.json` | OneDrive sync: on/off, folder, last synced fingerprint, the OneDrive password (`parola`, encrypted). |
 | `pano.json` | Clipboard card: only the pinned items, `[{"m": "text", "t": ms}]`. Kept until you unpin or delete the item (closing the card keeps it); not synced. Encrypted. |
 | `ekran.json` | Screen time card: seconds per program per day, `{"g": {"YYYY-MM-DD": {"msedge": 3600}}}`, the 30 newest days. Written only while the card is open; not synced. Encrypted. |

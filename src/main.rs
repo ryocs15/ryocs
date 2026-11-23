@@ -87,6 +87,15 @@ fn provider(name: &str) -> Result<Provider, String> {
             scope: "https://www.googleapis.com/auth/gmail.modify",
             extra: &[("access_type", "offline"), ("prompt", "select_account consent")],
         }),
+        // Outlook / Hotmail (Microsoft Graph): the user's own app registration, a public client (PKCE, no secret).
+        // "common": personal and work accounts. offline_access gives the refresh token.
+        "microsoft" => Ok(Provider {
+            name: "microsoft",
+            auth: "https://login.microsoftonline.com/common/oauth2/v2.0/authorize",
+            token: "https://login.microsoftonline.com/common/oauth2/v2.0/token",
+            scope: "offline_access User.Read Mail.ReadWrite",
+            extra: &[("prompt", "select_account")],
+        }),
         "spotify" => Ok(Provider {
             name: "spotify",
             auth: "https://accounts.spotify.com/authorize",
@@ -1172,6 +1181,8 @@ fn kimlik_gecerli(p: &str, id: &str, gizli: &str) -> Result<(), String> {
     match p {
         "google" if !(id.ends_with(".apps.googleusercontent.com") && duz(id)) =>
             Err(l("Google istemci kimliği \".apps.googleusercontent.com\" ile biter", "A Google client ID ends with \".apps.googleusercontent.com\"").into()),
+        "microsoft" if !(id.len() == 36 && id.bytes().enumerate().all(|(i, c)| if [8, 13, 18, 23].contains(&i) { c == b'-' } else { c.is_ascii_hexdigit() })) =>
+            Err(l("Uygulama (istemci) kimliği 8-4-4-4-12 biçiminde bir koddur", "An Application (client) ID looks like 8-4-4-4-12 hex characters").into()),
         "spotify" if !(id.len() == 32 && id.bytes().all(|c| c.is_ascii_hexdigit())) =>
             Err(l("Spotify Client ID 32 karakterlik bir koddur (0-9, a-f)", "A Spotify Client ID is a 32-character code (0-9, a-f)").into()),
         _ if !duz(gizli) => Err(l("Gizli anahtar boşluk ya da özel karakter içeremez", "The client secret cannot contain spaces or special characters").into()),
@@ -1198,6 +1209,8 @@ fn creds_set(p: &Provider, b: &str) -> Result<Value, String> {
     let yeni_gizli = r["client_secret"].as_str().unwrap_or("").trim();
     kimlik_gecerli(p.name, id, yeni_gizli)?;
     let mut c = config_oku()?;
+    // saved again unchanged (the dialog reopened): the connections stay
+    let ayni = c[p.name]["client_id"].as_str() == Some(id) && yeni_gizli.is_empty();
     if !c[p.name].is_object() {
         c[p.name] = json!({});
     }
@@ -1213,9 +1226,11 @@ fn creds_set(p: &Provider, b: &str) -> Result<Value, String> {
         return Err(l("Google için gizli anahtar (client secret) da gerekli", "Google also needs the client secret").into());
     }
     config_yaz(&c)?;
-    disconnect(p)?; // old tokens do not work with new credentials; whoever redoes the setup is reconnecting anyway
-    if p.name == "google" { // the extra Gmail accounts were signed in with the old client too: they stay listed, to reconnect
-        let e: Vec<String> = tokens_oku()["posta"].as_object().map(|o| o.keys().cloned().collect()).unwrap_or_default();
+    if !ayni {
+        disconnect(p)?; // old tokens do not work with new credentials; whoever redoes the setup is reconnecting anyway
+        // the extra mail accounts signed in with the old client stop working too: they stay listed, to reconnect
+        let tur = if p.name == "google" { "gmail" } else { p.name };
+        let e: Vec<String> = tokens_oku()["posta"].as_object().map(|o| o.iter().filter(|(_, v)| posta_turu(v) == tur).map(|(k, _)| k.clone()).collect()).unwrap_or_default();
         for x in e { posta_kaydet(&x, None); }
     }
     connect(p)
@@ -1245,9 +1260,13 @@ fn config_get() -> Value {
         "spotify_id": c["spotify"]["client_id"].as_str().unwrap_or(""),
         "google_izin": google_tam_izin(), // whether the calendar list permission was granted too
         "google": hesap("google"), "spotify": hesap("spotify"),
-        // extra Gmail accounts: address and whether they still work
+        // Outlook: only whether the app registration is there (the accounts are in "posta")
+        "microsoft": if creds("microsoft").is_ok() { "ok" } else { "kimlik_yok" },
+        "microsoft_id": c["microsoft"]["client_id"].as_str().unwrap_or(""),
+        // extra mail accounts: address, Gmail or Outlook, and whether they still work
         "posta": t["posta"].as_object().into_iter().flatten()
-            .map(|(e, v)| json!({ "eposta": e, "durum": if v["refresh_token"].is_string() { "ok" } else { "bagli_degil" } })).collect::<Vec<_>>(),
+            .map(|(e, v)| json!({ "eposta": e, "tur": posta_turu(v), "eklendi": v["eklendi"].as_u64().unwrap_or(0),
+                "durum": if v["refresh_token"].is_string() { "ok" } else { "bagli_degil" } })).collect::<Vec<_>>(),
         "surum": env!("CARGO_PKG_VERSION"),
         "kisayol": tepsi::kisayol(),
         "kisayollar": tepsi::adlar(),
@@ -1278,8 +1297,11 @@ fn disconnect(p: &Provider) -> Result<Value, String> {
 }
 
 fn redirect(p: &str) -> String {
+    // Microsoft lets an app registration take "localhost" in the portal (127.0.0.1 only by editing the manifest); see allowed()
+    if p == "microsoft" { return format!("http://{MS_HOST}/callback/microsoft"); }
     format!("{ORIGIN}/callback/{p}")
 }
+const MS_HOST: &str = "localhost:8765";
 
 fn save_token(p: &str, mut t: Value) {
     if !t.is_object() {
@@ -1327,9 +1349,14 @@ fn tazele(p: &Provider, t: &Value, id: &str, secret: &str) -> Result<Tazele, Str
 
 /// Extra Gmail accounts (mail only): tokens.json "posta": {address: {access_token, refresh_token, expires_at, scope}}.
 /// A revoked one stays listed without tokens, so the card can offer to reconnect it.
+/// "gmail" or "microsoft" (entries from before Outlook have no type: Gmail)
+fn posta_turu(v: &Value) -> &str {
+    v["tur"].as_str().filter(|t| *t == "microsoft").unwrap_or("gmail")
+}
 fn posta_token(eposta: &str) -> Result<String, String> {
-    let p = provider("gmail")?;
-    let (id, secret) = creds("gmail")?;
+    let t = tokens_oku()["posta"][eposta].clone();
+    let p = provider(posta_turu(&t))?;
+    let (id, secret) = creds(p.name)?;
     let _tek = kilit(&YENILEME[0]);
     match tazele(&p, &tokens_oku()["posta"][eposta], &id, &secret)? {
         Tazele::Gecerli(a) => Ok(a),
@@ -1343,7 +1370,8 @@ fn posta_kaydet(eposta: &str, t: Option<Value>) {
     let mut all = tokens_oku();
     if !all.is_object() { all = json!({}); }
     if !all["posta"].is_object() { all["posta"] = json!({}); }
-    let v = match t {
+    let eski = all["posta"][eposta].clone();
+    let mut v = match t {
         Some(mut t) if t.is_object() => {
             if t["refresh_token"].is_null() { t["refresh_token"] = all["posta"][eposta]["refresh_token"].clone(); }
             t["expires_at"] = json!(now() + t["expires_in"].as_u64().unwrap_or(3600));
@@ -1351,6 +1379,8 @@ fn posta_kaydet(eposta: &str, t: Option<Value>) {
         }
         _ => json!({}),
     };
+    // a refresh (or a revoke) keeps whether it is Gmail or Outlook and when it was added
+    for k in ["tur", "eklendi"] { if v[k].is_null() && !eski[k].is_null() { v[k] = eski[k].clone(); } }
     all["posta"][eposta] = v;
     if let Err(e) = tokens_yaz(&all) { hata_kaydet(&format!("tokens.json write failed: {e}")); }
 }
@@ -1368,15 +1398,23 @@ fn ana_eposta(auth: &str) -> Option<String> {
     if all["google"].is_object() { all["google"]["eposta"] = json!(e); tokens_yaz(&all).ok(); }
     Some(e)
 }
-/// After signing in an extra account: its address is read and the token stored under it. The main account is not added twice.
-fn posta_ekle(t: Value) -> Result<(), String> {
+/// The Outlook address behind an access token (mail, else the sign-in name, which is the address for personal accounts).
+fn outlook_adresi(auth: &str) -> Result<String, String> {
+    let r = body(AGENT.get("https://graph.microsoft.com/v1.0/me").query("$select", "mail,userPrincipalName").set("Authorization", auth).call())?;
+    r["mail"].as_str().or(r["userPrincipalName"].as_str()).filter(|e| e.contains('@')).map(|e| e.to_lowercase()).ok_or("profil okunamadı".into())
+}
+/// After signing in an extra account (tur: "gmail" | "microsoft"): its address is read and the token stored under it.
+/// The main Google account is not added twice.
+fn posta_ekle(tur: &str, mut t: Value) -> Result<(), String> {
     let a = t["access_token"].as_str().ok_or("bagli_degil")?;
     let auth = format!("Bearer {a}");
-    let e = gmail_adresi(&auth)?;
+    let e = if tur == "microsoft" { outlook_adresi(&auth)? } else { gmail_adresi(&auth)? };
     let ana = token(&provider("google")?).ok().and_then(|x| ana_eposta(&format!("Bearer {x}")));
     if ana.as_deref() == Some(e.as_str()) {
         return Err(l("Bu hesap zaten ana Google hesabın; başka bir hesap seç.", "This is already your main Google account; choose another one.").into());
     }
+    t["tur"] = json!(tur);
+    t["eklendi"] = json!(now()); // the settings dialog waits for an account added after it opened
     posta_kaydet(&e, Some(t));
     Ok(())
 }
@@ -1688,7 +1726,7 @@ fn callback(p: &Provider, path_and_query: &str) -> Result<(), String> {
         ("grant_type", "authorization_code"), ("code", code), ("redirect_uri", &red),
         ("client_id", &id), ("code_verifier", &dogrulayici),
     ], &secret)))?;
-    if p.name == "gmail" { return posta_ekle(t); }
+    if p.name == "gmail" || p.name == "microsoft" { return posta_ekle(p.name, t); }
     save_token(p.name, t);
     Ok(())
 }
@@ -1717,21 +1755,33 @@ fn mail_id(i: &str) -> bool {
 /// All accounts: the main Google one (its failure is the card's error, as before) and the extra Gmail accounts (each fetched at
 /// the same time; a failing one is reported in "hesaplar" and the others still come). Mail of all accounts, newest first.
 fn mail() -> Result<Value, String> {
-    let auth = format!("Bearer {}", token(&provider("google")?)?);
-    if !tokens_oku()["google"]["scope"].as_str().is_some_and(|s| s.contains("gmail.readonly") || s.contains("gmail.modify")) {
+    // without a main Google account the extra accounts (e.g. Outlook only) still show
+    let ek_var = tokens_oku()["posta"].as_object().is_some_and(|o| !o.is_empty());
+    let ana_auth = match token(&provider("google")?) {
+        Ok(t) => Some(format!("Bearer {t}")),
+        Err(e) if ek_var && (e == "kimlik_yok" || e == "bagli_degil") => None,
+        Err(e) => return Err(e),
+    };
+    if ana_auth.is_some() && !tokens_oku()["google"]["scope"].as_str().is_some_and(|s| s.contains("gmail.readonly") || s.contains("gmail.modify")) {
         return Err("izin_yok".into());
     }
-    let ana = ana_eposta(&auth).unwrap_or_default();
-    let ekler: Vec<String> = tokens_oku()["posta"].as_object().map(|o| o.keys().filter(|e| **e != ana).cloned().collect()).unwrap_or_default();
+    let ana = ana_auth.as_deref().and_then(ana_eposta).unwrap_or_default();
+    let ekler: Vec<(String, bool)> = tokens_oku()["posta"].as_object()
+        .map(|o| o.iter().filter(|(e, _)| **e != ana).map(|(e, v)| (e.clone(), posta_turu(v) == "microsoft")).collect()).unwrap_or_default();
     let (a, ek) = thread::scope(|k| {
-        let is: Vec<_> = ekler.iter().map(|e| k.spawn(move || (e.clone(), posta_token(e).and_then(|t| mail_kutusu(e, &format!("Bearer {t}")))))).collect();
-        let a = mail_kutusu(&ana, &auth);
+        let is: Vec<_> = ekler.iter().map(|(e, ms)| k.spawn(move || (e.clone(), posta_token(e).and_then(|t| {
+            let auth = format!("Bearer {t}");
+            if *ms { outlook_kutusu(e, &auth) } else { mail_kutusu(e, &auth) }
+        })))).collect();
+        let a = ana_auth.as_deref().map(|auth| mail_kutusu(&ana, auth));
         (a, is.into_iter().filter_map(|i| i.join().ok()).collect::<Vec<_>>())
     });
-    let a = a?;
-    let mut hesaplar = vec![json!({ "eposta": ana, "ana": true, "okunmamis": a["okunmamis"] })];
-    let mut liste: Vec<Value> = a["liste"].as_array().cloned().unwrap_or_default();
-    let mut top = a["okunmamis"].as_u64().unwrap_or(0);
+    let (mut hesaplar, mut liste, mut top) = (vec![], vec![], 0);
+    if let Some(a) = a.transpose()? {
+        hesaplar.push(json!({ "eposta": ana, "ana": true, "okunmamis": a["okunmamis"] }));
+        liste = a["liste"].as_array().cloned().unwrap_or_default();
+        top = a["okunmamis"].as_u64().unwrap_or(0);
+    }
     for (e, r) in ek {
         match r {
             Ok(v) => {
@@ -1744,6 +1794,39 @@ fn mail() -> Result<Value, String> {
     }
     liste.sort_by_key(|m| std::cmp::Reverse(m["t"].as_i64().unwrap_or(0)));
     Ok(json!({ "okunmamis": top, "liste": liste, "hesaplar": hesaplar }))
+}
+/// An Outlook message id as Graph gives it (base64-like); anything else never reaches a URL.
+fn outlook_id(i: &str) -> bool {
+    !i.is_empty() && i.len() <= 400 && i.bytes().all(|c| c.is_ascii_alphanumeric() || b"-_=+/".contains(&c))
+}
+/// "2026-11-23T10:05:00Z" (Graph's UTC time) → ms since 1970 (days_from_civil, the inverse of ymd()).
+fn iso_ms(s: &str) -> Option<i64> {
+    let n = |a: usize, b: usize| s.get(a..b)?.parse::<i64>().ok();
+    let (y, m, d, h, dk, sn) = (n(0, 4)?, n(5, 7)?, n(8, 10)?, n(11, 13)?, n(14, 16)?, n(17, 19)?);
+    let y2 = if m <= 2 { y - 1 } else { y };
+    let era = y2.div_euclid(400);
+    let yoe = y2 - era * 400;
+    let doy = (153 * (if m > 2 { m - 3 } else { m + 9 }) + 2) / 5 + d - 1;
+    let gun = era * 146_097 + yoe * 365 + yoe / 4 - yoe / 100 + doy - 719_468;
+    Some(((gun * 24 + h) * 60 + dk) * 60_000 + sn * 1000)
+}
+/// One Outlook mailbox through Microsoft Graph, in the same shape as a Gmail one; "link" opens the message in Outlook on the web.
+fn outlook_kutusu(hesap: &str, auth: &str) -> Result<Value, String> {
+    let g = "https://graph.microsoft.com/v1.0/me/mailFolders/inbox";
+    let kutu = body(AGENT.get(g).query("$select", "unreadItemCount").set("Authorization", auth).call())?;
+    let l = body(AGENT.get(&format!("{g}/messages")).query("$top", "15").query("$orderby", "receivedDateTime desc")
+        .query("$select", "id,subject,from,receivedDateTime,isRead,bodyPreview,webLink").set("Authorization", auth).call())?;
+    let liste: Vec<Value> = l["value"].as_array().into_iter().flatten().filter(|m| m["id"].as_str().is_some_and(outlook_id)).map(|m| {
+        let (ad, adres) = (m["from"]["emailAddress"]["name"].as_str().unwrap_or(""), m["from"]["emailAddress"]["address"].as_str().unwrap_or(""));
+        json!({
+            "id": m["id"], "hesap": hesap, "konu": m["subject"].as_str().unwrap_or(""),
+            "kimden": if ad.is_empty() { adres.to_string() } else { format!("\"{ad}\" <{adres}>") },
+            "t": m["receivedDateTime"].as_str().and_then(iso_ms), "yeni": m["isRead"] == false,
+            "ozet": m["bodyPreview"].as_str().map(|t| t.chars().take(200).collect::<String>()),
+            "link": m["webLink"].as_str().filter(|u| u.starts_with("https://outlook.")),
+        })
+    }).collect();
+    Ok(json!({ "okunmamis": kutu["unreadItemCount"], "liste": liste }))
 }
 /// One mailbox: unread count in the inbox and the last 15 inbox messages; each message carries its account ("hesap").
 fn mail_kutusu(hesap: &str, auth: &str) -> Result<Value, String> {
@@ -1783,15 +1866,28 @@ fn mail_kutusu(hesap: &str, auth: &str) -> Result<Value, String> {
 /// These are the only changes RYOCS makes in the mailbox: nothing is deleted or sent.
 fn mail_islem(req_body: &str) -> Result<Value, String> {
     let v: Value = serde_json::from_str(req_body).map_err(|e| e.to_string())?;
+    let islem = v["islem"].as_str().unwrap_or("okundu");
+    let hesap = v["hesap"].as_str().unwrap_or("");
+    // Outlook: Graph marks with isRead and archives by moving to the Archive folder
+    if posta_turu(&tokens_oku()["posta"][hesap]) == "microsoft" {
+        let id = v["id"].as_str().filter(|i| outlook_id(i)).ok_or("geçersiz id")?;
+        let u = format!("https://graph.microsoft.com/v1.0/me/messages/{}", url::form_urlencoded::byte_serialize(id.as_bytes()).collect::<String>());
+        let auth = format!("Bearer {}", posta_token(hesap)?);
+        match islem {
+            "okundu" | "okunmadi" => body(AGENT.request("PATCH", &u).set("Authorization", &auth).send_json(json!({ "isRead": islem == "okundu" })))?,
+            "arsiv" => body(AGENT.post(&format!("{u}/move")).set("Authorization", &auth).send_json(json!({ "destinationId": "archive" })))?,
+            _ => return Err("geçersiz işlem".into()),
+        };
+        return Ok(json!(true));
+    }
     let id = v["id"].as_str().filter(|i| mail_id(i)).ok_or("geçersiz id")?;
-    let degisim = match v["islem"].as_str().unwrap_or("okundu") {
+    let degisim = match islem {
         "okundu" => json!({ "removeLabelIds": ["UNREAD"] }),
         "okunmadi" => json!({ "addLabelIds": ["UNREAD"] }),
         "arsiv" => json!({ "removeLabelIds": ["INBOX"] }),
         _ => return Err("geçersiz işlem".into()),
     };
     // an extra account by its address; the main one when none is given or it is the main address
-    let hesap = v["hesap"].as_str().unwrap_or("");
     let auth = if !hesap.is_empty() && tokens_oku()["posta"][hesap].is_object() {
         format!("Bearer {}", posta_token(hesap)?)
     } else {
@@ -2070,6 +2166,11 @@ fn spotify(cmd: &str, b: &str) -> Result<Value, String> {
 fn allowed(host: Option<&str>, origin: Option<&str>) -> bool {
     host == Some(ADDR) && origin.is_none_or(|o| o == ORIGIN)
 }
+/// The Microsoft sign-in comes back to localhost:8765 (what the Azure portal accepts): only that one page, only a plain GET.
+/// It needs no key and does nothing without the state of a sign-in started here, like the other callbacks.
+fn ms_donus(host: Option<&str>, origin: Option<&str>, url: &str, get: bool) -> bool {
+    get && host == Some(MS_HOST) && origin.is_none() && url.split('?').next() == Some("/callback/microsoft")
+}
 /// Key made at every start and given only to the app's own window (initialization script, not the served HTML).
 /// Without it another Windows user or a browser tab on this PC could read /api/state or start programs through /api/uygulama.
 static ANAHTAR: LazyLock<String> = LazyLock::new(rastgele);
@@ -2129,7 +2230,7 @@ fn kayitlari_bekle() {
 fn handle(mut req: Request) {
     let hdr = |n: &'static str| req.headers().iter().find(|h| h.field.equiv(n)).map(|h| h.value.as_str().to_string());
     let (host, origin) = (hdr("Host"), hdr("Origin"));
-    if !allowed(host.as_deref(), origin.as_deref()) {
+    if !allowed(host.as_deref(), origin.as_deref()) && !ms_donus(host.as_deref(), origin.as_deref(), req.url(), *req.method() == Method::Get) {
         return send(req, 403, "text/plain", "yasak".into());
     }
     let url = req.url().to_string();
@@ -2771,7 +2872,7 @@ mod tests {
         posta_kaydet("is@gmail.com", Some(json!({ "access_token": "b", "expires_in": 3600 })));
         assert_eq!(tokens_oku()["posta"]["is@gmail.com"]["refresh_token"], "r"); // a refresh without a new refresh token keeps the old one
         posta_kaydet("is@gmail.com", None); // revoked: listed, to reconnect
-        assert_eq!(config_get()["posta"], json!([{ "eposta": "is@gmail.com", "durum": "bagli_degil" }]));
+        assert_eq!(config_get()["posta"], json!([{ "eposta": "is@gmail.com", "tur": "gmail", "eklendi": 0, "durum": "bagli_degil" }]));
         assert_eq!(posta_token("is@gmail.com"), Err("bagli_degil".into()));
         // the main account's address survives a token refresh, a new sign-in drops it
         save_token("google", json!({ "access_token": "x", "refresh_token": "r", "expires_in": 3600 }));
@@ -2783,6 +2884,29 @@ mod tests {
         posta_sil(r#"{"eposta":"is@gmail.com"}"#).unwrap();
         assert_eq!(config_get()["posta"], json!([]));
         assert!(fs::read_to_string(kok.join("RYOCS").join("tokens.json")).unwrap().starts_with(DPAPI_ONEK));
+        fs::remove_dir_all(&kok).ok();
+    }
+
+    #[test]
+    fn outlook_hesaplari() {
+        // Graph time → ms, checked against the reverse direction used for backups
+        let t = iso_ms("2026-11-23T10:05:07Z").unwrap();
+        assert_eq!((ymd(t / 86_400_000), t % 86_400_000), ("2026-11-23".to_string(), (10 * 3600 + 5 * 60 + 7) * 1000));
+        assert_eq!(iso_ms("1970-01-01T00:00:00Z"), Some(0));
+        assert_eq!(iso_ms("bozuk"), None);
+        assert!(outlook_id("AQMkADAwATM0MDAAMS1h_YjI0-LTAwAi0wMAoARgAAA+/w==") && !outlook_id("../x") && !outlook_id(""));
+        assert!(kimlik_gecerli("microsoft", "0a1b2c3d-4e5f-6789-abcd-ef0123456789", "").is_ok());
+        assert!(kimlik_gecerli("microsoft", "0a1b2c3d4e5f6789abcdef0123456789", "").is_err());
+        assert_eq!(redirect("microsoft"), "http://localhost:8765/callback/microsoft");
+        // the account type survives a refresh and a revoke; entries from before Outlook count as Gmail
+        let (_k, kok) = test_klasoru("outlook");
+        posta_kaydet("ben@outlook.com", Some(json!({ "access_token": "a", "refresh_token": "r", "tur": "microsoft", "eklendi": 100 })));
+        posta_kaydet("ben@outlook.com", Some(json!({ "access_token": "b", "refresh_token": "r2" })));
+        assert_eq!(posta_turu(&tokens_oku()["posta"]["ben@outlook.com"]), "microsoft");
+        assert_eq!(tokens_oku()["posta"]["ben@outlook.com"]["eklendi"], 100); // a refresh is not a new account for the settings dialog
+        posta_kaydet("ben@outlook.com", None);
+        assert_eq!(posta_turu(&tokens_oku()["posta"]["ben@outlook.com"]), "microsoft");
+        assert_eq!(posta_turu(&json!({ "refresh_token": "r" })), "gmail");
         fs::remove_dir_all(&kok).ok();
     }
 
@@ -3072,6 +3196,12 @@ mod tests {
         assert!(!allowed(Some(ADDR), Some("https://kotu.example")));
         assert!(!allowed(Some("kotu.example:8765"), None));
         assert!(!allowed(None, None));
+        // the Microsoft sign-in comes back to localhost: that page only, a plain GET, no Origin
+        assert!(ms_donus(Some("localhost:8765"), None, "/callback/microsoft?code=x&state=y", true));
+        assert!(!ms_donus(Some("localhost:8765"), None, "/api/state", true));
+        assert!(!ms_donus(Some("localhost:8765"), None, "/callback/google?code=x", true));
+        assert!(!ms_donus(Some("localhost:8765"), Some("https://kotu.example"), "/callback/microsoft", true));
+        assert!(!ms_donus(Some("localhost:8765"), None, "/callback/microsoft", false));
     }
 
     #[test]

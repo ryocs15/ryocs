@@ -47,12 +47,49 @@ cevap.veri.hesaplar=[...cevap.veri.hesaplar,{eposta:'yeni@gmail.com',okunmamis:2
 esit('added account: no burst of notifications',bildirim.length,n0);
 // settings: the extra accounts are listed and can be removed
 ayarAc();await bek(150);
-esit('settings list',[...q('#aPosta').querySelectorAll('.ar>span')].map(s=>s.firstChild.textContent),['is@gmail.com','eski@gmail.com']);
+esit('settings list',[...q('#aPosta').querySelectorAll('.ar>span')].map(s=>s.childNodes[1].textContent),['is@gmail.com','eski@gmail.com']);
 dogru('reconnect button for the broken one',q('#aPosta [data-pb]')!==null);
 q('#aPosta [data-ps="is@gmail.com"]').click();await bek(80);
 q('#sor form')?.requestSubmit();await bek(80);
 esit('removed',silinen,['is@gmail.com']);
 for(const x of document.querySelectorAll('dialog[open]'))x.close();
+// Outlook: opens its own web link, the menu says Outlook, the action carries the account
+cevap={durum:'ok',veri:{okunmamis:1,liste:[{id:'AAMk-x_y=',hesap:'ben@outlook.com',konu:'Outlook mail',kimden:'"Ayşe" <a@b>',t:Date.now(),yeni:true,ozet:'',link:'https://outlook.live.com/owa/?ItemID=AAMk'},
+  {id:'AAMk2',hesap:'ben@outlook.com',konu:'Kötü link',kimden:'x',t:Date.now()-6e4,yeni:false,link:'https://kotu.example/x'}],
+  hesaplar:[{eposta:'ben@gmail.com',ana:true,okunmamis:0},{eposta:'ben@outlook.com',okunmamis:1}]}};await mail(true);
+q('#mail [data-mh="ben@outlook.com"]').click();
+q('#mail .hb').click();await bek(30);
+esit('Outlook: its web link',acilan,'https://outlook.live.com/owa/?ItemID=AAMk');
+esit('Outlook action carries the account',islem.at(-1),{id:'AAMk-x_y=',islem:'okundu',hesap:'ben@outlook.com'});
+q('#mail .hb:nth-of-type(2)').click();await bek(30);
+esit('a strange link is not opened, Outlook on the web is',acilan,'https://outlook.live.com/mail/');
+mailMenu(10,10,mailV.liste[0]);await bek(20);
+dogru('menu says Outlook',[...q('#menu').querySelectorAll('button')].some(b=>b.textContent==='Outlook’ta aç'));q('#menu').hidePopover();
+// colours: right-click a chip → change colour; a bad value never reaches the page; back to the default
+q('#mail [data-mh="ben@outlook.com"]').dispatchEvent(new MouseEvent('contextmenu',{bubbles:true,clientX:10,clientY:10}));await bek(30);
+[...q('#menu').querySelectorAll('button')].find(b=>b.textContent==='Rengini değiştir…').click();await bek(60);
+q('#sor input[name=a0]').value='#123abc';q('#sor form').requestSubmit();await bek(60);
+esit('colour saved',S.ayar.mailRenk,{'ben@outlook.com':'#123abc'});
+dogru('chip uses it',q('#mail [data-mh="ben@outlook.com"] .mhN').style.getPropertyValue('--c')==='#123abc');
+S.ayar.mailRenk={'ben@outlook.com':'red;background:url(x)'};mailCiz();
+dogru('bad value ignored',!q('#mail').innerHTML.includes('url(x)'));
+mailRenkSifirla('ben@outlook.com');esit('default again',S.ayar.mailRenk,undefined);
+delete S.ayar.mailHesap;
+// Outlook setup: the guide opens with the redirect address to copy, a wrong ID is refused
+ayar.veri.microsoft='kimlik_yok';await postaEkle('microsoft');await bek(80);
+dogru('guide with the redirect address',q('#sor').textContent.includes('http://localhost:8765/callback/microsoft'));
+q('#sor input[name=id]').value='yanlis';q('#sor form').requestSubmit();await bek(30);
+dogru('wrong ID refused',q('#sor .hata').textContent.startsWith('Uygulama (istemci) kimliği'));
+for(const x of document.querySelectorAll('dialog[open]'))x.close();
+// waiting for a sign-in: an account that was already connected does not count, one added after the dialog opened does
+const bas=Math.floor(Date.now()/1000);
+ayar.veri.posta=[{eposta:'eski@outlook.com',tur:'microsoft',durum:'ok',eklendi:bas-500}];
+postaBekle('microsoft',bas);await bek(1700);
+dogru('an old account is not taken as the new one',!q('#sor').textContent.includes('eklendi'));
+ayar.veri.posta.push({eposta:'yeni@outlook.com',tur:'microsoft',durum:'ok',eklendi:bas+1});await bek(1700);
+dogru('the new one is',q('#sor').textContent.includes('yeni@outlook.com eklendi'));
+for(const x of document.querySelectorAll('dialog[open]'))x.close();
+dogru('card is called Mail',q('[data-kart=mail] h2').textContent.startsWith('Mail'));
 // one account only (older answer without "hesaplar"): no chips, as before
 cevap={durum:'ok',veri:{okunmamis:1,liste:[{id:'z',konu:'Tek',kimden:'a@b',zincir:'zz',t:null,yeni:true}]}};await mail(true);
 esit('single account: no chips',[cipler(),satir()],[[],['Tek']]);

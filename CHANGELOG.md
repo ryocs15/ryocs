@@ -4,7 +4,9 @@ All releases: [GitHub Releases](https://github.com/ryocs15/ryocs/releases). Your
 
 ## Unreleased
 
-**Gmail**
+**Mail**
+- Outlook / Hotmail accounts next to Gmail: Settings → Accounts → Add Outlook guides you through a free Microsoft app registration (no secret), then signs in. Reading, marking read or unread and archiving (to the Archive folder) work like Gmail; clicking opens the message in Outlook on the web.
+- Your own colour for each account: right-click its button on the mail card, or click its dot in Settings → Accounts.
 - Several Gmail accounts: Settings → Accounts → Add account signs in another Google account for mail only (the calendar stays with the main one). The card shows all accounts together, newest first with a colour dot per account, or one account at a time; each chip has its unread count. Opening, marking and archiving work in the right account, and a new-mail notification names it. An account that lost its connection shows a reconnect button. Each extra account must be a test user in your Google Cloud project.
 
 ## 1.1.11 (2026-11-22)
