@@ -2,12 +2,14 @@
 
 All releases: [GitHub Releases](https://github.com/ryocs15/ryocs/releases). Your data (`%APPDATA%\RYOCS`) is kept by every update.
 
-## Unreleased
+## 1.1.12 (2026-11-23)
+
+Several Gmail accounts on one card, each with its own colour.
 
 **Mail**
 - The card is called Mail now.
 - Your own colour for each account: right-click its button on the mail card, or click its dot in Settings → Accounts.
-- Several Gmail accounts: Settings → Accounts → Add account signs in another Google account for mail only (the calendar stays with the main one). The card shows all accounts together, newest first with a colour dot per account, or one account at a time; each chip has its unread count. Opening, marking and archiving work in the right account, and a new-mail notification names it. An account that lost its connection shows a reconnect button. Each extra account must be a test user in your Google Cloud project.
+- Several Gmail accounts: Settings → Accounts → Add Gmail signs in another Google account for mail only (the calendar stays with the main one). The card shows all accounts together, newest first with a colour dot per account, or one account at a time; each chip has its unread count. Opening, marking and archiving work in the right account, and a new-mail notification names it. An account that lost its connection shows a reconnect button. Each extra account must be a test user in your Google Cloud project.
 
 ## 1.1.11 (2026-11-22)
 
