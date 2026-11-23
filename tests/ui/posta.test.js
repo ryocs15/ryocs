@@ -40,6 +40,11 @@ q('#mail [data-mh=""]').click();esit('back to all',S.ayar.mailHesap,undefined);
 // new mail notification names the account
 cevap.veri.liste=[m('e','is@gmail.com','Yeni teklif',0,true),...cevap.veri.liste];await mail(true);await bek(30);
 esit('notification says the account',bildirim.at(-1)?.baslik,'Yeni mail · is@gmail.com');
+// a newly added account: its unread inbox is remembered, not announced
+const n0=bildirim.length;
+cevap.veri.liste=[...cevap.veri.liste,m('y1','yeni@gmail.com','Eski okunmamış',200,true),m('y2','yeni@gmail.com','Bir tane daha',300,true)];
+cevap.veri.hesaplar=[...cevap.veri.hesaplar,{eposta:'yeni@gmail.com',okunmamis:2}];await mail(true);await bek(30);
+esit('added account: no burst of notifications',bildirim.length,n0);
 // settings: the extra accounts are listed and can be removed
 ayarAc();await bek(150);
 esit('settings list',[...q('#aPosta').querySelectorAll('.ar>span')].map(s=>s.firstChild.textContent),['is@gmail.com','eski@gmail.com']);

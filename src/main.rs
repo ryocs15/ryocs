@@ -1292,6 +1292,7 @@ fn save_token(p: &str, mut t: Value) {
     }
     if t["refresh_token"].is_null() {
         t["refresh_token"] = all[p]["refresh_token"].clone(); // yenilemede yeni refresh_token gelmeyebilir
+        t["eposta"] = all[p]["eposta"].clone(); // a refresh is the same account: its address stays (a new sign-in reads it again)
     }
     t["expires_at"] = json!(now() + t["expires_in"].as_u64().unwrap_or(3600));
     all[p] = t;
@@ -2772,6 +2773,13 @@ mod tests {
         posta_kaydet("is@gmail.com", None); // revoked: listed, to reconnect
         assert_eq!(config_get()["posta"], json!([{ "eposta": "is@gmail.com", "durum": "bagli_degil" }]));
         assert_eq!(posta_token("is@gmail.com"), Err("bagli_degil".into()));
+        // the main account's address survives a token refresh, a new sign-in drops it
+        save_token("google", json!({ "access_token": "x", "refresh_token": "r", "expires_in": 3600 }));
+        let mut all = tokens_oku(); all["google"]["eposta"] = json!("ben@gmail.com"); tokens_yaz(&all).unwrap();
+        save_token("google", json!({ "access_token": "y", "expires_in": 3600 }));
+        assert_eq!(tokens_oku()["google"]["eposta"], "ben@gmail.com");
+        save_token("google", json!({ "access_token": "z", "refresh_token": "r2", "expires_in": 3600 }));
+        assert!(tokens_oku()["google"]["eposta"].is_null());
         posta_sil(r#"{"eposta":"is@gmail.com"}"#).unwrap();
         assert_eq!(config_get()["posta"], json!([]));
         assert!(fs::read_to_string(kok.join("RYOCS").join("tokens.json")).unwrap().starts_with(DPAPI_ONEK));
