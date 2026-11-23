@@ -101,24 +101,7 @@ It is free, it needs no credit card, and the key stays on your computer in `%APP
 - **"Access blocked" or "Error 403: access_denied"?** Your address is not in the test users list. Repeat step 5.
 - **Gmail card says the API is turned off?** Repeat the Gmail part of step 3.
 - RYOCS reads your mail and can mark it read or unread and archive it. It cannot send or delete anything.
-- **More Gmail accounts:** add each one as a test user (step 5), then **Settings → Accounts → Add Gmail**. They are for mail only; the calendar stays with the main account.
-
-### Outlook / Hotmail (optional)
-
-Outlook needs its own free key from Microsoft, made the same way:
-
-1. Open **[Azure → App registrations](https://portal.azure.com/#view/Microsoft_AAD_RegisteredApps/ApplicationsListBlade)**, sign in with your Microsoft account and click **New registration**.
-2. *Name*: `RYOCS`. *Supported account types*: **Accounts in any organizational directory and personal Microsoft accounts**.
-3. *Redirect URI*: platform **Public client/native (mobile & desktop)**, address (copy it exactly), then **Register**:
-   ```
-   http://localhost:8765/callback/microsoft
-   ```
-4. **Authentication → Advanced settings → Allow public client flows: Yes → Save.**
-5. **API permissions → Add a permission → Microsoft Graph → Delegated permissions → Mail.ReadWrite → Add permissions.**
-6. Copy the **Application (client) ID** from the *Overview* page. No secret is needed.
-7. In RYOCS open **Settings → Accounts → Add Outlook**, paste the ID → **Save and connect**, choose your account in the browser and accept.
-
-Outlook mail shows on the mail card next to your Gmail accounts; Outlook alone works too, without Google. A work or school account may need your organisation's admin to allow the app. Right-click an account's button on the card to give it your own colour.
+- **More Gmail accounts:** add each one as a test user (step 5), then **Settings → Accounts → Add Gmail**. They are for mail only; the calendar stays with the main account. Right-click an account's button on the mail card to give it your own colour.
 
 ### Spotify
 
