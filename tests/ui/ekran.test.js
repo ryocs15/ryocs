@@ -91,10 +91,11 @@ ekranToplamYaz(345);
 esit('10 minutes before: one warning',[bildirim.length-n0,bildirim.at(-1).metin],[1,'Bugünkü toplam sınırına 10 dk kaldı.']);
 ekranToplamYaz(300);
 esit('passed: red, card edge, notification',[sn().className,kart.classList.contains('ekAsti'),sn().textContent.endsWith('sınır doldu'),bildirim.at(-1).metin.startsWith('Bugünkü toplam 5 sa sınırını geçtin')],['ekSn asti',true,true,true]);
-const n1=bildirim.length;ekranCiz();ekranCiz();
-esit('only once a day',bildirim.length,n1);
+const n1=bildirim.length;ekranCiz();ekranCiz();ekranToplamYaz(300);
+esit('only once a day, also when the same limit is saved again',bildirim.length,n1);
+dogru("today's total is red",q('#ekran .ekTop').classList.contains('asti'));
 q(`#ekran [data-g="${dun}"]`).click();
-dogru('a past day: no limit bar, the card stays red for today',!sn()&&kart.classList.contains('ekAsti'));
+dogru('a past day: no limit bar, its total not red, the card edge stays for today',!sn()&&!q('#ekran .ekTop').classList.contains('asti')&&kart.classList.contains('ekAsti'));
 q(`#ekran [data-g="${dun}"]`).click();
 // the card menu sets it in hours and minutes, and removes it
 q('#ekran').dispatchEvent(new MouseEvent('contextmenu',{bubbles:true,clientX:10,clientY:10}));await bek(30);

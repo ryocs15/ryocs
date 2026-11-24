@@ -282,7 +282,7 @@ main [data-kart][hidden]{display:none!important} /* a closed card (the card layo
 #sistem .cizgi{margin-bottom:6px}
 #sistem .cizgi.dolu i,#ekran .cizgi.dolu i{background:#e58f9a}
 #ekran .cizgi{margin-bottom:6px}.ekSn{margin:-2px 0 10px}.ekSn small{display:block;color:var(--mu);font-size:11px;margin-top:3px}.ekSn .cizgi{margin:0}
-#ekran .ekSn.yakin i{background:var(--tu)}#ekran .ekSn.asti i{background:var(--kr)}.ekSn.yakin small{color:var(--tu)}.ekSn.asti small,.ekAsti .ekTop b{color:var(--kr)}
+#ekran .ekSn.yakin i{background:var(--tu)}#ekran .ekSn.asti i{background:var(--kr)}.ekSn.asti small,.ekTop.asti b{color:var(--kr)}
 .card.ekAsti{box-shadow:var(--up-s),inset 0 0 0 2px var(--kr)}.ekTop{display:flex;align-items:baseline;gap:6px;margin-bottom:4px}.ekTop b{font-size:20px;font-weight:600}.ekTop small{color:var(--mu);font-size:11px}
 .ekHafta{display:flex;align-items:flex-end;gap:4px;height:34px;margin-top:6px}.ekHafta button{flex:1;min-height:2px;padding:0;border:0;border-radius:2px;background:var(--ye);opacity:.45;cursor:pointer;transition:opacity .2s}.ekHafta button:hover{opacity:.7}.ekHafta button.bu{opacity:1}
 .ekOrt{display:block;margin-top:4px;color:var(--mu);font-size:11px}
@@ -3622,7 +3622,7 @@ function ekranCiz(r){
   const l=say(sec.g).sort((a,b)=>b[1]-a[1]),top=sec.t,en=l[0]?.[1]||1;
   // daily average of the 6 days before today that have any time
   const once=gun.slice(0,6).filter(g=>g.t>0),ort=once.length?once.reduce((t,g)=>t+g.t,0)/once.length:0,fark=top-ort;
-  ekYaz('#ekran',`<div class="ekTop"><b>${ekranSure(top)}</b><small>${ekranGun?esc(sec.uzun):L('bugün','today')}</small></div>`
+  ekYaz('#ekran',`<div class="ekTop${doldu&&!ekranGun?' asti':''}"><b>${ekranSure(top)}</b><small>${ekranGun?esc(sec.uzun):L('bugün','today')}</small></div>`
     +(ts&&!ekranGun?`<div class="ekSn ${durum}" title="${L('Günlük toplam sınır','Daily total limit')}"><div class="cizgi"><i style="width:${Math.min(100,100*bt/ts)}%"></i></div><small>${ekranSure(bt)} / ${sureYaz(ts*1e3)}${doldu?L(' · sınır doldu',' · limit reached'):''}</small></div>`:'')
     +(l.length?l.slice(0,6).map(([p,s])=>{const dk=+sinir[p]>0?+sinir[p]:0;
       return `<div data-e="${esc(p)}" tabindex="0"><div class="sisS"><span>${esc(p)}</span><small>${ekranSure(s)}${dk?' / '+sureYaz(dk*6e4):''}</small></div><div class="cizgi${dk&&s>=dk*60?' dolu':''}"><i style="width:${100*s/en}%"></i></div></div>`}).join('')
@@ -3652,10 +3652,10 @@ function ekranUyar(bugun,sinir,top){
   if(yeni)try{localStorage.ekranUyar=JSON.stringify(ekranU)}catch{}
 }
 // total daily limit in minutes, 0 removes it; a changed limit may warn again today
-function ekranToplamYaz(dk){if(dk)S.ayar.ekranToplam=dk;else delete S.ayar.ekranToplam;if(ekranU)ekranU.tp=ekranU.to=false;kaydet();ekranCiz()}
+function ekranToplamYaz(dk){if(dk===(+A('ekranToplam')||0))return;if(dk)S.ayar.ekranToplam=dk;else delete S.ayar.ekranToplam;if(ekranU)ekranU.tp=ekranU.to=false;kaydet();ekranCiz()}
 async function ekranToplamSor(){const dk=+A('ekranToplam')||360,v=await sor(L('Günlük toplam ekran süresi sınırı','Daily total screen time limit'),
     [{ad:L('Saat','Hours'),tip:'number',v:Math.floor(dk/60)},{ad:L('Dakika','Minutes'),tip:'number',v:dk%60}]);
-  if(!v)return;const m=Math.round((+v[0]||0)*60+(+v[1]||0));if(m>0)ekranToplamYaz(Math.min(1440,m))}
+  if(!v)return;const m=Math.round(Math.max(0,+v[0]||0)*60+Math.max(0,+v[1]||0));if(m>0)ekranToplamYaz(Math.min(1440,m))}
 function ekranSinirYaz(p,dk){const o={...A('ekranSinir')};if(dk)o[p]=dk;else delete o[p];S.ayar.ekranSinir=o;if(ekranU){ekranU.p=ekranU.p.filter(x=>x!==p);ekranU.o=(ekranU.o||[]).filter(x=>x!==p)}kaydet();ekranCiz()}
 // hidden programs: bring one back, or all
 function ekranGizliMenu(x,y){const gz=A('ekranGizli')||[],yaz=l=>{if(l.length)S.ayar.ekranGizli=l;else delete S.ayar.ekranGizli;kaydet();ekranCiz()};
