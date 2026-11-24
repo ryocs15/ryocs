@@ -2,7 +2,9 @@
 
 All releases: [GitHub Releases](https://github.com/ryocs15/ryocs/releases). Your data (`%APPDATA%\RYOCS`) is kept by every update.
 
-## Unreleased
+## 1.1.13 (2026-11-24)
+
+A total daily screen time limit.
 
 **Screen time**
 - A total daily limit: right-click the screen time card → Daily total limit…, in hours and minutes. A bar under today's total shows how much is used; it turns orange at 75% and red at 90%, and the card gets a red edge once the limit is passed. One notification 10 minutes before and one at the limit, once a day. Hidden programs do not count.
