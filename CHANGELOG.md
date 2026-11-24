@@ -2,6 +2,11 @@
 
 All releases: [GitHub Releases](https://github.com/ryocs15/ryocs/releases). Your data (`%APPDATA%\RYOCS`) is kept by every update.
 
+## Unreleased
+
+**Screen time**
+- A total daily limit: right-click the screen time card → Daily total limit…, in hours and minutes. A bar under today's total shows how much is used; it turns orange near the limit and red once it is passed, and the card gets a red edge. One notification 10 minutes before and one at the limit, once a day. Hidden programs do not count.
+
 ## 1.1.12 (2026-11-23)
 
 Several Gmail accounts on one card, each with its own colour.

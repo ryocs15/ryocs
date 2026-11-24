@@ -281,7 +281,9 @@ main [data-kart][hidden]{display:none!important} /* a closed card (the card layo
 .kurCev b{margin-left:auto;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.kurD{font-weight:400;margin-left:4px}.kurS small,.sisS small{color:var(--mu);font-size:11px}
 #sistem .cizgi{margin-bottom:6px}
 #sistem .cizgi.dolu i,#ekran .cizgi.dolu i{background:#e58f9a}
-#ekran .cizgi{margin-bottom:6px}.ekTop{display:flex;align-items:baseline;gap:6px;margin-bottom:4px}.ekTop b{font-size:20px;font-weight:600}.ekTop small{color:var(--mu);font-size:11px}
+#ekran .cizgi{margin-bottom:6px}.ekSn{margin:-2px 0 10px}.ekSn small{display:block;color:var(--mu);font-size:11px;margin-top:3px}.ekSn .cizgi{margin:0}
+#ekran .ekSn.yakin i{background:var(--tu)}#ekran .ekSn.asti i{background:var(--kr)}.ekSn.yakin small{color:var(--tu)}.ekSn.asti small,.ekAsti .ekTop b{color:var(--kr)}
+.card.ekAsti{box-shadow:var(--up-s),inset 0 0 0 2px var(--kr)}.ekTop{display:flex;align-items:baseline;gap:6px;margin-bottom:4px}.ekTop b{font-size:20px;font-weight:600}.ekTop small{color:var(--mu);font-size:11px}
 .ekHafta{display:flex;align-items:flex-end;gap:4px;height:34px;margin-top:6px}.ekHafta button{flex:1;min-height:2px;padding:0;border:0;border-radius:2px;background:var(--ye);opacity:.45;cursor:pointer;transition:opacity .2s}.ekHafta button:hover{opacity:.7}.ekHafta button.bu{opacity:1}
 .ekOrt{display:block;margin-top:4px;color:var(--mu);font-size:11px}
 .sisEgri{width:57px;height:14px;margin-left:8px;vertical-align:-2px;overflow:visible}.sisEgri polyline{fill:none;stroke:var(--ye);stroke-width:1.5;stroke-linejoin:round;vector-effect:non-scaling-stroke}
@@ -2403,7 +2405,8 @@ addEventListener('contextmenu',e=>{
   const el=e.target.closest('[data-r],.row[data-h],[data-l],[data-n],[data-u]');
   if(!el){const kk=e.target.closest('main [data-kart]');if(kk){const r=kk.getBoundingClientRect(),k=kk.dataset.kart;menu(e.clientX||r.left+12,e.clientY||r.top+12,[[KART_AD[k]+L(' ayarları…',' settings…'),()=>kartAyar(k)],null,[L('Kartı büyüt','Enlarge card'),()=>kartBoyDeg(k,1.25)],[L('Kartı küçült','Shrink card'),()=>kartBoyDeg(k,.8)],A('kartBoy')?.[k]||A('kartMin')?.[k]?[L('Boyutu sıfırla','Reset size'),()=>kartBoyDeg(k,0)]:0,null,[L('Kartı kapat','Close card'),()=>kartAc(k,false)],k==='haber'&&A('haberGizli')?.length?[L('Gizlenen kaynakları göster (','Show hidden sources (')+A('haberGizli').length+')',()=>{delete S.ayar.haberGizli;kaydet();haberCiz()}]:0,
     k==='haber'?null:0,k==='haber'?[L('Sonra okunacaklar','Saved for later')+(S.haberKayit?.length?` (${S.haberKayit.length})…`:'…'),hbKayitPencere]:0,k==='haber'?[L('Tümünü okundu say','Mark all as read'),hbTumOkundu]:0,
-    k==='ekran'?null:0,k==='ekran'&&A('ekranGizli')?.length?[L('Gizlenen programlar (','Hidden programs (')+A('ekranGizli').length+')…',()=>ekranGizliMenu(e.clientX||r.left+12,e.clientY||r.top+12)]:0,
+    k==='ekran'?null:0,k==='ekran'?[+A('ekranToplam')>0?L('Günlük toplam sınırı değiştir…','Change daily total limit…'):L('Günlük toplam sınır…','Daily total limit…'),ekranToplamSor]:0,
+    k==='ekran'&&+A('ekranToplam')>0?[L('Toplam sınırı kaldır','Remove total limit'),()=>ekranToplamYaz(0)]:0,k==='ekran'&&A('ekranGizli')?.length?[L('Gizlenen programlar (','Hidden programs (')+A('ekranGizli').length+')…',()=>ekranGizliMenu(e.clientX||r.left+12,e.clientY||r.top+12)]:0,
     k==='ekran'?[L('Ölçülen verileri sil…','Delete measured data…'),async()=>{if(await sor(L('Ekran süresi verileri silinsin mi?','Delete screen time data?'),[],L('Sil','Delete'),L('Son 30 günün bütün ölçümleri silinir. Geri alınamaz.','Every measurement of the last 30 days is deleted. This cannot be undone.'),true))ekranAyar(true)},'teh']:0])}return} // empty space on a card: card settings
   const k=el.getBoundingClientRect(),x=e.clientX||k.left+12,y=e.clientY||k.bottom,d=el.dataset; // opened from the keyboard (Shift+F10) there is no cursor position
   if(d.r!==undefined)gorevMenu(x,y,+d.r);
@@ -3602,21 +3605,25 @@ function ekranAdYaz(p,yeni){
   S.ayar.ekranAd=ad;kaydet();ekranCiz();
 }
 async function ekranAyar(sil){ekranCiz(await api('/api/ekran',{acik:!!S&&kartAcik('ekran'),...sil?{sil:true}:{}}))}
-async function ekran(){if(S&&kartAcik('ekran')&&(!gizliMi()||Object.keys(A('ekranSinir')||{}).length))ekranCiz(await api('/api/ekran',{}))}
+async function ekran(){if(S&&kartAcik('ekran')&&(!gizliMi()||+A('ekranToplam')>0||Object.keys(A('ekranSinir')||{}).length))ekranCiz(await api('/api/ekran',{}))}
 function ekranCiz(r){
   if(r){if(r.durum!=='ok'||!r.veri?.gunler)return ekYaz('#ekran',L('<p class="m">Ekran süresi okunamadı.</p>','<p class="m">Could not read screen time.</p>'));ekranV=r.veri}
   if(!ekranV)return;
   const gz=Array.isArray(A('ekranGizli'))?A('ekranGizli'):[],sinir=A('ekranSinir')||{},say=g=>Object.entries(ekranTopla(g)).filter(([p,s])=>!gz.includes(p)&&s>0);
-  ekranUyar(ekranTopla(ekranV.bugun),sinir);
   const gun=[...Array(7)].map((_,i)=>{const d=new Date();d.setDate(d.getDate()-6+i);const g=i===6?ekranV.bugun:gunStr(d);
       return{g,ad:d.toLocaleDateString(LOC,{weekday:'short'}),uzun:d.toLocaleDateString(LOC,{weekday:'long',day:'numeric',month:'long'}),t:say(g).reduce((t,x)=>t+x[1],0)}}),
     enG=Math.max(...gun.map(g=>g.t),1);
+  // total daily limit (minutes): counts what the card counts, so hidden programs stay out of it
+  const ts=+A('ekranToplam')>0?+A('ekranToplam')*60:0,bt=gun[6].t,durum=!ts?'':bt>=ts?'asti':bt>=ts-600||bt>=ts*.9?'yakin':'';
+  ekranUyar(ekranTopla(ekranV.bugun),sinir,ts&&bt);
+  $('[data-kart=ekran]').classList.toggle('ekAsti',durum==='asti');
   // a clicked bar shows that day; today when nothing is picked or the picked day left the last 7
   const sec=gun.find(x=>x.g===ekranGun)||gun[6];if(sec===gun[6])ekranGun=null;
   const l=say(sec.g).sort((a,b)=>b[1]-a[1]),top=sec.t,en=l[0]?.[1]||1;
   // daily average of the 6 days before today that have any time
   const once=gun.slice(0,6).filter(g=>g.t>0),ort=once.length?once.reduce((t,g)=>t+g.t,0)/once.length:0,fark=top-ort;
   ekYaz('#ekran',`<div class="ekTop"><b>${ekranSure(top)}</b><small>${ekranGun?esc(sec.uzun):L('bugün','today')}</small></div>`
+    +(ts&&!ekranGun?`<div class="ekSn ${durum}" title="${L('Günlük toplam sınır','Daily total limit')}"><div class="cizgi"><i style="width:${Math.min(100,100*bt/ts)}%"></i></div><small>${ekranSure(bt)} / ${sureYaz(ts*1e3)}${durum==='asti'?L(' · sınır doldu',' · limit reached'):''}</small></div>`:'')
     +(l.length?l.slice(0,6).map(([p,s])=>{const dk=+sinir[p]>0?+sinir[p]:0;
       return `<div data-e="${esc(p)}" tabindex="0"><div class="sisS"><span>${esc(p)}</span><small>${ekranSure(s)}${dk?' / '+sureYaz(dk*6e4):''}</small></div><div class="cizgi${dk&&s>=dk*60?' dolu':''}"><i style="width:${100*s/en}%"></i></div></div>`}).join('')
       :ekranGun?L('<p class="m">Bu gün ölçüm yok.</p>','<p class="m">Nothing measured that day.</p>')
@@ -3627,7 +3634,7 @@ function ekranCiz(r){
 }
 // a daily limit: one notification 10 minutes before it (limits over 10 minutes) and one when it is passed, per program per day,
 // remembered across restarts (in memory if storage fails). ekranU: {g: day, p: passed, o: warned before}
-function ekranUyar(bugun,sinir){
+function ekranUyar(bugun,sinir,top){
   if(!ekranU)try{ekranU=JSON.parse(localStorage.ekranUyar||'null')}catch{}
   if(ekranU?.g!==ekranV.bugun||!Array.isArray(ekranU.p))ekranU={g:ekranV.bugun,p:[]};
   if(!Array.isArray(ekranU.o))ekranU.o=[];
@@ -3637,8 +3644,18 @@ function ekranUyar(bugun,sinir){
       bildir(L('Ekran süresi sınırı','Screen time limit'),p+L(': bugünkü ',': today\'s ')+sureYaz(dk*6e4)+L(' sınırını geçtin.',' limit is reached.'))}
     else if(dk>10&&s<dk*60&&s>=(dk-10)*60&&!ekranU.o.includes(p)){ekranU.o.push(p);yeni=true;
       bildir(L('Ekran süresi sınırı','Screen time limit'),p+L(': bugünkü sınırına 10 dk kaldı.',': 10 min left of today\'s limit.'))}}
+  const dk=+A('ekranToplam');
+  if(top&&dk>0){if(top>=dk*60&&!ekranU.tp){ekranU.tp=yeni=true;
+      bildir(L('Ekran süresi sınırı','Screen time limit'),L('Bugünkü toplam ',"Today's total ")+sureYaz(dk*6e4)+L(' sınırını geçtin. Biraz mola?',' limit is reached. Time for a break?'))}
+    else if(dk>10&&top<dk*60&&top>=(dk-10)*60&&!ekranU.to){ekranU.to=yeni=true;
+      bildir(L('Ekran süresi sınırı','Screen time limit'),L('Bugünkü toplam sınırına 10 dk kaldı.',"10 min left of today's total limit."))}}
   if(yeni)try{localStorage.ekranUyar=JSON.stringify(ekranU)}catch{}
 }
+// total daily limit in minutes, 0 removes it; a changed limit may warn again today
+function ekranToplamYaz(dk){if(dk)S.ayar.ekranToplam=dk;else delete S.ayar.ekranToplam;if(ekranU)ekranU.tp=ekranU.to=false;kaydet();ekranCiz()}
+async function ekranToplamSor(){const dk=+A('ekranToplam')||360,v=await sor(L('Günlük toplam ekran süresi sınırı','Daily total screen time limit'),
+    [{ad:L('Saat','Hours'),tip:'number',v:Math.floor(dk/60)},{ad:L('Dakika','Minutes'),tip:'number',v:dk%60}]);
+  if(!v)return;const m=Math.round((+v[0]||0)*60+(+v[1]||0));if(m>0)ekranToplamYaz(Math.min(1440,m))}
 function ekranSinirYaz(p,dk){const o={...A('ekranSinir')};if(dk)o[p]=dk;else delete o[p];S.ayar.ekranSinir=o;if(ekranU){ekranU.p=ekranU.p.filter(x=>x!==p);ekranU.o=(ekranU.o||[]).filter(x=>x!==p)}kaydet();ekranCiz()}
 // hidden programs: bring one back, or all
 function ekranGizliMenu(x,y){const gz=A('ekranGizli')||[],yaz=l=>{if(l.length)S.ayar.ekranGizli=l;else delete S.ayar.ekranGizli;kaydet();ekranCiz()};

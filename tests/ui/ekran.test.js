@@ -9,7 +9,7 @@ window.fetch=async(p,a)=>{
   if(p==='/api/notify'){bildirim.push(JSON.parse(a.body));return{json:async()=>({durum:'ok'})}}
   return f0(p,a)};
 try{localStorage.removeItem('ekranUyar')}catch{}
-delete S.ayar.ekranSinir;delete S.ayar.ekranGizli;
+delete S.ayar.ekranSinir;delete S.ayar.ekranGizli;delete S.ayar.ekranToplam;
 dogru('closed by default for an older save',!kartAcik('ekran'));
 kartAc('ekran',true);await bek(200);
 esit('opening the card starts measuring',giden.at(-1),{acik:true});
@@ -77,6 +77,31 @@ esit('own names back',[A('ekranAd'),satir().slice(1,3)],[{A:'Gizli'},['Visual St
 ekranAdYaz('Gizli','  ');
 esit('empty name goes back',[A('ekranAd'),A('ekranGizli')],[{},['A']]);
 delete S.ayar.ekranSinir;delete S.ayar.ekranGizli;ekranCiz();
+
+// total daily limit (today 5 sa 41 dk): a bar under the total, orange near the limit, red and a red card edge once passed,
+// one notification 10 minutes before and one at the limit
+const kart=q('[data-kart=ekran]'),sn=()=>q('#ekran .ekSn');
+dogru('no limit, no bar',!sn()&&!kart.classList.contains('ekAsti'));
+let n0=bildirim.length;
+ekranToplamYaz(360);
+esit('far enough: bar and text, orange at 90%',[sn().className,sn().querySelector('small').textContent,bildirim.length-n0],['ekSn yakin','5 sa 41 dk / 6 sa',0]);
+ekranToplamYaz(345);
+esit('10 minutes before: one warning',[bildirim.length-n0,bildirim.at(-1).metin],[1,'Bugünkü toplam sınırına 10 dk kaldı.']);
+ekranToplamYaz(300);
+esit('passed: red, card edge, notification',[sn().className,kart.classList.contains('ekAsti'),sn().textContent.endsWith('sınır doldu'),bildirim.at(-1).metin.startsWith('Bugünkü toplam 5 sa sınırını geçtin')],['ekSn asti',true,true,true]);
+const n1=bildirim.length;ekranCiz();ekranCiz();
+esit('only once a day',bildirim.length,n1);
+q(`#ekran [data-g="${dun}"]`).click();
+dogru('a past day: no limit bar, the card stays red for today',!sn()&&kart.classList.contains('ekAsti'));
+q(`#ekran [data-g="${dun}"]`).click();
+// the card menu sets it in hours and minutes, and removes it
+q('#ekran').dispatchEvent(new MouseEvent('contextmenu',{bubbles:true,clientX:10,clientY:10}));await bek(30);
+[...q('#menu').querySelectorAll('button')].find(b=>b.textContent==='Günlük toplam sınırı değiştir…').click();await bek(60);
+q('#sor input[name=a0]').value='7';q('#sor input[name=a1]').value='30';q('#sor form').requestSubmit();await bek(60);
+esit('set from the menu',[A('ekranToplam'),kart.classList.contains('ekAsti'),sn().className],[450,false,'ekSn ']);
+q('#ekran').dispatchEvent(new MouseEvent('contextmenu',{bubbles:true,clientX:10,clientY:10}));await bek(30);
+[...q('#menu').querySelectorAll('button')].find(b=>b.textContent==='Toplam sınırı kaldır').click();await bek(30);
+dogru('removed',A('ekranToplam')===undefined&&!sn());
 
 // a broken answer does not break the card
 ekranCiz({durum:'hata'});
