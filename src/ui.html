@@ -3613,17 +3613,17 @@ function ekranCiz(r){
   const gun=[...Array(7)].map((_,i)=>{const d=new Date();d.setDate(d.getDate()-6+i);const g=i===6?ekranV.bugun:gunStr(d);
       return{g,ad:d.toLocaleDateString(LOC,{weekday:'short'}),uzun:d.toLocaleDateString(LOC,{weekday:'long',day:'numeric',month:'long'}),t:say(g).reduce((t,x)=>t+x[1],0)}}),
     enG=Math.max(...gun.map(g=>g.t),1);
-  // total daily limit (minutes): counts what the card counts, so hidden programs stay out of it
-  const ts=+A('ekranToplam')>0?+A('ekranToplam')*60:0,bt=gun[6].t,durum=!ts?'':bt>=ts?'asti':bt>=ts-600||bt>=ts*.9?'yakin':'';
+  // total daily limit (minutes): orange from 75%, red from 90%, a red card edge once passed; counts what the card counts, so hidden programs stay out of it
+  const ts=+A('ekranToplam')>0?+A('ekranToplam')*60:0,bt=gun[6].t,durum=!ts?'':bt>=ts*.9?'asti':bt>=ts*.75?'yakin':'',doldu=ts&&bt>=ts;
   ekranUyar(ekranTopla(ekranV.bugun),sinir,ts&&bt);
-  $('[data-kart=ekran]').classList.toggle('ekAsti',durum==='asti');
+  $('[data-kart=ekran]').classList.toggle('ekAsti',!!doldu);
   // a clicked bar shows that day; today when nothing is picked or the picked day left the last 7
   const sec=gun.find(x=>x.g===ekranGun)||gun[6];if(sec===gun[6])ekranGun=null;
   const l=say(sec.g).sort((a,b)=>b[1]-a[1]),top=sec.t,en=l[0]?.[1]||1;
   // daily average of the 6 days before today that have any time
   const once=gun.slice(0,6).filter(g=>g.t>0),ort=once.length?once.reduce((t,g)=>t+g.t,0)/once.length:0,fark=top-ort;
   ekYaz('#ekran',`<div class="ekTop"><b>${ekranSure(top)}</b><small>${ekranGun?esc(sec.uzun):L('bugün','today')}</small></div>`
-    +(ts&&!ekranGun?`<div class="ekSn ${durum}" title="${L('Günlük toplam sınır','Daily total limit')}"><div class="cizgi"><i style="width:${Math.min(100,100*bt/ts)}%"></i></div><small>${ekranSure(bt)} / ${sureYaz(ts*1e3)}${durum==='asti'?L(' · sınır doldu',' · limit reached'):''}</small></div>`:'')
+    +(ts&&!ekranGun?`<div class="ekSn ${durum}" title="${L('Günlük toplam sınır','Daily total limit')}"><div class="cizgi"><i style="width:${Math.min(100,100*bt/ts)}%"></i></div><small>${ekranSure(bt)} / ${sureYaz(ts*1e3)}${doldu?L(' · sınır doldu',' · limit reached'):''}</small></div>`:'')
     +(l.length?l.slice(0,6).map(([p,s])=>{const dk=+sinir[p]>0?+sinir[p]:0;
       return `<div data-e="${esc(p)}" tabindex="0"><div class="sisS"><span>${esc(p)}</span><small>${ekranSure(s)}${dk?' / '+sureYaz(dk*6e4):''}</small></div><div class="cizgi${dk&&s>=dk*60?' dolu':''}"><i style="width:${100*s/en}%"></i></div></div>`}).join('')
       :ekranGun?L('<p class="m">Bu gün ölçüm yok.</p>','<p class="m">Nothing measured that day.</p>')
