@@ -94,3 +94,22 @@ esit('night: moon for clear and partly cloudy, older data: sun',[havaTur(0,true)
   dogru('night hours: moon icons',!!q('#hava .saatlik svg.hi-ay'));
   dogru('rain wording: today',q('#hava .now .m').textContent.includes('rain today 70'));
   havaSehir='';havaCiz();}
+
+// 1.1.14: a city saved by name only (Köyceğiz: Şırnak's came first) is asked once; a saved place is not
+{const f1=window.fetch;let g={sehir:'Yeşilova',konum:false};cfg=null;
+  window.fetch=async(p,a)=>p==='/api/config'&&!a?.method?{json:async()=>({durum:'ok',veri:g})}:f1(p,a);
+  const k=konumDenetle();await bek(400);
+  esit('name-only city: picker asks',q('#sor2 h1')?.textContent,'Yeşilova: which one?');
+  q('#sor2 select').value='0';q('#sor2 form').requestSubmit();await k;
+  esit('name-only city: saved with coordinates',cfg?.konum,{ad:'Yeşilova',bolge:'Burdur',ulke:'Türkiye',lat:37.5,lon:29.75});
+  g={sehir:'Yeşilova',konum:true};cfg=null;await konumDenetle();
+  esit('saved place: nothing asked',[cfg,q('#sor2').open],[null,false]);
+  window.fetch=f1;}
+
+// the sun theme changes in the first tick of a new minute, even when second 0 was skipped
+{const tg=window.temaGecis,t0=S.tema;let n=0;window.temaGecis=()=>n++;
+  S.tema='gunes';const hedef=temaHedef(),p0=K.dataset.palet;K.dataset.palet=hedef+'x';
+  sonDk=Math.floor(Date.now()/6e4)-1;tick();
+  esit('sun theme: switched on a new minute',n,1);
+  tick();esit('sun theme: once a minute',n,1);
+  window.temaGecis=tg;S.tema=t0;K.dataset.palet=p0;}

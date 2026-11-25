@@ -1255,6 +1255,7 @@ fn config_get() -> Value {
     };
     json!({
         "sehir": c["sehir"].as_str().unwrap_or(varsayilan_sehir()),
+        "konum": c["konum"].is_object() || !c["sehir"].is_string(), // false: a city saved by name only, which can mean several towns
         // only the client ID to fill the setup dialog (never the secret)
         "google_id": c["google"]["client_id"].as_str().unwrap_or(""),
         "spotify_id": c["spotify"]["client_id"].as_str().unwrap_or(""),

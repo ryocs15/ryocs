@@ -2,6 +2,12 @@
 
 All releases: [GitHub Releases](https://github.com/ryocs15/ryocs/releases). Your data (`%APPDATA%\RYOCS`) is kept by every update.
 
+## Unreleased
+
+**Fixes**
+- Wrong sunrise and sunset for a city saved by name only: the weather took the first town with that name (Köyceğiz in Şırnak instead of Muğla). Such a save is now asked once: choose the right place and it is kept with its coordinates.
+- The sun-following theme now changes in the first minute after sunrise or sunset. Before, it waited for a check at second 0, which the clock timer often skipped (above all when the window was behind others).
+
 ## 1.1.13 (2026-11-24)
 
 A total daily screen time limit.

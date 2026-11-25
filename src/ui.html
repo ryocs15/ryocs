@@ -1234,7 +1234,7 @@ function sor(baslik,alanlar,tamam=L('Kaydet','Save'),metin='',tehlike=false,dlg)
 }
 
 // Saat
-let ilkTik=true,sonGun=gunStr(new Date());
+let ilkTik=true,sonGun=gunStr(new Date()),sonDk=-1;
 // Hidden window (in the tray, set by Rust through gizlendi(), or minimized): reminders, timers and the focus round keep running,
 // but nothing is redrawn every second and Spotify / news / mail / system / clipboard are not polled.
 let gorunmez=false;
@@ -1265,8 +1265,10 @@ function tick(){
   if($('.dial').dataset.m==='dijital')$('#dijital').innerHTML=(SAAT12()?(d.getHours()%12||12)+':'+iki(d.getMinutes()):saat24(d))+'<small>'+iki(d.getSeconds())+(SAAT12()?' '+ampm(d.getHours()):'')+'</small>';
   metinYaz('#selam',selamAd(selamYazi(d,havaV?.daily),A('ad')));
   spIlerle();ustCiz();
-  if(!d.getSeconds()||!$('#saatEk')._h){saatEk();takvimEk();alarmBilgi();if(S){notBilgi();haberCiz()}} // once a minute: card extras, news times
-  if(!d.getSeconds()&&S?.tema==='gunes'&&temaHedef()!==K.dataset.palet)temaGecis(); // theme switch at sunrise/sunset (applied on showing too, through tick)
+  // a new minute, not second 0: the 1 s timer drifts and is slowed down behind other windows, so second 0 is often skipped
+  const yeniDk=Math.floor(d/6e4)!==sonDk;sonDk=Math.floor(d/6e4);
+  if(yeniDk||!$('#saatEk')._h){saatEk();takvimEk();alarmBilgi();if(S){notBilgi();haberCiz()}} // once a minute: card extras, news times
+  if(yeniDk&&S?.tema==='gunes'&&temaHedef()!==K.dataset.palet)temaGecis(); // theme switch at sunrise/sunset (applied on showing too, through tick)
 }
 const metinYaz=(sec,t)=>{const e=$(sec);if(e&&e.textContent!==t)e.textContent=t};
 // Alarms: S.alarmlar = [{s:'HH:MM', ad, tekrar (every day), acik}]. Checked once per minute from tick, also in the tray;
@@ -1537,6 +1539,12 @@ async function yerSec(metin){
   if(l.length===1)return l[0];
   const v=await sor(`${esc(ad)}${L(': hangisi?',': which one?')}`,[{ad:L('Yer','Place'),secenek:Object.fromEntries(l.map((y,i)=>[i,[y.ad,y.bolge,y.ulke].filter(Boolean).join(', ')])),v:'0'}],L('Seç','Choose'),L('Bu adla birden fazla yer var. Doğru olanı seç.','There is more than one place with this name. Choose the right one.'),false,$('#sor2'));
   return v?l[+v[0]]:null;
+}
+// An older save keeps only the city name, and the weather took the first town with it (Köyceğiz → the one in Şırnak, not Muğla):
+// ask once which place it is. Offline or cancelled: asked again at the next start.
+async function konumDenetle(){
+  const c=await api('/api/config');if(c.durum!=='ok'||c.veri.konum!==false)return;
+  const y=await yerSec(c.veri.sehir);if(y&&!y.hata&&(await api('/api/config',{konum:y})).durum==='ok')await hava();
 }
 async function sehirlerKaydet(v){
   const eski=sehirler(),ok=[],yok=[],g=new Set([katla(havaV?.sehir+'|'+(havaV?.bolge||''))]); // the main city and duplicates are skipped
@@ -4303,7 +4311,7 @@ async function guncelle(elle){
 }
 const gunDenetle=()=>{let t=0;try{t=+localStorage.gunT||0}catch{}if(Date.now()-t>864e5)guncelle()};
 $('#aGunB').onclick=()=>gunV?.yeni?gunKur():guncelle(true);
-tick();setInterval(tick,1000);yukle().then(hepsi).then(gunDenetle);setInterval(gunDenetle,36e5);
+tick();setInterval(tick,1000);yukle().then(hepsi).then(gunDenetle).then(konumDenetle);setInterval(gunDenetle,36e5);
 addEventListener('online',hepsi);setInterval(()=>{if($('main .ag'))hepsi()},3e4);
 setInterval(sistem,3000);setInterval(ekran,6e4);setInterval(()=>(!gizliMi()||A('mailBildir')!==false)&&mail(),6e4); // in the tray too while new-mail notifications are on (every 5 min)setInterval(pano,2000);setInterval(kur,18e5);setInterval(()=>gizliMi()||(!spPos?.on&&Date.now()-spIstekT<14e3)||spotify(),5000); // paused or nothing playing: every 15 ssetInterval(hava,9e5);setInterval(()=>gizliMi()||haber(),18e4);setInterval(()=>{takvim(true);ileriAl()},6e5);addEventListener('offline',()=>ustSon='');setInterval(hatirlat,15e3);
 </script>
