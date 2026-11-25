@@ -1548,6 +1548,7 @@ async function yerSec(metin){
 const konumLog=m=>api('/api/log',{mesaj:'konum: '+String(m).slice(0,200)});
 async function konumDenetle(){
   if(kilitli)return; // asked after the PIN instead: a dialog opened later would sit on top of the lock screen
+  if(S&&A('ad')===undefined)return; // first run: the welcome dialog comes; the default city is picked by the sort, asked at the next start
   const c=await api('/api/config');
   if(c.durum!=='ok')return konumLog('config hata: '+c.durum);
   if(c.veri.konum!==false)return;
@@ -1689,10 +1690,12 @@ $('#hava').onclick=async e=>{
     havaSehir=s;return havaCiz()}
   const v=e.target.dataset.hg;if(v===undefined||!S)return;havaSec=null;S.ayar.havaGun=!!v;kaydet();havaCiz()};
 $('#hava').addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.target.matches('[data-g7]')){e.preventDefault();e.target.click()}});
+let havaNo=0;
 async function hava(){
   // at startup the last forecast (if newer than 12 h) is drawn without waiting and updated when the network answers
   if(!havaV){const o=havaO;if(o&&Date.now()-o.t<432e5&&(o.v?.birim==='f')===FAH()){havaV=o.v;havaCiz()}} // a cache in the other unit is not drawn
-  const r=await api('/api/weather'+birimQ(1));havaDenendi=true;
+  const n=++havaNo,r=await api('/api/weather'+birimQ(1));havaDenendi=true;
+  if(n!==havaNo)return; // a newer request was sent meanwhile (the city was just chosen): this answer may be for the old place
   if(r.durum==='ok'){havaV=r.veri;havaO={t:Date.now(),v:r.veri};onbSakla();const d=r.veri.daily;try{localStorage.gunes=JSON.stringify({time:d?.time,sunrise:d?.sunrise,sunset:d?.sunset})}catch{}havaCiz();return havaDiger()}
   if(havaV)return; // network error: keep the last known forecast
   const h=`${L('<h2>Hava durumu</h2>','<h2>Weather</h2>')}${r.durum===AG_YOK?agYok():`<p class="m">${esc(r.durum).slice(0,200)}</p>`}`;havaSerit='';
@@ -4326,9 +4329,12 @@ async function guncelle(elle){
 }
 const gunDenetle=()=>{let t=0;try{t=+localStorage.gunT||0}catch{}if(Date.now()-t>864e5)guncelle()};
 $('#aGunB').onclick=()=>gunV?.yeni?gunKur():guncelle(true);
-tick();setInterval(tick,1000);yukle().then(()=>{konumDenetle();return hepsi()}).then(gunDenetle); // the city question must not wait for (or be lost with) a slow or failing cardsetInterval(gunDenetle,36e5);
+tick();setInterval(tick,1000);setInterval(gunDenetle,36e5);
+yukle().then(()=>{konumDenetle();return hepsi()}).then(gunDenetle); // the city question must not wait for (or be lost with) a slow or failing card
 addEventListener('online',hepsi);setInterval(()=>{if($('main .ag'))hepsi()},3e4);
-setInterval(sistem,3000);setInterval(ekran,6e4);setInterval(()=>(!gizliMi()||A('mailBildir')!==false)&&mail(),6e4); // in the tray too while new-mail notifications are on (every 5 min)setInterval(pano,2000);setInterval(kur,18e5);setInterval(()=>gizliMi()||(!spPos?.on&&Date.now()-spIstekT<14e3)||spotify(),5000); // paused or nothing playing: every 15 ssetInterval(hava,9e5);setInterval(()=>gizliMi()||haber(),18e4);setInterval(()=>{takvim(true);ileriAl()},6e5);addEventListener('offline',()=>ustSon='');setInterval(hatirlat,15e3);
+setInterval(sistem,3000);setInterval(ekran,6e4);setInterval(()=>(!gizliMi()||A('mailBildir')!==false)&&mail(),6e4); // in the tray too while new-mail notifications are on (every 5 min)
+setInterval(pano,2000);setInterval(kur,18e5);setInterval(()=>gizliMi()||(!spPos?.on&&Date.now()-spIstekT<14e3)||spotify(),5000); // paused or nothing playing: every 15 s
+setInterval(hava,9e5);setInterval(()=>gizliMi()||haber(),18e4);setInterval(()=>{takvim(true);ileriAl()},6e5);addEventListener('offline',()=>ustSon='');setInterval(hatirlat,15e3);
 </script>
 </body>
 </html>

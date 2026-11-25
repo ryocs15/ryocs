@@ -462,7 +462,8 @@ fn sehir_ara(q: &str) -> Result<Value, String> {
 /// Most likely place first: the district seat (its name is its district's: Köyceğiz in Muğla, not the village in Şırnak),
 /// then the larger population, then the API's order (stable sort).
 fn sirala(r: &mut [Value], ad: &str) {
-    let kucuk = |s: &str| s.trim().replace('İ', "i").replace('I', "ı").to_lowercase(); // Turkish case: İ→i, I→ı
+    // dotted and dotless i fold together: "Istanbul" typed without the Turkish dot still matches "İstanbul"
+    let kucuk = |s: &str| s.trim().chars().map(|c| if matches!(c, 'İ' | 'I' | 'ı') { 'i' } else { c }).collect::<String>().to_lowercase();
     let ad = kucuk(ad);
     r.sort_by_key(|y| {
         let ilce = y["admin2"].as_str().unwrap_or("").trim_end_matches(" İlçesi").trim_end_matches(" District");
@@ -3317,6 +3318,9 @@ mod tests {
         let mut r = vec![json!({"name": "İdil"}), json!({"name": "İdil", "admin2": "İdil District"})];
         sirala(&mut r, "idil");
         assert_eq!(r[0]["admin2"], "İdil District");
+        let mut r = vec![json!({"name": "Istanbul", "population": 5}), json!({"name": "Istanbul", "admin2": "İstanbul"})];
+        sirala(&mut r, "Istanbul"); // typed without the Turkish dot
+        assert_eq!(r[0]["admin2"], "İstanbul");
     }
 
     #[test]

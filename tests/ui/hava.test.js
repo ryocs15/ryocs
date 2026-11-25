@@ -101,7 +101,7 @@ esit('night: moon for clear and partly cloudy, older data: sun',[havaTur(0,true)
   havaSehir='';havaCiz();}
 
 // 1.1.14: a city saved by name only (Köyceğiz: Şırnak's came first) is asked once; a saved place is not
-{const f1=window.fetch;let g={sehir:'Yeşilova',konum:false};cfg=null;const log=[];
+{const f1=window.fetch;let g={sehir:'Yeşilova',konum:false};cfg=null;const log=[];S.ayar.ad??='Deneme'; // not the first run
   window.fetch=async(p,a)=>p==='/api/log'?(log.push(JSON.parse(a.body).mesaj),{json:async()=>({durum:'ok'})}):p==='/api/config'&&!a?.method?{json:async()=>({durum:'ok',veri:g})}:f1(p,a);
   const k=konumDenetle();await bek(400);
   esit('name-only city: picker asks',q('#sor2 h1')?.textContent,'Yeşilova: which one?');
@@ -127,3 +127,16 @@ esit('night: moon for clear and partly cloudy, older data: sun',[havaTur(0,true)
 {const f1=window.fetch;let n=0;window.fetch=async(p,a)=>{if(p==='/api/config')n++;return f1(p,a)};
   kilitli=true;await konumDenetle();kilitli=false;window.fetch=f1;
   esit('locked: city not asked',[n,q('#sor2').open],[0,false]);}
+
+// an older weather answer that lands late does not replace the newer one (the city was just chosen)
+{const f1=window.fetch,v0=havaV;let n=0;
+  window.fetch=async(p,a)=>{if(p.split('?')[0]!=='/api/weather')return f1(p,a);const i=n++;await bek(i?50:400);
+    const r=await (await f1('/api/weather')).json();r.veri=JSON.parse(JSON.stringify(r.veri));r.veri.sehir=i?'Yeni':'Eski';return{json:async()=>r}};
+  const a1=hava(),a2=hava();await a1;await a2;
+  esit('late old answer ignored',havaV.sehir,'Yeni');
+  window.fetch=f1;havaV=v0;havaCiz();}
+
+// first run: the welcome dialog comes, so the city is not asked on top of it (the default city is picked by the sort)
+{const f1=window.fetch,ad0=S.ayar.ad;let n=0;window.fetch=async(p,a)=>{if(p==='/api/config')n++;return f1(p,a)};
+  delete S.ayar.ad;await konumDenetle();if(ad0!==undefined)S.ayar.ad=ad0;window.fetch=f1;
+  esit('first run: city not asked',[n,q('#sor2').open],[0,false]);}

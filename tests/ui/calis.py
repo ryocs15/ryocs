@@ -113,8 +113,12 @@ def sozdizimi():
         f.write('\n'.join(re.findall(r'<script>(.*?)</script>', s, re.S)))
     r = subprocess.run(['node', '--check', f.name], capture_output=True, text=True)
     os.remove(f.name)
+    # a line comment that ran into the next statement silently disables it (the hourly update check and the weather refresh were lost this way)
+    yutulan = [m.group(0)[:120] for m in re.finditer(r'(?<![:"\'\\])//[^\n]*?(?:setInterval|setTimeout|addEventListener)\(', s)]
+    for y in yutulan:
+        print('FAIL code inside a // comment: ' + y)
     print('PASS js syntax' if r.returncode == 0 else 'FAIL js syntax\n' + r.stderr)
-    return r.returncode == 0
+    return r.returncode == 0 and not yutulan
 
 
 def main():
