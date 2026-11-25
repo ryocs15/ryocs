@@ -113,3 +113,8 @@ esit('night: moon for clear and partly cloudy, older data: sun',[havaTur(0,true)
   esit('sun theme: switched on a new minute',n,1);
   tick();esit('sun theme: once a minute',n,1);
   window.temaGecis=tg;S.tema=t0;K.dataset.palet=p0;}
+
+// while locked the city question waits for the PIN (it would open on top of the lock screen)
+{const f1=window.fetch;let n=0;window.fetch=async(p,a)=>{if(p==='/api/config')n++;return f1(p,a)};
+  kilitli=true;await konumDenetle();kilitli=false;window.fetch=f1;
+  esit('locked: city not asked',[n,q('#sor2').open],[0,false]);}

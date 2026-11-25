@@ -1247,7 +1247,7 @@ const bostaDenetle=()=>{const b=!gorunmez&&Date.now()-sonGirdi>=BOSTA_MS;if(b!==
 for(const o of ['pointermove','pointerdown','keydown','wheel'])addEventListener(o,girdi,{passive:true,capture:true});
 setInterval(bostaDenetle,3e4);
 addEventListener('blur',uykuYaz);addEventListener('focus',girdi);addEventListener('focus',uykuYaz);
-function gizlendi(g){gorunmez=g;if(g)arkaYenile();if(!g){sonGirdi=Date.now();bosta=false}uykuYaz();if(!g&&S){ustSon='';tick();saatEk();takvimEk();notBilgi();hbIsle(haberK());haberCiz();spotify();haber();mail();sistem();pano()}}
+function gizlendi(g){gorunmez=g;if(g)arkaYenile();if(!g){sonGirdi=Date.now();bosta=false}uykuYaz();if(!g&&S){ustSon='';sonDk=-1;tick();saatEk();takvimEk();notBilgi();hbIsle(haberK());haberCiz();spotify();haber();mail();sistem();pano()}}
 function tick(){
   const d=new Date(),sn=d.getHours()*3600+d.getMinutes()*60+d.getSeconds();
   if(gunStr(d)!==sonGun){sonGun=gunStr(d);if(S){ciz();odakIstat()}takvim()} // midnight: refresh everything tied to "today"
@@ -1543,6 +1543,7 @@ async function yerSec(metin){
 // An older save keeps only the city name, and the weather took the first town with it (Köyceğiz → the one in Şırnak, not Muğla):
 // ask once which place it is. Offline or cancelled: asked again at the next start.
 async function konumDenetle(){
+  if(kilitli)return; // asked after the PIN instead: a dialog opened later would sit on top of the lock screen
   const c=await api('/api/config');if(c.durum!=='ok'||c.veri.konum!==false)return;
   const y=await yerSec(c.veri.sehir);if(y&&!y.hata&&(await api('/api/config',{konum:y})).durum==='ok')await hava();
 }
@@ -4263,7 +4264,7 @@ function kilitle(){if(kilitli)return;for(const d of document.querySelectorAll('d
   $('#kilit').showModal();$('#kilitPin').focus()}
 $('#kilit').addEventListener('keydown',e=>e.stopPropagation()); // global shortcuts (Ctrl+N etc.) must not work while locked
 $('#kilit form').onsubmit=async e=>{e.preventDefault();const i=$('#kilitPin');if(i.disabled)return;
-  if(await pinDogru(i.value)){kilitYanlis=0;kilitli=false;$('#kilit').close();if(A('ad')===undefined)adSor();else{esitleBildir();turGoster()}return}
+  if(await pinDogru(i.value)){kilitYanlis=0;kilitli=false;$('#kilit').close();konumDenetle();if(A('ad')===undefined)adSor();else{esitleBildir();turGoster()}return}
   kilitYanlis++;i.value='';$('#kilitHata').textContent=L('PIN yanlış','Wrong PIN');
   if(kilitYanlis>=5){i.disabled=true;$('#kilitHata').textContent=L('Çok fazla deneme, 30 sn bekle','Too many attempts, wait 30 s');setTimeout(()=>{i.disabled=false;i.focus();$('#kilitHata').textContent=''},30e3)}};
 // Rust calls this when the window is closed (hidden to the tray)
