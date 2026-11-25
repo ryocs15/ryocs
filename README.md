@@ -28,7 +28,7 @@ The interface is in **English** and **Turkish**. It follows the Windows display 
 - **Google Calendar**: month and week views, add, edit and delete events, birthdays and important dates, regional holidays
 - **Tasks and habits** with reminders (type "tomorrow 15:00" at the end of a task), snooze, repeats (daily, weekdays, weekly, monthly or specific days), subtasks and streaks
 - **Notes** with checklists
-- **Weather** from Open-Meteo for up to five cities (switch in the card; when several places share a name you pick the right one): hourly and 7-day forecast (click a day for its hours), when rain starts or stops, the difference from yesterday, air quality and pollen, a morning alert (rain, frost, storms, snow, wind, heat, poor air) and an evening note for tomorrow
+- **Weather** from Open-Meteo for up to five cities (switch in the card; when several places share a name you pick the right one, or pick country → province → district from a list): hourly and 7-day forecast (click a day for its hours), when rain starts or stops, the difference from yesterday, air quality and pollen, a morning alert (rain, frost, storms, snow, wind, heat, poor air) and an evening note for tomorrow
 - **News**: BBC News in English, Bundle in Turkish, and breaking news from seven Turkish outlets in one list (the same story from several outlets is one row); a small dot marks what came since you last looked; keyword filter, hidden sources, save for later
 - **Spotify** now playing (podcasts too), controls, seeking, shuffle and repeat, moving playback to another device, and up next
 - **Focus timer** (pomodoro) with long breaks, skipping a round or adding 5 minutes (right-click), daily goal, streak, your own labels, a *what am I working on* note with a weekly breakdown, and *do not disturb* (notifications wait until the round ends)
@@ -163,4 +163,4 @@ Pushing a tag such as `v0.3.0` builds the installer on GitHub Actions and attach
 
 ## License
 
-[MIT](LICENSE). The bundled Poppins font is under the [SIL Open Font License](assets/yazi/OFL.txt).
+[MIT](LICENSE). The bundled Poppins font is under the [SIL Open Font License](assets/yazi/OFL.txt). The country, province and district lists (`data/yerler.tsv`, built by `tools/yerler.py`) come from [GeoNames](https://www.geonames.org/) under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
