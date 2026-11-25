@@ -414,8 +414,10 @@ fn konum(city: &str) -> Result<Value, String> {
     if let Some(v) = kilit(&KONUM).get(&anahtar) {
         return Ok(v.clone());
     }
-    let g = body(AGENT.get(GEO).query("name", city).query("count", "1").query("language", dil).call())?;
-    let v = g["results"].get(0).map(yer).ok_or(format!("{} {city}", l("Şehir bulunamadı:", "City not found:")))?;
+    let g = body(AGENT.get(GEO).query("name", city).query("count", "8").query("language", dil).call())?;
+    let mut r = g["results"].as_array().cloned().unwrap_or_default();
+    sirala(&mut r, city);
+    let v = r.first().map(yer).ok_or(format!("{} {city}", l("Şehir bulunamadı:", "City not found:")))?;
     kilit(&KONUM).insert(anahtar, v.clone());
     Ok(v)
 }
@@ -450,8 +452,22 @@ fn sehir_adi(s: &str) -> Result<&str, String> {
 
 /// City search for the picker: several towns share a name (Köyceğiz, Yeşilova…), so up to 8 places with their region.
 fn sehir_ara(q: &str) -> Result<Value, String> {
-    let g = body(AGENT.get(GEO).query("name", sehir_adi(q)?).query("count", "8").query("language", l("tr", "en")).call())?;
-    Ok(json!(g["results"].as_array().into_iter().flatten().map(yer).collect::<Vec<_>>()))
+    let q = sehir_adi(q)?;
+    let g = body(AGENT.get(GEO).query("name", q).query("count", "8").query("language", l("tr", "en")).call())?;
+    let mut r = g["results"].as_array().cloned().unwrap_or_default();
+    sirala(&mut r, q);
+    Ok(json!(r.iter().map(yer).collect::<Vec<_>>()))
+}
+
+/// Most likely place first: the district seat (its name is its district's: Köyceğiz in Muğla, not the village in Şırnak),
+/// then the larger population, then the API's order (stable sort).
+fn sirala(r: &mut [Value], ad: &str) {
+    let kucuk = |s: &str| s.trim().replace('İ', "i").replace('I', "ı").to_lowercase(); // Turkish case: İ→i, I→ı
+    let ad = kucuk(ad);
+    r.sort_by_key(|y| {
+        let ilce = y["admin2"].as_str().unwrap_or("").trim_end_matches(" İlçesi").trim_end_matches(" District");
+        (kucuk(ilce) != ad, -y["population"].as_i64().unwrap_or(0))
+    });
 }
 
 /// Weather of a place: ?lat=&lon=&ad=&bolge= (chosen in the picker), ?sehir= (a name, older saves), else the main city in config.json.
@@ -3286,6 +3302,21 @@ mod tests {
         assert!(yer_dogrula(&json!({"ad": "X", "lat": "1", "lon": 1.0})).is_err());
         assert_eq!(yer_dogrula(&json!({"ad": " X ", "bolge": "B", "lat": 1.5, "lon": -2.0, "fazla": 1})).unwrap(), json!({"ad": "X", "bolge": "B", "lat": 1.5, "lon": -2.0}));
         assert!(sehir_ara("  ").is_err());
+    }
+
+    #[test]
+    fn sirala_ilce_merkezi_basta() {
+        let mut r = vec![
+            json!({"name": "Köyceğiz", "admin1": "Şırnak", "admin2": "İdil İlçesi", "population": 714}),
+            json!({"name": "Köyceğiz", "admin1": "Amasya", "admin2": "Amasya", "population": 122}),
+            json!({"name": "Köyceğiz", "admin1": "Muğla", "admin2": "Köyceğiz İlçesi"}),
+        ];
+        sirala(&mut r, "KÖYCEĞİZ");
+        assert_eq!(r[0]["admin1"], "Muğla");
+        assert_eq!(r[1]["admin1"], "Şırnak"); // then population
+        let mut r = vec![json!({"name": "İdil"}), json!({"name": "İdil", "admin2": "İdil District"})];
+        sirala(&mut r, "idil");
+        assert_eq!(r[0]["admin2"], "İdil District");
     }
 
     #[test]
