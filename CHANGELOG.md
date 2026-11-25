@@ -4,6 +4,9 @@ All releases: [GitHub Releases](https://github.com/ryocs15/ryocs/releases). Your
 
 ## Unreleased
 
+**New**
+- Pick the weather city from lists: country → province → district (Settings → Language and region, and the weather card settings, also for the other cities). The lists are in the app (GeoNames, CC BY 4.0); only the chosen place is looked up for its coordinates.
+
 **Fixes**
 - Wrong sunrise and sunset for a city saved by name only: the weather took the first town with that name (Köyceğiz in Şırnak instead of Muğla). Such a save is now asked once: choose the right place and it is kept with its coordinates.
 - The sun-following theme now changes in the first minute after sunrise or sunset. Before, it waited for a check at second 0, which the clock timer often skipped (above all when the window was behind others).
