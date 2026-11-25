@@ -16,6 +16,11 @@ window.fetch=async(p,a)=>{
   return f0(p,a)};
 await bek(300);
 
+// 1.1.14: the region stands next to the city in the card title, so a wrong town shows at a glance
+const adY=()=>[q('.hvAd').firstChild?.textContent,q('.hvAd small')?.textContent??null,q('.hvAd').title];
+esit('title: city and region',adY(),['Köyceğiz','Muğla','Köyceğiz, Muğla']);
+{const b0=havaV.bolge;havaV.bolge='';havaCiz();esit('title: no region',adY(),['Köyceğiz',null,'Köyceğiz']);havaV.bolge=b0;havaCiz()}
+
 // two places share a name: the picker asks (in its own dialog)
 const is=sehirlerKaydet('Yeşilova, Ankara, Yokyer');await bek(400);
 esit('picker: question',[q('#sor2 h1')?.textContent,[...(q('#sor2 select')?.options||[])].map(x=>x.textContent)],
@@ -54,7 +59,7 @@ dogru('switch: body slides in',govde.getAnimations().some(kaydi)&&ek.getAnimatio
 dogru('switch: no strip fade on top',!el.querySelector('.saatlik.degisti'));
 await bek(400);
 esit('switch: same card parts',[h2===el.querySelector('h2'),seg===el.querySelector('.seg'),ek===q('#havaEk'),govde===el.querySelector('.havaGovde')],[true,true,true,true]);
-esit('switch: title and pressed button',[el.querySelector('.hvAd').textContent,[...el.querySelectorAll('.hvSehir button')].map(b=>b.getAttribute('aria-pressed'))],['Yeşilova',['false','true']]);
+esit('switch: title and pressed button',[el.querySelector('.hvAd').firstChild.textContent,[...el.querySelectorAll('.hvSehir button')].map(b=>b.getAttribute('aria-pressed'))],['Yeşilova',['false','true']]);
 esit('switch: no number pop',pop,0);
 // the top line and the clock card follow the shown city at once, with an opacity-only fade (nothing slides there)
 dogru('switch: top line follows',q('#gunOzet').textContent.includes('Yeşilova 38°'));
@@ -64,7 +69,7 @@ el.querySelector('.hvSehir [data-hs=""]').click();await bek(30);
 const solma=q('#gunOzet').getAnimations();
 esit('switch: top line fades only',[solma.length-n0,solma.some(kaydi)],[1,false]);
 await bek(400);
-esit('switch back',[el.querySelector('.hvAd').textContent,h2===el.querySelector('h2'),q('#gunOzet').textContent.includes('Köyceğiz '),q('#saatEk h3')?.textContent.includes('Köyceğiz')??true],['Köyceğiz',true,true,true]);
+esit('switch back',[el.querySelector('.hvAd').firstChild.textContent,h2===el.querySelector('h2'),q('#gunOzet').textContent.includes('Köyceğiz '),q('#saatEk h3')?.textContent.includes('Köyceğiz')??true],['Köyceğiz',true,true,true]);
 const n1=q('#gunOzet').getAnimations().length;tick();await bek(1100);dogru('next ticks: no new fade',q('#gunOzet').getAnimations().length<=n1); // older fades may finish meanwhile
 // forecast times are the place's own clock
 esit('place time → moment',[yerAn({utc_offset_seconds:3600},'2026-11-21T08:00').toISOString(),+yerAn({},'2026-11-21T08:00')],['2026-11-21T07:00:00.000Z',+new Date('2026-11-21T08:00')]);
@@ -96,14 +101,18 @@ esit('night: moon for clear and partly cloudy, older data: sun',[havaTur(0,true)
   havaSehir='';havaCiz();}
 
 // 1.1.14: a city saved by name only (Köyceğiz: Şırnak's came first) is asked once; a saved place is not
-{const f1=window.fetch;let g={sehir:'Yeşilova',konum:false};cfg=null;
-  window.fetch=async(p,a)=>p==='/api/config'&&!a?.method?{json:async()=>({durum:'ok',veri:g})}:f1(p,a);
+{const f1=window.fetch;let g={sehir:'Yeşilova',konum:false};cfg=null;const log=[];
+  window.fetch=async(p,a)=>p==='/api/log'?(log.push(JSON.parse(a.body).mesaj),{json:async()=>({durum:'ok'})}):p==='/api/config'&&!a?.method?{json:async()=>({durum:'ok',veri:g})}:f1(p,a);
   const k=konumDenetle();await bek(400);
   esit('name-only city: picker asks',q('#sor2 h1')?.textContent,'Yeşilova: which one?');
   q('#sor2 select').value='0';q('#sor2 form').requestSubmit();await k;
   esit('name-only city: saved with coordinates',cfg?.konum,{ad:'Yeşilova',bolge:'Burdur',ulke:'Türkiye',lat:37.5,lon:29.75});
-  g={sehir:'Yeşilova',konum:true};cfg=null;await konumDenetle();
+  esit('name-only city: steps logged, no coordinates',log,['konum: yalnız ad kayıtlı','konum: seçildi Yeşilova, Burdur','konum: kaydedildi ok']);
+  g={sehir:'Yeşilova',konum:true};cfg=null;log.length=0;await konumDenetle();
   esit('saved place: nothing asked',[cfg,q('#sor2').open],[null,false]);
+  esit('saved place: nothing logged',log,[]);
+  log.length=0;kilitli=true;await konumDenetle();kilitli=false;
+  esit('locked: nothing logged',log,[]);
   window.fetch=f1;}
 
 // the sun theme changes in the first tick of a new minute, even when second 0 was skipped
