@@ -1547,6 +1547,7 @@ async function yerSec(metin){
 // Country → province → district picker: the lists are in the app (GeoNames), the chosen place's coordinates come from the
 // weather service by its public id. Returns {ad,bolge,lat,lon} | {hata} | null (cancelled).
 async function konumListe(){
+  if($('#sor2').open)return null; // a "which one?" question is open (typed into the box, then clicked): answer that first
   const ul=await api('/api/yerler');if(ul.durum!=='ok')return{hata:String(ul.durum)};
   const dn=(()=>{try{return new Intl.DisplayNames([LOC],{type:'region'})}catch{return null}})(),uAd=k=>{try{return dn?.of(k)||k}catch{return k}};
   const sira=l=>l.sort((a,b)=>a.ad.localeCompare(b.ad,LOC)),u0=A('yerUlke')||'TR';
@@ -1555,10 +1556,10 @@ async function konumListe(){
     +`<div class="db"><button class="btn" type="button" data-kapat>${L('Vazgeç','Cancel')}</button><button class="btn ana">${L('Seç','Choose')}</button></div></form>`,false,$('#sor2'));
   const [su,si,sc]=['u','i','c'].map(n=>d.querySelector(`[name=${n}]`)),doldur=(s,l,bos)=>{s.innerHTML=(bos?`<option value="">${bos}</option>`:'')+l.map(y=>`<option value="${esc(y.id??y.kod)}" data-kod="${esc(y.kod)}">${esc(y.ad)}</option>`).join('')};
   doldur(su,sira(ul.veri.map(k=>({kod:k,id:k,ad:uAd(k)}))));su.value=u0;if(!su.value)su.selectedIndex=0;
-  let n=0; // only the newest list is drawn (a slow answer for an earlier choice is dropped)
-  const ilceler=async()=>{const k=++n,kod=si.selectedOptions[0]?.dataset.kod,r=kod?await api(`/api/yerler?ulke=${encodeURIComponent(su.value)}&il=${encodeURIComponent(kod)}`):{veri:[]};
-    if(k!==n)return;const l=Array.isArray(r.veri)?r.veri:[];doldur(sc,sira(l),'—');sc.closest('label').hidden=!l.length};
-  const iller=async()=>{const k=++n,r=await api('/api/yerler?ulke='+encodeURIComponent(su.value));if(k!==n)return;doldur(si,sira(Array.isArray(r.veri)?r.veri:[]));await ilceler()};
+  let ni=0,nc=0; // only the newest list of each kind is drawn (a slow answer for an earlier choice is dropped)
+  const ilceler=async()=>{const k=++nc,kod=si.selectedOptions[0]?.dataset.kod,r=kod?await api(`/api/yerler?ulke=${encodeURIComponent(su.value)}&il=${encodeURIComponent(kod)}`):{veri:[]};
+    if(k!==nc)return;const l=Array.isArray(r.veri)?r.veri:[];doldur(sc,sira(l),'—');sc.closest('label').hidden=!l.length};
+  const iller=async()=>{const k=++ni,r=await api('/api/yerler?ulke='+encodeURIComponent(su.value));if(k!==ni)return;doldur(si,sira(Array.isArray(r.veri)?r.veri:[]));await ilceler()};
   su.onchange=iller;si.onchange=ilceler;iller();
   d.firstChild.onsubmit=e=>{e.preventDefault();if(si.value)kapat(d,'ok')};
   const id=await new Promise(c=>d.bitti=v=>c(v==='ok'?sc.value||si.value:null));if(!id)return null;

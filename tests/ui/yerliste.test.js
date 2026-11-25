@@ -60,3 +60,14 @@ S.ayar.sehirler=[];kartAyar('hava');await bek(300);
 dogru('card settings: list buttons',!!q('#sor [data-liste="sehir"]')&&!!q('#sor [data-liste="sehirler"]'));
 q('#sor [data-liste="sehirler"]').click();await bek(300);sec('i','304183');await bek(200);sec('c','7733242');q('#sor2 form').requestSubmit();await bek(500);
 esit('card settings: extra city from the list',[S.ayar.sehirler.map(y=>y.ad),q('#sor [data-a="sehirler"]').value],[['Bodrum'],'Bodrum (Muğla)']);
+
+// a "which one?" question is open (typed into the box, then clicked the button): the list does not replace it
+{const y=sor('Bodrum: which one?',[],'Choose','',false,$('#sor2'));await bek(50);const once=q('#sor2').innerHTML;const r=await Promise.race([listedenSec(false).then(()=>'bitti'),bek(300).then(()=>'bekliyor')]);
+  esit('picker: an open question is not replaced',[r,q('#sor2').innerHTML===once],['bitti',true]);
+  q('#sor2 [data-kapat]')?.click();await y;}
+
+// changing the province while the country's province list loads: the lists stay of the same country
+{const f1=window.fetch;window.fetch=async(p,a)=>{if(p==='/api/yerler?ulke=DE')await bek(300);return f1(p,a)};
+  const p=listedenSec(false);await bek(300);sec('u','DE');await bek(20);sec('i','304183');await bek(500);
+  esit('picker: country and provinces match',[q('#sor2 [name=u]').value,secenek('i')],['DE',['Bayern']]);
+  q('#sor2 [data-kapat]').click();await p;window.fetch=f1;}
