@@ -459,15 +459,61 @@ fn sehir_ara(q: &str) -> Result<Value, String> {
     Ok(json!(r.iter().map(yer).collect::<Vec<_>>()))
 }
 
+/// Country -> province -> district list for the picker (GeoNames, built by tools/yerler.py):
+/// country, province code, district code (empty for a province), geonameid, name.
+static YERLER: LazyLock<Vec<[&'static str; 5]>> = LazyLock::new(|| {
+    include_str!("../data/yerler.tsv")
+        .lines()
+        .filter_map(|l| {
+            let k: Vec<&str> = l.trim_end_matches('\r').split('\t').collect(); // a CRLF checkout still parses
+            k.try_into().ok()
+        })
+        .collect()
+});
+
+fn ulkeler() -> Value {
+    let mut u: Vec<&str> = YERLER.iter().map(|y| y[0]).collect();
+    u.dedup(); // the file is sorted by country
+    json!(u)
+}
+
+/// The provinces of a country, or with `il` the districts of that province.
+fn yer_listesi(ulke: &str, il: Option<&str>) -> Value {
+    let mut l: Vec<_> = YERLER
+        .iter()
+        .filter(|y| y[0] == ulke && il.map_or(y[2].is_empty(), |i| y[1] == i && !y[2].is_empty()))
+        .map(|y| (tr_kucuk(y[4]), json!({ "kod": if il.is_some() { y[2] } else { y[1] }, "id": y[3], "ad": y[4] })))
+        .collect();
+    l.sort_by(|a, b| a.0.cmp(&b.0));
+    json!(l.into_iter().map(|x| x.1).collect::<Vec<_>>())
+}
+
+/// A picked province or district with its coordinates. Only the public GeoNames id is sent (the weather sends the place anyway).
+fn yer_getir(id: &str) -> Result<Value, String> {
+    if id.is_empty() || id.len() > 10 || !id.bytes().all(|b| b.is_ascii_digit()) {
+        return Err(l("Geçersiz yer", "Invalid place").into());
+    }
+    let mut g = body(AGENT.get(&GEO.replace("/search", "/get")).query("id", id).query("language", l("tr", "en")).call())?;
+    if !g["latitude"].is_number() {
+        return Err(l("Yer bulunamadı", "Place not found").into());
+    }
+    let ad = g["name"].as_str().unwrap_or("").trim_end_matches(" İlçesi").trim_end_matches(" District").to_string();
+    g["name"] = json!(ad); // "Köyceğiz İlçesi" -> "Köyceğiz", so the region is "Muğla"
+    Ok(yer(&g))
+}
+
+/// Turkish-aware fold for matching and sorting: dotted and dotless i fold together ("Istanbul" matches "İstanbul").
+fn tr_kucuk(s: &str) -> String {
+    s.trim().chars().map(|c| if matches!(c, 'İ' | 'I' | 'ı') { 'i' } else { c }).collect::<String>().to_lowercase()
+}
+
 /// Most likely place first: the district seat (its name is its district's: Köyceğiz in Muğla, not the village in Şırnak),
 /// then the larger population, then the API's order (stable sort).
 fn sirala(r: &mut [Value], ad: &str) {
-    // dotted and dotless i fold together: "Istanbul" typed without the Turkish dot still matches "İstanbul"
-    let kucuk = |s: &str| s.trim().chars().map(|c| if matches!(c, 'İ' | 'I' | 'ı') { 'i' } else { c }).collect::<String>().to_lowercase();
-    let ad = kucuk(ad);
+    let ad = tr_kucuk(ad);
     r.sort_by_key(|y| {
         let ilce = y["admin2"].as_str().unwrap_or("").trim_end_matches(" İlçesi").trim_end_matches(" District");
-        (kucuk(ilce) != ad, -y["population"].as_i64().unwrap_or(0))
+        (tr_kucuk(ilce) != ad, -y["population"].as_i64().unwrap_or(0))
     });
 }
 
@@ -2350,6 +2396,16 @@ fn handle(mut req: Request) {
     } else if !post && path == "/api/weather" {
         url::Url::parse(&format!("{ORIGIN}{url}")).map_err(|e| e.to_string())
             .and_then(|u| weather(&u.query_pairs().into_owned().collect()))
+    } else if !post && path == "/api/yerler" {
+        // ?ulke=TR → provinces, &il=48 → districts, ?id=8631961 → the place with coordinates, nothing → countries
+        url::Url::parse(&format!("{ORIGIN}{url}")).map_err(|e| e.to_string()).and_then(|u| {
+            let q = |k: &str| u.query_pairs().find(|(a, _)| a == k).map(|(_, v)| v.into_owned());
+            match (q("id"), q("ulke")) {
+                (Some(id), _) => yer_getir(&id),
+                (None, Some(ulke)) => Ok(yer_listesi(&ulke, q("il").as_deref())),
+                _ => Ok(ulkeler()),
+            }
+        })
     } else if !post && path == "/api/sehir_ara" {
         url::Url::parse(&format!("{ORIGIN}{url}")).map_err(|e| e.to_string())
             .and_then(|u| sehir_ara(&u.query_pairs().find(|(k, _)| k == "q").map(|(_, v)| v.into_owned()).unwrap_or_default()))
@@ -3303,6 +3359,20 @@ mod tests {
         assert!(yer_dogrula(&json!({"ad": "X", "lat": "1", "lon": 1.0})).is_err());
         assert_eq!(yer_dogrula(&json!({"ad": " X ", "bolge": "B", "lat": 1.5, "lon": -2.0, "fazla": 1})).unwrap(), json!({"ad": "X", "bolge": "B", "lat": 1.5, "lon": -2.0}));
         assert!(sehir_ara("  ").is_err());
+    }
+
+    #[test]
+    fn yer_listesi_tr_mugla() {
+        let iller = yer_listesi("TR", None);
+        assert!(iller.as_array().unwrap().iter().any(|y| y["ad"] == "Muğla" && y["kod"] == "48"));
+        let ilceler = yer_listesi("TR", Some("48"));
+        assert!(ilceler.as_array().unwrap().iter().any(|y| y["ad"] == "Köyceğiz" && y["id"] == "8631961"));
+        assert_eq!(yer_listesi("XX", None), json!([]));
+        assert!(ulkeler().as_array().unwrap().iter().any(|u| u == "TR"));
+        assert!(yer_getir("12a").is_err() && yer_getir("").is_err() && yer_getir("12345678901").is_err());
+        let a: Vec<&str> = ilceler.as_array().unwrap().iter().filter_map(|y| y["ad"].as_str()).collect();
+        assert!(a.iter().position(|x| *x == "Bodrum") < a.iter().position(|x| *x == "Köyceğiz")); // sorted by name
+        assert!(iller.as_array().unwrap().iter().all(|y| y["kod"] != "")); // provinces only
     }
 
     #[test]
