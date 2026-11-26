@@ -2,7 +2,9 @@
 
 All releases: [GitHub Releases](https://github.com/ryocs15/ryocs/releases). Your data (`%APPDATA%\RYOCS`) is kept by every update.
 
-## Unreleased
+## 1.1.14 (2026-11-26)
+
+Pick the weather city from country, province and district lists, and the right town for a city saved by name.
 
 **New**
 - Pick the weather city from lists: country → province → district (Settings → Language and region, and the weather card settings, also for the other cities). The lists are in the app (GeoNames, CC BY 4.0); only the chosen place is looked up for its coordinates.
