@@ -11,7 +11,7 @@ esit('saved',S.ayar.kartYuk,'icerik');
 dogru('switch shows it',q('#aKartYuk [data-v="icerik"]').getAttribute('aria-pressed')==='true');
 for(const x of document.querySelectorAll('dialog[open]'))x.close();
 esit('no open card grows',[...document.querySelectorAll('main [data-kart]')].filter(e=>!e.hidden&&(e.classList.contains('buyur')||e.style.flexGrow)).map(e=>e.dataset.kart),[]);
-dogru('middle rows auto',q('.orta').style.gridTemplateRows.split(' ').every(r=>r==='auto'));
+dogru('middle rows fit their content',q('.orta').style.gridTemplateRows.split(' ').every(r=>r==='max-content'));
 // a long news list stops at half the window
 kartAc('haber',true);haberV[haberK()]=[...Array(30)].map((_,i)=>({b:'Haber '+i,l:'https://x/'+i,k:'A',t:''}));haberCiz();await bek(80);
 const h=q('[data-kart=haber]').getBoundingClientRect().height;

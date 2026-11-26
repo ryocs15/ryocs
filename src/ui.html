@@ -817,8 +817,6 @@ kbd{font:12px Consolas,monospace;padding:2px 6px;border-radius:6px;box-shadow:va
 @keyframes isik{0%{transform:translate(-9%,-6%) rotate(-8deg) scale(1)}50%{transform:translate(8%,5%) rotate(7deg) scale(1.18)}100%{transform:translate(-4%,9%) rotate(-4deg) scale(.92)}}
 :root[data-skin=cam]:not([data-theme=dark]) :is(.frame){background:rgba(255,255,255,.1);backdrop-filter:blur(10px) saturate(1.3)}
 :root[data-skin=cam]:not([data-theme=dark]) :is(.card,nav){background:var(--cam);backdrop-filter:blur(22px) saturate(1.6)}
-/* glass cards re-blur the moving pattern on every frame (measured: the GPU's biggest cost by far); under glass the pattern moves in small steps, a few per second */
-:root[data-skin=cam]:not([data-theme=dark]) #arka i{animation-timing-function:steps(120)!important}
 :where(:root[data-skin=cam]:not([data-theme=dark])) button{background:transparent} /* :where: specificity 0, rules like .dot .renkB win */
 :root[data-skin=cam]:not([data-theme=dark]) :is(.btn,.rb,.halka,.dial,.seg [aria-pressed=true],.simB,.uygB,.secList button){background:var(--cam)}
 :root[data-skin=cam]:not([data-theme=dark]) .done .dot{background:rgba(255,255,255,.3)}
@@ -2174,6 +2172,28 @@ async function haftaOzet(bas,tam=false){
     +`<p class="m">${tarih(bas)} – ${tarih(son)}${n<7?L(' · şimdiye kadar, geçen haftanın aynı günleriyle',' · so far, against the same days of last week'):''}</p>`
     +(h||`<p class="m">${L('Bu hafta için gösterilecek bir şey yok: odak, görevler ya da ekran süresi kartı açık değil.','Nothing to show: the focus, tasks or screen time card is not open.')}</p>`)+'</div>');
 }
+// diagnosis for "animations stutter": frames per second as is and with the moving background hidden, and what draws them (GPU or software)
+const kareSay=ms=>new Promise(r=>{let n=0,uz=0;const t0=performance.now();let son=t0;const f=t=>{n++;uz=Math.max(uz,t-son);son=t;t-t0<ms?requestAnimationFrame(f):r({fps:Math.round(n*1e3/(t-t0)),uz:Math.round(uz)})};requestAnimationFrame(f)});
+async function kareOlc(){
+  tost(L('Kare hızı ölçülüyor (6 sn), pencereyi önde tutun…','Measuring the frame rate (6 s), keep the window in front…'));
+  const a=await kareSay(3000),ar=$('#arka');ar.style.display='none';const b=await kareSay(3000);ar.style.display='';
+  let gpu='?';try{const g=document.createElement('canvas').getContext('webgl'),e=g?.getExtension('WEBGL_debug_renderer_info');gpu=g?(e?g.getParameter(e.UNMASKED_RENDERER_WEBGL):'webgl'):L('WebGL yok','no WebGL')}catch{}
+  let pil='';try{const p=await navigator.getBattery?.();if(p)pil=` · ${L('pil','battery')} ${Math.round(p.level*100)}%${p.charging?L(' (şarjda)',' (charging)'):''}`}catch{}
+  const m=`${a.fps} fps (${L('en uzun kare','longest frame')} ${a.uz} ms) · ${L('arka plan gizli','background hidden')}: ${b.fps} fps (${b.uz} ms) · ${L('cam','glass')}: ${A('cam')?L('açık','on'):L('kapalı','off')} · ${L('arka plan','background')}: ${K.dataset.arka||'-'} · ${L('animasyon','animation')}: ${K.dataset.anim||L('açık','on')} · ${innerWidth}×${innerHeight}@${devicePixelRatio}${pil} · GPU: ${gpu}`;
+  api('/api/log',{mesaj:'kare: '+m});
+  pencere(`<div class="ic"><div class="dh"><h1>${L('Kare hızı','Frame rate')}</h1><button class="rb" data-kapat aria-label="${L('Kapat','Close')}" title="${L('Kapat (Esc)','Close (Esc)')}">${SVG(IKON.kapat)}</button></div><p class="m" style="user-select:text">${esc(m)}</p></div>`);
+}
+// diagnosis for "cards overlap": each column's cards with their boxes and size rules, and which ones overlap
+function yerOlc(){
+  const sat=[],ust=[];
+  for(const [k,s] of Object.entries(KOLON)){const c=$(s),l=[...c.children].filter(kartAd);
+    sat.push(`${k} (${Math.round(c.clientHeight)}/${c.scrollHeight}${c.style.gridTemplateRows?' rows '+c.style.gridTemplateRows:''})`);
+    for(const e of l){const r=e.getBoundingClientRect(),cs=getComputedStyle(e);sat.push(`  ${kartAd(e)} y${Math.round(r.top+c.scrollTop)} h${Math.round(r.height)} içerik${e.scrollHeight} min${cs.minHeight} max${cs.maxHeight} ${e.className} ${cs.transform!=='none'?cs.transform:''}`)}
+    for(let i=0;i<l.length;i++)for(let j=i+1;j<l.length;j++){const r=l[i].getBoundingClientRect(),q=l[j].getBoundingClientRect(),y=Math.min(r.bottom,q.bottom)-Math.max(r.top,q.top);if(y>1&&Math.min(r.right,q.right)-Math.max(r.left,q.left)>1)ust.push(`${kartAd(l[i])}/${kartAd(l[j])} ${Math.round(y)}px`)}}
+  const m=`${L('çakışan','overlapping')}: ${ust.join(', ')||L('yok','none')} · ${innerWidth}×${innerHeight}\n`+sat.join('\n');
+  api('/api/log',{mesaj:'yer: '+m.replace(/\n/g,' | ')});
+  pencere(`<div class="ic"><div class="dh"><h1>${L('Yerleşim','Layout')}</h1><button class="rb" data-kapat aria-label="${L('Kapat','Close')}" title="${L('Kapat (Esc)','Close (Esc)')}">${SVG(IKON.kapat)}</button></div><pre class="m" style="user-select:text;white-space:pre-wrap;font-size:11px">${esc(m)}</pre></div>`,true);
+}
 function haftaBildir(n=new Date()){
   if(!S||A('haftaOzet')===false)return;
   let son=pztGun(n);son.setDate(son.getDate()+6);son.setHours(20,0,0,0); // this week's Sunday 20:00
@@ -2237,6 +2257,8 @@ function komutlar(){
     [(A('cam')?L('Cam görünümü kapat','Turn off glass look'):L('Cam görünümü aç','Turn on glass look')),L('cam tema skin','glass theme skin'),()=>{S.ayar.cam=!A('cam');temaGecis();kaydet()}],
     [O.bitis?L('Odağı duraklat','Pause focus'):L('Odak başlat','Start focus'),L('pomodoro odak zamanlayıcı','pomodoro focus timer'),()=>$('#obas').click()],
     [L('Haftalık özet','Weekly summary'),L('özet hafta rapor istatistik','summary week report stats'),()=>haftaOzet()],
+    [L('Kare hızını ölç','Measure the frame rate'),L('fps animasyon takılma','fps animation stutter'),()=>kareOlc()],
+    [L('Yerleşimi denetle','Check the layout'),L('kart çakışma üst üste','card overlap'),()=>yerOlc()],
     [L('Ayarlar','Settings'),L('ayar seçenek','settings options'),()=>ayarAc()],
     [L('Yenile','Refresh'),L('güncelle','update reload'),()=>hepsi()],
   ];
@@ -4170,7 +4192,8 @@ function boyutla(){
   for(const e of l){e.classList.remove('tam','buyur');e.style.gridColumn=e.style.marginLeft=e.style.marginRight='';if(dar||GENIS.has(kartAd(e))){bitir();e.classList.add('tam');satir.push([e])}else{yarim.push(e);if(yarim.length===2){satir.push(yarim);yarim=[]}}}
   bitir();
   const buy=!icerik&&satir.some(s=>s.some(e=>buyuyenMi(kartAd(e))));
-  if(icerik){o.style.gridTemplateRows=satir.map(()=>'auto').join(' ');boyutla.cift=satir.filter(s=>s.length===2);ortaOran();return sutunUygula()}
+  // max-content, not auto: when the column overflows, auto rows stay at a card's hand-set minimum (kartMin) below its content and the next card overlaps it
+  if(icerik){o.style.gridTemplateRows=satir.map(()=>'max-content').join(' ');boyutla.cift=satir.filter(s=>s.length===2);ortaOran();return sutunUygula()}
   if(!buy)satir.at(-1)?.forEach(e=>e.classList.add('buyur')); // if nothing grows, the last row fills the space
   const ag=s=>Math.max(...s.filter(e=>!buy||buyuyenMi(kartAd(e))).map(e=>kb(kartAd(e)))); // row weight: the largest of its growing cards
   o.style.gridTemplateRows=satir.map((s,i)=>(buy?s.some(e=>buyuyenMi(kartAd(e))):i===satir.length-1)?`minmax(auto,${ag(s)}fr)`:'auto').join(' ');
