@@ -66,3 +66,6 @@ saatYap(19);havaAksam();havaAksam();
 esit('evening note once',[notlar.length,notlar[1]?.baslik,notlar[1]?.metin],[2,'Yarın · '+u.sehir,'Hafif yağmur, 14° / 8°, yağış %70.']);
 S.havaAksam='';S.ayar.havaAksam=false;havaAksam();esit('evening note off',notlar.length,2);
 Date.prototype.getHours=gh;
+
+// a block ending at the bottom of the card extra keeps its shadow and focus ring: the extra clips 14px outside its box, not at the edge
+{const c=getComputedStyle(q('[data-kart=hava] .ek'));esit('extra keeps shadows of its last block',[c.overflowY,c.overflowClipMargin],['clip','14px'])}

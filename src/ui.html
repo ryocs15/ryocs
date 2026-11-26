@@ -169,7 +169,7 @@ main{display:grid;grid-template-columns:300px minmax(0,1fr) 310px;gap:14px;min-h
 :root[data-kart-yuk=icerik] :is(#haberler,#pano,#mail){contain:none}
 :root[data-kart-yuk=icerik] #not{min-height:12em}
 /* Extra info: shows in the empty space when a card grows. contain:size: does not raise the card's minimum size; ekSig hides a block that does not fit */
-.ek{flex:1 1 0;min-height:0;contain:size;overflow:hidden;display:flex;flex-direction:column}
+.ek{flex:1 1 0;min-height:0;contain:size;overflow:clip;overflow-clip-margin:14px;display:flex;flex-direction:column} /* the clip margin: a block that ends at the bottom edge keeps its shadow and focus ring (the card's 18px padding holds them) */
 .panel>.ek{margin-top:-10px;flex-grow:2} /* .panel gap: an empty extra must not stretch the card; extra share for the event list */
 .ek>*{flex:none;margin-top:14px}
 .ek>:empty,.ek>[hidden],.kirp>[hidden]{display:none!important}
