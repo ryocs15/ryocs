@@ -4,9 +4,12 @@ All releases: [GitHub Releases](https://github.com/ryocs15/ryocs/releases). Your
 
 ## Unreleased
 
+**New**
+- Settings → System → Developer options. Turn it on to get the frame-rate and layout checks as buttons there and in Ctrl+F search; off, they stay out of the way.
+
 **Fixes**
-- With the glass look the moving background (lava, bubbles, light…) moved in a few jerky steps per second; it moves smoothly again at the screen's refresh rate. Ctrl+F → Measure the frame rate shows how fast the window draws, with the background and without it.
-- With Fit content on, a card in the middle column whose size was set by hand could overlap the card below once the column grew (for example the notes card over the calendar after adding notes). Ctrl+F → Check the layout lists each card's size and any overlap.
+- With the glass look the moving background (lava, bubbles, light…) moved in a few jerky steps per second; it moves smoothly again at the screen's refresh rate. Developer options → Frame rate shows how fast the window draws, with the background and without it.
+- With Fit content on, a card in the middle column whose size was set by hand could overlap the card below once the column grew (for example the notes card over the calendar after adding notes). Developer options → Layout lists each card's size and any overlap.
 - The last row of a card's extra part (for example Other cities on the weather card) no longer has its shadow and focus ring cut off at the bottom.
 
 ## 1.1.14 (2026-11-26)
