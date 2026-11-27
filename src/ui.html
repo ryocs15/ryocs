@@ -1431,8 +1431,8 @@ function saatEk(){
     const yazi=n<gd?L('Gün doğumuna ','Sunrise in ')+sureYaz(gd-n):n<gb?L('Gün batımına ','Sunset in ')+sureYaz(gb-n):ys>n?L('Gün doğumuna ','Sunrise in ')+sureYaz(ys-n):L('Gün battı','The sun has set');
     h+=`${L('<div class="gIsik"><h3>Gün ışığı · ','<div class="gIsik"><h3>Daylight · ')}${ad?esc(ad)+' · ':''}${sureYaz(gb-gd)}</h3><div class="cizgi" style="--p:${p*100}%"><i></i></div><div class="ekSat"><span>${saatS(d.sunrise[0].slice(11,16))}</span><span>${yazi}</span><span>${saatS(d.sunset[0].slice(11,16))}</span></div></div>`;
   }
-  const y0=new Date(n.getFullYear(),0,1),yg=Math.floor((n-y0)/864e5)+1,yt=Math.round((new Date(n.getFullYear()+1,0,1)-y0)/864e5),yp=Math.floor((n-y0)/(yt*864e5)*100);
-  h+=`<div class="gTarih"><b>${n.toLocaleDateString(LOC,{day:'numeric',month:'long',year:'numeric',weekday:'long'})}</b><small>${haftaNo(n)}${L('. hafta · yılın ',' · week ')}${yg}${L('. günü · ',' of the year · ')}${yt-yg}${Ln(' gün kaldı</small><div class="cizgi"><i style="width:',' days left</small><div class="cizgi"><i style="width:',yt-yg,' day left</small><div class="cizgi"><i style="width:')}${yp}${L('%"></i></div><div class="ekSat"><span>Yıl</span><span>%','%"></i></div><div class="ekSat"><span>Year</span><span>')}${yp}${L(' tamamlandı</span></div></div>','% complete</span></div></div>')}`;
+  const y0=new Date(n.getFullYear(),0,1),yg=Math.round((new Date(n.getFullYear(),n.getMonth(),n.getDate())-y0)/864e5)+1,yt=Math.round((new Date(n.getFullYear()+1,0,1)-y0)/864e5),yp=Math.floor((n-y0)/(yt*864e5)*100);
+  h+=`<div class="gTarih"><b>${n.toLocaleDateString(LOC,{day:'numeric',month:'long',year:'numeric',weekday:'long'})}</b><small>${Lf('{0}. hafta · yılın {1}. günü · ','Week {0} · day {1} of the year · ',haftaNo(n),yg)}${yt-yg}${Ln(' gün kaldı</small><div class="cizgi"><i style="width:',' days left</small><div class="cizgi"><i style="width:',yt-yg,' day left</small><div class="cizgi"><i style="width:')}${yp}${L('%"></i></div><div class="ekSat"><span>Yıl</span><span>%','%"></i></div><div class="ekSat"><span>Year</span><span>')}${yp}${L(' tamamlandı</span></div></div>','% complete</span></div></div>')}`;
   ekYaz('#saatEk',h);
 }
 // Calendar extra: next 7 days (from the 6-month data of the top panel)
@@ -2071,7 +2071,7 @@ const notMenu=(x,y,i)=>{const n=S.notlar[i],isaretli=/^\s*- \[[xX]\]/m.test(n.me
     tost(L('İşaretlenenler temizlendi','Checked items cleared'),L('Geri al','Undo'),()=>{n.metin=eski;notCiz();kaydet()})}]:0,
   i>0?[L('Sola taşı','Move left'),()=>notTasi(i,i-1)]:0,i<S.notlar.length-1?[L('Sağa taşı','Move right'),()=>notTasi(i,i+1)]:0,
   S.notlar.length>1?null:0,S.notlar.length>1?[L('Sil','Delete'),()=>{
-    const n=S.notlar.splice(i,1)[0];S.aktifNot=Math.min(S.aktifNot,S.notlar.length-1);notCiz();kaydet();
+    const n=S.notlar.splice(i,1)[0];S.aktifNot=i<S.aktifNot?S.aktifNot-1:Math.min(S.aktifNot,S.notlar.length-1);notCiz();kaydet(); // a note on the left gone: the open one moves one place left
     tost(`"${n.ad}" ${L('silindi','deleted')}`,L('Geri al','Undo'),()=>{S.notlar.splice(i,0,n);S.aktifNot=i;notCiz();kaydet()});
   },'teh']:0])};
 $('#nsek').onclick=e=>{

@@ -10,6 +10,8 @@ All releases: [GitHub Releases](https://github.com/ryocs15/ryocs/releases). Your
 - Gmail card settings: how many emails to show per account, from 5 to 50 (15 as before). Outlook accounts follow the same number.
 
 **Fixes**
+- Deleting a note on the left of the open one no longer switches to another note.
+- The clock card's date line reads "Week 47 · day 331 of the year" in English (it was out of order), and the day of the year is right just after midnight in summer time.
 - A monthly task on the 29th, 30th or 31st no longer moves to the 28th for good after February: it returns to its own day (31 Jan → 28 Feb → 31 Mar).
 - One-click update keeps the last minute of screen time.
 - A long error message on the weather or news card no longer ends in a broken character code.
