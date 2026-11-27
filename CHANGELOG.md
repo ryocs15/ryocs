@@ -10,6 +10,9 @@ All releases: [GitHub Releases](https://github.com/ryocs15/ryocs/releases). Your
 - Gmail card settings: how many emails to show per account, from 5 to 50 (15 as before). Outlook accounts follow the same number.
 
 **Fixes**
+- A link or file dropped on the window no longer replaces the dashboard with that page (the window only shows RYOCS itself).
+- Polish counts use the right form (1 zadanie, 3 zadania, 5 zadań) instead of one plural for every number.
+- The app picker window is translated too.
 - With the glass look the moving background (lava, bubbles, light…) moved in a few jerky steps per second; it moves smoothly again at the screen's refresh rate. Developer options → Frame rate shows how fast the window draws, with the background and without it.
 - With Fit content on, a card in the middle column whose size was set by hand could overlap the card below once the column grew (for example the notes card over the calendar after adding notes). Developer options → Layout lists each card's size and any overlap.
 - In settings windows a long control no longer squeezes its label into a narrow column (for example Other cities in the weather settings, broken almost letter by letter, or Category in the news settings, hidden completely); when there is no room the control moves under the label.

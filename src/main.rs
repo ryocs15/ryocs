@@ -1668,10 +1668,9 @@ fn kisayollar() -> Result<Value, String> {
 
 /// Windows file picker (opens on top); empty if cancelled
 fn dosya_sec() -> Result<Value, String> {
-    let y = ps(l(
-        r#"Add-Type -AssemblyName System.Windows.Forms;$f=New-Object System.Windows.Forms.Form -Property @{TopMost=$true};$d=New-Object System.Windows.Forms.OpenFileDialog;$d.Title='Uygulama ya da oyun seç';$d.Filter='Uygulamalar ve kısayollar|*.exe;*.lnk;*.url;*.appref-ms';if($d.ShowDialog($f) -eq 'OK'){$d.FileName}"#,
-        r#"Add-Type -AssemblyName System.Windows.Forms;$f=New-Object System.Windows.Forms.Form -Property @{TopMost=$true};$d=New-Object System.Windows.Forms.OpenFileDialog;$d.Title='Choose an app or game';$d.Filter='Apps and shortcuts|*.exe;*.lnk;*.url;*.appref-ms';if($d.ShowDialog($f) -eq 'OK'){$d.FileName}"#,
-    ), "")?;
+    // the texts go in through RYOCS_GIRDI (they come from the dictionary like any other text): the script itself has no language
+    let girdi = json!({ "t": l("Uygulama ya da oyun seç", "Choose an app or game"), "f": l("Uygulamalar ve kısayollar", "Apps and shortcuts") });
+    let y = ps(r#"$g=$env:RYOCS_GIRDI|ConvertFrom-Json;Add-Type -AssemblyName System.Windows.Forms;$f=New-Object System.Windows.Forms.Form -Property @{TopMost=$true};$d=New-Object System.Windows.Forms.OpenFileDialog;$d.Title=$g.t;$d.Filter=$g.f+'|*.exe;*.lnk;*.url;*.appref-ms';if($d.ShowDialog($f) -eq 'OK'){$d.FileName}"#, &girdi.to_string())?;
     Ok(json!(y))
 }
 
@@ -2258,6 +2257,12 @@ fn ms_donus(host: Option<&str>, origin: Option<&str>, url: &str, get: bool) -> b
 /// Key made at every start and given only to the app's own window (initialization script, not the served HTML).
 /// Without it another Windows user or a browser tab on this PC could read /api/state or start programs through /api/uygulama.
 static ANAHTAR: LazyLock<String> = LazyLock::new(rastgele);
+/// The window only ever shows its own page: a link or file dropped on it would otherwise replace the app (no way back without
+/// restarting) and the initialization script would hand the key to that page. Links open in the browser through /api/open.
+fn gezinme_izinli(u: &str) -> bool {
+    // about:blank: the empty page WebView2 may start from (nothing to hand a key to)
+    u == ORIGIN || u == "about:blank" || u.strip_prefix(ORIGIN).is_some_and(|r| r.starts_with(['/', '?', '#']))
+}
 /// /api/show stays open: a second RYOCS instance uses it to bring this window forward (it only shows the window).
 fn anahtar_gerekli(path: &str) -> bool {
     path.starts_with("/api/") && path != "/api/show"
@@ -2745,6 +2750,7 @@ fn main() {
     let webview = wry::WebViewBuilder::new()
         .with_initialization_script(format!("window.RYOCS_ANAHTAR={};", json!(*ANAHTAR)))
         .with_url(ORIGIN)
+        .with_navigation_handler(|u| gezinme_izinli(&u))
         .with_background_color((233, 234, 236, 255))
         .with_browser_accelerator_keys(false) // browser shortcuts such as F5, Ctrl+P, Ctrl+F do not belong to the app
         .with_hotkeys_zoom(false)
@@ -2918,6 +2924,12 @@ mod tests {
         assert_eq!(simge_turu("application/octet-stream", &[0, 0, 1, 0, 1]).as_deref(), Some("image/x-icon"));
         assert_eq!(simge_turu("text/html", b"<html>"), None);
         assert!(favicon("file:///C:/x").is_err() && favicon("javascript:alert(1)").is_err());
+    }
+
+    #[test]
+    fn pencere_yalniz_kendi_sayfasini_acar() {
+        for u in [ORIGIN, "http://127.0.0.1:8765/", "http://127.0.0.1:8765/?x=1", "http://127.0.0.1:8765#a"] { assert!(gezinme_izinli(u), "{u}"); }
+        for u in ["https://example.com/", "http://127.0.0.1:87650/", "http://127.0.0.1:8765.evil.com/", "file:///C:/a.png", "data:text/html,x"] { assert!(!gezinme_izinli(u), "{u}"); }
     }
 
     #[test]

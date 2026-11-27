@@ -1,5 +1,5 @@
 // dil: pl
-// Polish: texts come from src/dil/pl.json, numbers and dates from the pl locale, news from Polsat News, wind directions in Polish
+// Polish: plural forms after a number (Ln), texts from src/dil/pl.json, numbers and dates from the pl locale, news from Polsat News, wind directions in Polish
 const {esit,dogru,q}=RT;
 esit('language',[DIL,document.documentElement.lang],['pl','pl']);
 esit('static text from the table',q('#ayB').textContent,'Ustawienia');
@@ -8,3 +8,4 @@ esit('Lf() fills the placeholder',Lf('Dünden {0}° daha sıcak','{0}° warmer t
 esit('news tabs',Object.keys(HKAT)[0]+' '+hKaynak('pl_top'),'pl_top Polsat News');
 dogru('language picker has Polish and Spanish',['pl','es'].every(v=>q(`#aDil option[value=${v}]`)));
 dogru('no English left in the settings labels',![...document.querySelectorAll('#ayarlar .ayNav button')].some(b=>/^(Profile|Appearance|Notifications|Privacy and security)$/.test(b.textContent.trim())));
+esit('plural forms: 1, 2–4, 5+',[1,3,5,22,25].map(n=>n+Ln(' görev',' tasks',n)),['1 zadanie','3 zadania','5 zadań','22 zadania','25 zadań']);
