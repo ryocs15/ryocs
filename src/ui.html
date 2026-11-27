@@ -2702,7 +2702,7 @@ const KART_AYAR={
       ['kurTur',L('Kur türü (yalnız TRY, TCMB)','Rate type (TRY only, TCMB)'),'seg',{'':L('Satış','Selling'),al:L('Alış','Buying'),ef:L('Efektif satış','Banknote')},''],
       ['altinBirim',L('Altın ve gümüş birimi','Gold and silver unit'),'seg',{gram:'Gram',ons:L('Ons','Ounce')},ONS0],
       ['gumus',L('Gümüş satırı','Silver row'),'sw',0,false],['kurDegisim',L('Önceki güne göre değişim','Change since the previous day'),'sw',0,true]],
-    gizle:[['altin',L('Altın ve gümüş satırları','Gold and silver rows'),'.kurAltin'],['kaynak',L('Kaynak ve güncelleme satırı','Source and update line'),'#kurAlt']]},sistem:{ayar:[],gizle:[]},ekran:{ayar:[],gizle:[['hafta',L('Son 7 gün grafiği','Last 7 days chart'),'.ekHaftaK']]},pano:{ayar:[],gizle:[]},mail:{ayar:[['mailBildir',L('Yeni mail gelince bildir','Notify about new email'),'sw',0,true]],gizle:[]},
+    gizle:[['altin',L('Altın ve gümüş satırları','Gold and silver rows'),'.kurAltin'],['kaynak',L('Kaynak ve güncelleme satırı','Source and update line'),'#kurAlt']]},sistem:{ayar:[],gizle:[]},ekran:{ayar:[],gizle:[['hafta',L('Son 7 gün grafiği','Last 7 days chart'),'.ekHaftaK']]},pano:{ayar:[],gizle:[]},mail:{ayar:[['mailSayi',L('Hesap başına mail sayısı (5–50)','Emails per account (5–50)'),'sayi',[5,50],15],['mailBildir',L('Yeni mail gelince bildir','Notify about new email'),'sw',0,true]],gizle:[]},
   odak:{ayar:[['calisma',L('Çalışma süresi (dk)','Work time (min)'),'sayi',[1,180],25],['mola',L('Mola süresi (dk)','Break time (min)'),'sayi',[1,180],5],['uzunMola',L('Uzun mola (dk, 0: kapalı)','Long break (min, 0: off)'),'sayi',[0,60],15],['uzunAralik',L('Uzun mola kaç turda bir','Long break every … rounds'),'sayi',[2,10],4],['hedef',L('Günlük hedef (tur)','Daily goal (rounds)'),'sayi',[1,20],4],['calismaAd',L('Çalışma adı (boşsa “Çalışma”)','Work label (empty: “Work”)'),'metin',0,''],['molaAd',L('Mola adı (boşsa “Mola”)','Break label (empty: “Break”)'),'metin',0,''],['odakOto',L('Tur bitince sonrakini kendiliğinden başlat','Start the next round automatically'),'sw',0,false],['rahatsiz',L('Çalışırken bildirimleri biriktir, tur bitince tek bildirimle göster','Hold notifications while working, show them in one notification when the round ends'),'sw',0,true]],
     gizle:[['ne',L('Üzerinde çalışılan iş','What you are working on'),'#odakNe'],['hafta',L('Bu hafta neye çalıştın (kart büyükken)','This week by task (when the card is large)'),'.odNe'],['sayac',L('Serbest sayaç','Free timer'),'#serbest'],['spark',L('Başlıkta 7 günlük mini grafik','7-day mini chart in the title'),'#odakIst .spark'],['ek',L('Bugün, seri, hedef ve grafik (kart büyükken)','Today, streak, goal and chart (when the card is large)'),'#odakEk']]}};
 document.head.insertAdjacentHTML('beforeend','<style>'+Object.entries(KART_AYAR).flatMap(([k,a])=>a.gizle.filter(g=>g[2]).map(([id,,sel])=>`[data-kart=${k}][data-gizle~=${id}] ${sel}{display:none!important}`)).join('')+'</style>');
@@ -2734,7 +2734,7 @@ async function konumKaydet(y){
 // the card updates itself when a value changes
 const KART_SONRA={saatBicim:()=>{ustSon='';tick();ciz();havaSerit='';havaCiz();$('#grid').dataset.ay='';takvim()},haftaBasi:()=>{secili=null;$('#grid').dataset.ay='';takvim()},
   birim:()=>{havaC={};havaO=null;onbSakla();hava()},tatil:()=>takvimYenile(),saatModel:()=>{saatYuz();tick()},saniye:()=>saatYuz(),saat2:()=>{ustSon='';ustCiz()},gorunum:v=>{gorunum=v;secili=null;takvim()},
-  uygBoyut:()=>ayarUygula(),bitenGizle:()=>ciz(),notYazi:()=>kartAyarUygula(),havaGun:()=>havaCiz(),hedef:()=>odakIstat(),haberKat:()=>{$('#haberler').scrollTop=0;haber()},haberKelime:()=>haberCiz(),kurTaban:()=>kur(true),kurListe:()=>{kurCiz();if(kurKodlar().some(c=>kurV&&!kurV.k[c]))kur(true)},kurTur:()=>kurCiz(),altinBirim:()=>kurCiz(),gumus:v=>v?kur(true):kurCiz(),kurDegisim:()=>kurCiz(),
+  uygBoyut:()=>ayarUygula(),bitenGizle:()=>ciz(),notYazi:()=>kartAyarUygula(),havaGun:()=>havaCiz(),hedef:()=>odakIstat(),haberKat:()=>{$('#haberler').scrollTop=0;haber()},haberKelime:()=>haberCiz(),mailSayi:()=>mail(true),kurTaban:()=>kur(true),kurListe:()=>{kurCiz();if(kurKodlar().some(c=>kurV&&!kurV.k[c]))kur(true)},kurTur:()=>kurCiz(),altinBirim:()=>kurCiz(),gumus:v=>v?kur(true):kurCiz(),kurDegisim:()=>kurCiz(),
   calisma:()=>{if(!O.bitis)O={mod:'calisma',kalan:sure('calisma'),bitis:0};odakCiz()},mola:()=>{if(!O.bitis)O={mod:'calisma',kalan:sure('calisma'),bitis:0};odakCiz()},
   // a long break waiting to start takes the new length; 0 turns it into a normal break
   uzunMola:()=>{if(!O.bitis&&O.uzun)O=uzunDk()>0?{...O,kalan:uzunDk()*60}:{mod:'mola',kalan:sure('mola'),bitis:0};odakCiz()}};
@@ -3796,13 +3796,13 @@ function panoMenu(x,y,m){
     [L('Nota ekle','Add to note'),()=>{const n=S.notlar[S.aktifNot];n.metin+=(n.metin&&!n.metin.endsWith('\n')?'\n':'')+m;n.t=Date.now();notCiz();kaydet();tost(`"${n.ad}" ${L('notuna eklendi','note updated')}`)}]])}
 $('#panoDur').onclick=()=>{panoDurdu=!panoDurdu;try{localStorage.panoDur=panoDurdu?'1':''}catch{}panoAyar()};
 $('#panoSil').onclick=()=>panoAyar(true);
-// Gmail card (existing Google sign-in): the last 15 inbox messages, unread ones bold. Every 5 min while the card is open;
+// Gmail card (existing Google sign-in): the last 15 inbox messages per account (card setting mailSayi), unread ones bold. Every 5 min while the card is open;
 // clicking opens the mail in the browser and marks it read, the right-click menu marks it read without opening.
 let mailV=null,mailHata='',mailT=0;const mailOkunan=new Set(),mailArsiv=new Set(); // marked read here until a refresh shows them read: an older refresh must not make them bold again
 async function mail(zorla){
   if(!S||!kartAcik('mail'))return;
   if(!zorla&&mailV&&Date.now()-mailT<3e5)return mailCiz();
-  const r=await api('/api/mail');mailT=Date.now();
+  const r=await api('/api/mail?n='+(A('mailSayi')||15));mailT=Date.now();
   if(r.durum==='ok'&&Array.isArray(r.veri?.liste)){mailV=r.veri;mailHata='';
     // archived here: dropped from a refresh that started earlier, forgotten once a refresh no longer has them
     for(const id of mailArsiv)if(!mailV.liste.some(m=>m.id===id))mailArsiv.delete(id);

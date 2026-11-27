@@ -3,7 +3,7 @@
 const {esit,dogru,q,bek}=RT;
 const istek=[],bild=[];let islemCevap={durum:'ok'},cevap=null;const f0=window.fetch;
 window.fetch=async(p,a)=>{
-  if(p==='/api/mail')return{json:async()=>cevap};
+  if(p.startsWith('/api/mail?'))return{json:async()=>cevap};
   if(p==='/api/mail_islem'){istek.push(JSON.parse(a.body));return{json:async()=>islemCevap}}
   if(p==='/api/notify'){bild.push(JSON.parse(a.body));return{json:async()=>({durum:'ok'})}}
   return f0(p,a)};

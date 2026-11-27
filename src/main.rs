@@ -1814,11 +1814,12 @@ fn mail_id(i: &str) -> bool {
     !i.is_empty() && i.len() <= 64 && i.bytes().all(|c| c.is_ascii_alphanumeric())
 }
 
-/// Gmail: unread count in the inbox and the headers of the last 15 inbox messages, each with its unread state.
+/// Gmail: unread count in the inbox and the headers of the last `n` inbox messages (card setting, 15 by default), each with its unread state.
 /// Reading works with the old gmail.readonly permission too; marking as read needs gmail.modify ("izin_yok" otherwise).
 /// All accounts: the main Google one (its failure is the card's error, as before) and the extra Gmail accounts (each fetched at
 /// the same time; a failing one is reported in "hesaplar" and the others still come). Mail of all accounts, newest first.
-fn mail() -> Result<Value, String> {
+fn mail(n: usize) -> Result<Value, String> {
+    let n = &n.clamp(5, 50).to_string();
     // without a main Google account the extra accounts (e.g. Outlook only) still show
     let ek_var = tokens_oku()["posta"].as_object().is_some_and(|o| !o.is_empty());
     let ana_auth = match token(&provider("google")?) {
@@ -1835,9 +1836,9 @@ fn mail() -> Result<Value, String> {
     let (a, ek) = thread::scope(|k| {
         let is: Vec<_> = ekler.iter().map(|(e, ms)| k.spawn(move || (e.clone(), posta_token(e).and_then(|t| {
             let auth = format!("Bearer {t}");
-            if *ms { outlook_kutusu(e, &auth) } else { mail_kutusu(e, &auth) }
+            if *ms { outlook_kutusu(e, &auth, n) } else { mail_kutusu(e, &auth, n) }
         })))).collect();
-        let a = ana_auth.as_deref().map(|auth| mail_kutusu(&ana, auth));
+        let a = ana_auth.as_deref().map(|auth| mail_kutusu(&ana, auth, n));
         (a, is.into_iter().filter_map(|i| i.join().ok()).collect::<Vec<_>>())
     });
     let (mut hesaplar, mut liste, mut top) = (vec![], vec![], 0);
@@ -1875,10 +1876,10 @@ fn iso_ms(s: &str) -> Option<i64> {
     Some(((gun * 24 + h) * 60 + dk) * 60_000 + sn * 1000)
 }
 /// One Outlook mailbox through Microsoft Graph, in the same shape as a Gmail one; "link" opens the message in Outlook on the web.
-fn outlook_kutusu(hesap: &str, auth: &str) -> Result<Value, String> {
+fn outlook_kutusu(hesap: &str, auth: &str, n: &str) -> Result<Value, String> {
     let g = "https://graph.microsoft.com/v1.0/me/mailFolders/inbox";
     let kutu = body(AGENT.get(g).query("$select", "unreadItemCount").set("Authorization", auth).call())?;
-    let l = body(AGENT.get(&format!("{g}/messages")).query("$top", "15").query("$orderby", "receivedDateTime desc")
+    let l = body(AGENT.get(&format!("{g}/messages")).query("$top", n).query("$orderby", "receivedDateTime desc")
         .query("$select", "id,subject,from,receivedDateTime,isRead,bodyPreview,webLink").set("Authorization", auth).call())?;
     let liste: Vec<Value> = l["value"].as_array().into_iter().flatten().filter(|m| m["id"].as_str().is_some_and(outlook_id)).map(|m| {
         let (ad, adres) = (m["from"]["emailAddress"]["name"].as_str().unwrap_or(""), m["from"]["emailAddress"]["address"].as_str().unwrap_or(""));
@@ -1892,17 +1893,17 @@ fn outlook_kutusu(hesap: &str, auth: &str) -> Result<Value, String> {
     }).collect();
     Ok(json!({ "okunmamis": kutu["unreadItemCount"], "liste": liste }))
 }
-/// One mailbox: unread count in the inbox and the last 15 inbox messages; each message carries its account ("hesap").
-fn mail_kutusu(hesap: &str, auth: &str) -> Result<Value, String> {
+/// One mailbox: unread count in the inbox and the last `n` inbox messages; each message carries its account ("hesap").
+fn mail_kutusu(hesap: &str, auth: &str, n: &str) -> Result<Value, String> {
     let g = "https://gmail.googleapis.com/gmail/v1/users/me";
     let kutu = body(AGENT.get(&format!("{g}/labels/INBOX")).query("fields", "messagesUnread").set("Authorization", auth).call())?;
     let idler_al = |q: &str| -> Result<Vec<String>, String> {
-        let l = body(AGENT.get(&format!("{g}/messages")).query("q", q).query("maxResults", "15")
+        let l = body(AGENT.get(&format!("{g}/messages")).query("q", q).query("maxResults", n)
             .query("fields", "messages(id)").set("Authorization", auth).call())?;
         Ok(l["messages"].as_array().into_iter().flatten().filter_map(|m| m["id"].as_str()).filter(|i| mail_id(i)).map(String::from).collect())
     };
     let idler = idler_al("in:inbox")?;
-    // the unread state changes, the headers do not: a second id-only list says which of the 15 are unread
+    // the unread state changes, the headers do not: a second id-only list says which of the listed ones are unread
     let okunmamis = idler_al("is:unread in:inbox")?;
     // headers of a message do not change: only new ids are fetched; the memory keeps just the current list, per account
     static ONBELLEK: LazyLock<Mutex<HashMap<String, HashMap<String, Value>>>> = LazyLock::new(Default::default);
@@ -2414,7 +2415,7 @@ fn handle(mut req: Request) {
     } else if post && path == "/api/guncelle" {
         guncelle_kur()
     } else if !post && path == "/api/mail" {
-        mail()
+        mail(url::Url::parse(&format!("{ORIGIN}{url}")).ok().and_then(|u| u.query_pairs().find(|(k, _)| k == "n").and_then(|(_, v)| v.parse().ok())).unwrap_or(15))
     } else if post && path == "/api/mail_islem" {
         mail_islem(&b)
     } else if post && path == "/api/posta_sil" {

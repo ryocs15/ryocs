@@ -6,6 +6,7 @@ All releases: [GitHub Releases](https://github.com/ryocs15/ryocs/releases). Your
 
 **New**
 - Settings → System → Developer options. Turn it on to get the frame-rate and layout checks as buttons there and in Ctrl+F search; off, they stay out of the way.
+- Gmail card settings: how many emails to show per account, from 5 to 50 (15 as before). Outlook accounts follow the same number.
 
 **Fixes**
 - With the glass look the moving background (lava, bubbles, light…) moved in a few jerky steps per second; it moves smoothly again at the screen's refresh rate. Developer options → Frame rate shows how fast the window draws, with the background and without it.

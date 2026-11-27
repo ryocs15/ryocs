@@ -10,7 +10,7 @@ let cevap={durum:'ok',veri:{okunmamis:3,liste:[m('b','is@gmail.com','İş 1',3,t
 let ayar={durum:'ok',veri:{google:'ok',spotify:'kimlik_yok',posta:[{eposta:'is@gmail.com',durum:'ok'},{eposta:'eski@gmail.com',durum:'bagli_degil'}],kisayollar:[],surum:'x',sehir:'A'}};
 window.fetch=async(p,a)=>{
   const j=v=>({json:async()=>v});
-  if(p==='/api/mail')return j(cevap);
+  if(p.startsWith('/api/mail?'))return j(cevap);
   if(p==='/api/mail_islem'){islem.push(JSON.parse(a.body));return j({durum:'ok'})}
   if(p==='/api/open'){acilan=JSON.parse(a.body).url;return j({durum:'ok'})}
   if(p==='/api/notify'){bildirim.push(JSON.parse(a.body));return j({durum:'ok'})}

@@ -3,7 +3,7 @@
 const {esit,dogru,q,bek}=RT;
 let cevap={durum:'izin_yok'},acilan=null,durum=null,okundu=[],okCevap={durum:'ok'};const f0=window.fetch;
 window.fetch=async(p,a)=>{
-  if(p==='/api/mail')return{json:async()=>cevap};
+  if(p.startsWith('/api/mail?'))return{json:async()=>cevap};
   if(p==='/api/mail_islem'){okundu.push(JSON.parse(a.body).id);return{json:async()=>okCevap}}
   if(p==='/api/open'){acilan=JSON.parse(a.body).url;return{json:async()=>({durum:'ok'})}}
   if(p==='/api/state'&&a?.method==='POST'){durum=JSON.parse(a.body);return new Promise(()=>{})} // no reload after applying a layout
