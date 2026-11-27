@@ -113,23 +113,28 @@ fn dir() -> PathBuf {
     d
 }
 
-/// Language of user-facing text: the choice in Settings (data.json ayar.dil), otherwise the Windows UI language (Turkish → tr).
-/// Cached (0: not read yet, 1: Turkish, 2: English); reset whenever data.json is written, because the setting may have changed.
+/// Language of user-facing text: the choice in Settings (data.json ayar.dil), otherwise the Windows UI language if it is one of DILLER, else English.
+/// Cached (0: not read yet, otherwise index in DILLER + 1); reset whenever data.json is written, because the setting may have changed.
 static DIL: std::sync::atomic::AtomicU8 = std::sync::atomic::AtomicU8::new(0);
-fn dil_tr() -> bool {
+const DILLER: [&str; 4] = ["tr", "en", "pl", "es"];
+fn dil() -> &'static str {
     use std::sync::atomic::Ordering::Relaxed;
-    match DIL.load(Relaxed) {
-        1 => return true,
-        2 => return false,
-        _ => {}
+    if let Some(d) = DILLER.get((DIL.load(Relaxed) as usize).wrapping_sub(1)) {
+        return d;
     }
-    let tr = match read_json("data.json")["ayar"]["dil"].as_str() {
-        Some("tr") => true,
-        Some("en") => false,
-        _ => (unsafe { windows_sys::Win32::Globalization::GetUserDefaultUILanguage() } & 0x3ff) == 0x1f,
-    };
-    DIL.store(if tr { 1 } else { 2 }, Relaxed);
-    tr
+    let ayar = read_json("data.json")["ayar"]["dil"].as_str().and_then(|d| DILLER.iter().position(|x| *x == d));
+    // Windows primary language ids: 0x1f Turkish, 0x15 Polish, 0x0a Spanish
+    let i = ayar.unwrap_or(match unsafe { windows_sys::Win32::Globalization::GetUserDefaultUILanguage() } & 0x3ff { 0x1f => 0, 0x15 => 2, 0x0a => 3, _ => 1 });
+    DIL.store(i as u8 + 1, Relaxed);
+    DILLER[i]
+}
+/// Polish and Spanish texts, keyed by the English one (the same files the UI uses).
+const SOZ_PL: &str = include_str!("dil/pl.json");
+const SOZ_ES: &str = include_str!("dil/es.json");
+static SOZ: LazyLock<Value> = LazyLock::new(|| json!({ "pl": serde_json::from_str::<Value>(SOZ_PL).unwrap_or_default(), "es": serde_json::from_str::<Value>(SOZ_ES).unwrap_or_default() }));
+/// What the page gets for __SOZ__: both dictionaries, since the page picks its language itself (localStorage) before the data loads.
+fn soz_js() -> String {
+    format!(r#"{{"pl":{},"es":{}}}"#, SOZ_PL.trim(), SOZ_ES.trim()).replace("</", "<\\/")
 }
 
 /// Windows "Country or region" as two letters (e.g. "DE"); empty if it is not a country code (e.g. "001" world).
@@ -162,7 +167,7 @@ fn bolge_kodu(s: &str) -> String {
 
 /// Picks the Turkish or English text.
 fn l(tr: &'static str, en: &'static str) -> &'static str {
-    if dil_tr() { tr } else { en }
+    match dil() { "tr" => tr, "en" => en, d => SOZ[d][en].as_str().unwrap_or(en) }
 }
 
 fn read_json(name: &str) -> Value {
@@ -409,7 +414,7 @@ static KONUM: LazyLock<Mutex<HashMap<String, Value>>> = LazyLock::new(Default::d
 const GEO: &str = "https://geocoding-api.open-meteo.com/v1/search";
 
 fn konum(city: &str) -> Result<Value, String> {
-    let dil = l("tr", "en"); // the city name comes back in the UI language
+    let dil = dil(); // the city name comes back in the UI language
     let anahtar = format!("{dil}:{city}");
     if let Some(v) = kilit(&KONUM).get(&anahtar) {
         return Ok(v.clone());
@@ -453,7 +458,7 @@ fn sehir_adi(s: &str) -> Result<&str, String> {
 /// City search for the picker: several towns share a name (Köyceğiz, Yeşilova…), so up to 8 places with their region.
 fn sehir_ara(q: &str) -> Result<Value, String> {
     let q = sehir_adi(q)?;
-    let g = body(AGENT.get(GEO).query("name", q).query("count", "8").query("language", l("tr", "en")).call())?;
+    let g = body(AGENT.get(GEO).query("name", q).query("count", "8").query("language", dil()).call())?;
     let mut r = g["results"].as_array().cloned().unwrap_or_default();
     sirala(&mut r, q);
     Ok(json!(r.iter().map(yer).collect::<Vec<_>>()))
@@ -493,7 +498,7 @@ fn yer_getir(id: &str) -> Result<Value, String> {
     if id.is_empty() || id.len() > 10 || !id.bytes().all(|b| b.is_ascii_digit()) {
         return Err(l("Geçersiz yer", "Invalid place").into());
     }
-    let mut g = body(AGENT.get(&GEO.replace("/search", "/get")).query("id", id).query("language", l("tr", "en")).call())?;
+    let mut g = body(AGENT.get(&GEO.replace("/search", "/get")).query("id", id).query("language", dil()).call())?;
     if !g["latitude"].is_number() {
         return Err(l("Yer bulunamadı", "Place not found").into());
     }
@@ -578,7 +583,8 @@ fn dun_ayir(w: &mut Value) {
 fn haber_kat(b: &str) -> &'static str {
     // the category in the request comes only from the allow list: an outside value must not reach the URL path
     let k = serde_json::from_str::<Value>(b).ok().and_then(|v| v["kat"].as_str().map(String::from)).unwrap_or_default();
-    ["sondakika", "gundem", "bilim", "finans", "yasam", "spor", "en_top", "en_world", "en_business", "en_tech", "en_science", "en_sport"]
+    ["sondakika", "gundem", "bilim", "finans", "yasam", "spor", "en_top", "en_world", "en_business", "en_tech", "en_science", "en_sport",
+     "es_top", "es_world", "es_business", "es_tech", "es_science", "es_sport", "pl_top", "pl_world", "pl_business", "pl_tech", "pl_science", "pl_sport"]
         .into_iter().find(|x| *x == k).unwrap_or("gundem")
 }
 
@@ -615,6 +621,19 @@ fn haber(b: &str) -> Result<Value, String> {
         "en_tech" => Some("https://feeds.bbci.co.uk/news/technology/rss.xml"),
         "en_science" => Some("https://feeds.bbci.co.uk/news/science_and_environment/rss.xml"),
         "en_sport" => Some("https://feeds.bbci.co.uk/sport/rss.xml"),
+        // Spanish: El País sections; Polish: Polsat News sections
+        "es_top" => Some("https://feeds.elpais.com/mrss-s/pages/ep/site/elpais.com/portada"),
+        "es_world" => Some("https://feeds.elpais.com/mrss-s/pages/ep/site/elpais.com/section/internacional/portada"),
+        "es_business" => Some("https://feeds.elpais.com/mrss-s/pages/ep/site/elpais.com/section/economia/portada"),
+        "es_tech" => Some("https://feeds.elpais.com/mrss-s/pages/ep/site/elpais.com/section/tecnologia/portada"),
+        "es_science" => Some("https://feeds.elpais.com/mrss-s/pages/ep/site/elpais.com/section/ciencia/portada"),
+        "es_sport" => Some("https://feeds.elpais.com/mrss-s/pages/ep/site/elpais.com/section/deportes/portada"),
+        "pl_top" => Some("https://www.polsatnews.pl/rss/wszystkie.xml"),
+        "pl_world" => Some("https://www.polsatnews.pl/rss/swiat.xml"),
+        "pl_business" => Some("https://www.polsatnews.pl/rss/biznes.xml"),
+        "pl_tech" => Some("https://www.polsatnews.pl/rss/technologie.xml"),
+        "pl_science" => Some("https://www.polsatnews.pl/rss/nauka.xml"),
+        "pl_sport" => Some("https://www.polsatnews.pl/rss/sport.xml"),
         _ => None,
     };
     if let Some(u) = rss {
@@ -2310,7 +2329,7 @@ fn handle(mut req: Request) {
     const HTML: &str = "text/html; charset=utf-8";
 
     if !post && path == "/" {
-        return send(req, 200, HTML, include_str!("ui.html").replace("__BOLGE__", &bolge()));
+        return send(req, 200, HTML, include_str!("ui.html").replace("__BOLGE__", &bolge()).replacen("__SOZ__", &soz_js(), 1));
     }
     if let (false, Some(ad)) = (post, path.strip_prefix("/yazi/")) {
         let Some((_, b)) = YAZILAR.iter().find(|y| y.0 == ad) else { return send(req, 404, "text/plain", "yok".into()) };
@@ -2906,6 +2925,9 @@ mod tests {
         assert_eq!([bolge_kodu("TR"), bolge_kodu("001"), bolge_kodu("tr"), bolge_kodu("")], ["TR", "", "", ""]);
         assert!(bolge().is_empty() || bolge().len() == 2); // the real Windows setting
         assert!(include_str!("ui.html").matches("__BOLGE__").count() == 1); // exactly one placeholder is replaced
+        assert!(include_str!("ui.html").matches("__SOZ__").count() == 1);
+        for d in ["pl", "es"] { assert!(SOZ[d].is_object(), "src/dil/{d}.json is not a JSON object"); }
+        assert!(!soz_js().contains("</"));
     }
 
     #[test]

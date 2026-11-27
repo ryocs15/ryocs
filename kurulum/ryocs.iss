@@ -28,21 +28,29 @@ ArchitecturesAllowed=x64compatible
 ; Windows 10 1709 or newer: the app calls GetUserDefaultGeoName (1709) and Windows CNG pseudo-handles; on older Windows the exe would not start
 MinVersion=10.0.16299
 ArchitecturesInstallIn64BitMode=x64compatible
-; the installer language follows the Windows UI language (English unless Turkish)
+; the installer language follows the Windows UI language (English unless Turkish, Polish or Spanish)
 ShowLanguageDialog=no
 LicenseFile=..\LICENSE
 
 [Languages]
 Name: "en"; MessagesFile: "compiler:Default.isl"
 Name: "tr"; MessagesFile: "compiler:Languages\Turkish.isl"
+Name: "pl"; MessagesFile: "compiler:Languages\Polish.isl"
+Name: "es"; MessagesFile: "compiler:Languages\Spanish.isl"
 
 [CustomMessages]
 en.Masaustu=Create a desktop shortcut
 tr.Masaustu=Masaüstüne kısayol oluştur
+pl.Masaustu=Utwórz skrót na pulpicie
+es.Masaustu=Crear un acceso directo en el escritorio
 en.Baslat=Start RYOCS
 tr.Baslat=RYOCS'u başlat
+pl.Baslat=Uruchom RYOCS
+es.Baslat=Iniciar RYOCS
 en.WebView2=Installing the Microsoft Edge WebView2 Runtime (needed by RYOCS)...
 tr.WebView2=Microsoft Edge WebView2 Runtime kuruluyor (RYOCS için gerekli)...
+pl.WebView2=Instalowanie Microsoft Edge WebView2 Runtime (wymagane przez RYOCS)...
+es.WebView2=Instalando Microsoft Edge WebView2 Runtime (necesario para RYOCS)...
 
 [Tasks]
 Name: "masaustu"; Description: "{cm:Masaustu}"; Flags: unchecked

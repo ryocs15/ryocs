@@ -5,6 +5,7 @@ All releases: [GitHub Releases](https://github.com/ryocs15/ryocs/releases). Your
 ## Unreleased
 
 **New**
+- Polish and Spanish. RYOCS follows a Polish or Spanish Windows, or pick the language in Settings → Language and region. Notifications, the tray menu and the installer are translated too; the news card shows Polsat News in Polish and El País in Spanish, with the same six categories as in English. The translations are machine-made and not yet reviewed by native speakers; a text that is missing shows in English.
 - Settings → System → Developer options. Turn it on to get the frame-rate and layout checks as buttons there and in Ctrl+F search; off, they stay out of the way.
 - Gmail card settings: how many emails to show per account, from 5 to 50 (15 as before). Outlook accounts follow the same number.
 

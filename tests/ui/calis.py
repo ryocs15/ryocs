@@ -64,6 +64,9 @@ def doldur(kalip, *degerler):
 
 def sayfa(test, dil):
     s = open(os.path.join(KOK, 'src', 'ui.html'), encoding='utf-8').read()
+    # the dictionaries go in as the server does (src/main.rs soz_js)
+    soz = {d: json.load(open(os.path.join(KOK, 'src', 'dil', d + '.json'), encoding='utf-8')) for d in ('pl', 'es')}
+    s = s.replace('__SOZ__', js(soz), 1)
     st, hv, ev, ks, hb = demo()
     fix = {os.path.basename(p)[:-5]: json.load(open(p, encoding='utf-8')) for p in glob.glob(os.path.join(KOK, 'tests', 'fixtures', '*.json'))}
     on = ("<script>window.HATA=[];addEventListener('error',e=>HATA.push(e.message+' @'+e.lineno));"
@@ -126,6 +129,9 @@ def main():
         print('SKIP ui tests: Microsoft Edge not found')
         return 0
     ok = sozdizimi()
+    sys.path.insert(0, os.path.join(KOK, 'tools'))
+    import ceviri
+    ok = ceviri.denetle() and ok
     adlar = sys.argv[1:]
     for yol in sorted(glob.glob(os.path.join(BURA, '*.test.js'))):
         ad = os.path.basename(yol)[:-8]

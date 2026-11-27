@@ -31,7 +31,7 @@ A personal dashboard for Windows: clock, calendar, tasks, notes, weather, news, 
 | 🔒 **Private by default** | Your data stays in `%APPDATA%\RYOCS`, encrypted with Windows DPAPI. Nothing leaves your PC except the services you connect yourself. |
 | 🧩 **Yours to arrange** | Drag cards to move them, drag the gaps to resize, hide what you don't need, save layouts. |
 | 🎨 **Easy on the eyes** | 16 themes, a glass look and 11 animated backgrounds, with light and dark switching by Windows or by daylight. |
-| 🌍 **English and Turkish** | Follows your Windows language and region: 12/24 h clock, first day of the week, °C/°F and public holidays. |
+| 🌍 **English, Spanish, Polish and Turkish** | Follows your Windows language and region: 12/24 h clock, first day of the week, °C/°F and public holidays. |
 
 ## Screenshots
 
@@ -55,7 +55,7 @@ A personal dashboard for Windows: clock, calendar, tasks, notes, weather, news, 
 - **Tasks and habits** with reminders (type "tomorrow 15:00" at the end of a task), snooze, repeats (daily, weekdays, weekly, monthly or specific days), subtasks and streaks
 - **Notes** with checklists
 - **Weather** from Open-Meteo for up to five cities (switch in the card; when several places share a name you pick the right one, or pick country → province → district from a list): hourly and 7-day forecast (click a day for its hours), when rain starts or stops, the difference from yesterday, air quality and pollen, a morning alert (rain, frost, storms, snow, wind, heat, poor air) and an evening note for tomorrow
-- **News**: BBC News in English, Bundle in Turkish, and breaking news from seven Turkish outlets in one list (the same story from several outlets is one row); a small dot marks what came since you last looked; keyword filter, hidden sources, save for later
+- **News**: BBC News in English, El País in Spanish, Polsat News in Polish, Bundle in Turkish, and breaking news from seven Turkish outlets in one list (the same story from several outlets is one row); a small dot marks what came since you last looked; keyword filter, hidden sources, save for later
 - **Spotify** now playing (podcasts too), controls, seeking, shuffle and repeat, moving playback to another device, and up next
 - **Focus timer** (pomodoro) with long breaks, skipping a round or adding 5 minutes (right-click), daily goal, streak, your own labels, a *what am I working on* note with a weekly breakdown, and *do not disturb* (notifications wait until the round ends)
 - **Gmail** the last 15 inbox messages (5 to 50 in the card settings), unread ones in bold, a notification for new mail; right-click to mark as read or unread, or to archive; extra Gmail accounts (Settings → Accounts → Add account) show together or one at a time

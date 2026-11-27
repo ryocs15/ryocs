@@ -51,7 +51,7 @@ Missing keys mean the default.
 | Key | Meaning |
 |---|---|
 | `ad`, `foto`, `pin` | Your name, profile picture (data URL), PIN lock `{tuz, oz}` (salted SHA-256, not the PIN itself). |
-| `dil` | Language `"tr"` / `"en"`; missing = follows Windows. |
+| `dil` | Language `"tr"` / `"en"` / `"pl"` / `"es"`; missing = follows Windows. |
 | `cam`, `anim`, `arka`, `vurgu`, `temaGunduz`, `temaGece` | Glass look, animations, background animation (`yok` none, missing = light, `kabarcik`, `serit`, `aurora`, `geometri`, `dalga`, `yildiz`, `bokeh`, `lav`, `kar`, `ates`), accent colour, day / night themes for the automatic switch. |
 | `uygBoyut`, `notYazi` | App icon size and note font size (`kucuk` / `""` / `buyuk`). |
 | `yerlesim` | Card columns `{sol, orta, sag}` (lists of card names). |
