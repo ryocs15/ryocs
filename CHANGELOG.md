@@ -11,7 +11,7 @@ All releases: [GitHub Releases](https://github.com/ryocs15/ryocs/releases). Your
 
 **Fixes**
 - A link or file dropped on the window no longer replaces the dashboard with that page (the window only shows RYOCS itself).
-- Polish counts use the right form (1 zadanie, 3 zadania, 5 zadań) instead of one plural for every number.
+- A count of 1 takes the singular (1 task, 1 day, 1 round instead of "1 tasks"…), and Polish uses the right form for every number (1 zadanie, 3 zadania, 5 zadań).
 - The app picker window is translated too.
 - With the glass look the moving background (lava, bubbles, light…) moved in a few jerky steps per second; it moves smoothly again at the screen's refresh rate. Developer options → Frame rate shows how fast the window draws, with the background and without it.
 - With Fit content on, a card in the middle column whose size was set by hand could overlap the card below once the column grew (for example the notes card over the calendar after adding notes). Developer options → Layout lists each card's size and any overlap.

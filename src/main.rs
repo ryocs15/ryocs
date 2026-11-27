@@ -1669,7 +1669,7 @@ fn kisayollar() -> Result<Value, String> {
 /// Windows file picker (opens on top); empty if cancelled
 fn dosya_sec() -> Result<Value, String> {
     // the texts go in through RYOCS_GIRDI (they come from the dictionary like any other text): the script itself has no language
-    let girdi = json!({ "t": l("Uygulama ya da oyun seç", "Choose an app or game"), "f": l("Uygulamalar ve kısayollar", "Apps and shortcuts") });
+    let girdi = json!({ "t": l("Uygulama ya da oyun seç", "Choose an app or game"), "f": l("Uygulamalar ve kısayollar", "Apps and shortcuts").replace('|', "") }); // a | would split the filter and the dialog would not open
     let y = ps(r#"$g=$env:RYOCS_GIRDI|ConvertFrom-Json;Add-Type -AssemblyName System.Windows.Forms;$f=New-Object System.Windows.Forms.Form -Property @{TopMost=$true};$d=New-Object System.Windows.Forms.OpenFileDialog;$d.Title=$g.t;$d.Filter=$g.f+'|*.exe;*.lnk;*.url;*.appref-ms';if($d.ShowDialog($f) -eq 'OK'){$d.FileName}"#, &girdi.to_string())?;
     Ok(json!(y))
 }
@@ -2750,7 +2750,11 @@ fn main() {
     let webview = wry::WebViewBuilder::new()
         .with_initialization_script(format!("window.RYOCS_ANAHTAR={};", json!(*ANAHTAR)))
         .with_url(ORIGIN)
-        .with_navigation_handler(|u| gezinme_izinli(&u))
+        .with_navigation_handler(|u| {
+            let ok = gezinme_izinli(&u);
+            if !ok { hata_kaydet(&format!("navigation blocked: {}", u.chars().take(200).collect::<String>())); } // a blank window can be traced
+            ok
+        })
         .with_background_color((233, 234, 236, 255))
         .with_browser_accelerator_keys(false) // browser shortcuts such as F5, Ctrl+P, Ctrl+F do not belong to the app
         .with_hotkeys_zoom(false)

@@ -54,7 +54,7 @@ def metinler():
     return tara()[0]
 
 
-PLURAL = {'pl': ('one', 'few', 'many')}  # Ln texts: the forms Intl.PluralRules gives for whole numbers
+PLURAL = {'pl': ('one', 'few', 'many'), 'es': ('one',)}  # Ln texts: the forms Intl.PluralRules gives for whole numbers
 
 
 def oku(d):

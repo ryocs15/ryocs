@@ -11,9 +11,10 @@ const DIL=(()=>{const D=['tr','en','pl','es'];try{const d=localStorage.dil;if(D.
 const BOLGE=(()=>{const b='__BOLGE__';return /^[A-Z]{2}$/.test(b)?b:DIL==='tr'?'TR':(navigator.language.split('-')[1]||'US').toUpperCase()})();
 // Polish and Spanish: src/dil/pl.json and es.json, keyed by the English text (the server fills in the placeholder below); a missing one shows the English
 const SOZ=(()=>{try{return __SOZ__[DIL]||{}}catch{return{}}})();
-// Ln: a text after a number; Polish has one/few/many forms (2 zadania, 5 zadań), kept in pl.json as "<English>#few" etc.
-const PLR=DIL==='pl'&&new Intl.PluralRules('pl');
-const L=(tr,en)=>DIL==='tr'?tr:SOZ[en]??en,Ln=(tr,en,n)=>PLR&&SOZ[en+'#'+PLR.select(n)]||L(tr,en),Lf=(tr,en,...a)=>L(tr,en).replace(/\{(\d)\}/g,(_,i)=>a[i]),yz=x=>DIL==='tr'?'%'+x:x+'%',LOC=(()=>{try{return new Intl.Locale(DIL+'-'+BOLGE).toString()}catch{return DIL==='tr'?'tr-TR':'en-US'}})();
+// Ln(tr, en, n, en1): a text after the number n. en is the plural, en1 the English singular when it differs; the dictionaries keep
+// the other forms as "<English>#one" (Spanish 1 tarea, Polish 1 zadanie) and "#few"/"#many" (Polish 2 zadania, 5 zadań).
+const PLR=DIL!=='tr'&&new Intl.PluralRules(DIL);
+const L=(tr,en)=>DIL==='tr'?tr:SOZ[en]??en,Ln=(tr,en,n,en1)=>{if(!PLR)return tr;const c=PLR.select(n);return DIL==='en'?c==='one'&&en1||en:SOZ[en+'#'+c]||L(tr,en)},Lf=(tr,en,...a)=>L(tr,en).replace(/\{(\d)\}/g,(_,i)=>a[i]),yz=x=>DIL==='tr'?'%'+x:x+'%',LOC=(()=>{try{return new Intl.Locale(DIL+'-'+BOLGE).toString()}catch{return DIL==='tr'?'tr-TR':'en-US'}})();
 document.documentElement.lang=DIL;
 // Themes in one place: r = [background, light shadow, dark shadow, text, muted text, line, accent]; k: dark; cz: glass background; ek: extra variables.
 // '' (Light) and dark (Dark) are the base themes and come from the :root rules in CSS; the rules of the others are generated here.
@@ -1140,7 +1141,7 @@ async function onbYukle(){
   if(r.durum==='ok')onbSakla();
 }
 const bildir=(baslik,metin,metin2)=>odakSessiz()?(bekleyen.push(baslik+': '+metin),bekSakla(),Promise.resolve({durum:'ok'})):api('/api/notify',{baslik,metin,metin2});
-const bekleyenYazi=()=>{const b=bekleyen;bekleyen=[];bekSakla();return b.length>2?b.slice(0,2).join(' · ')+`${L(' ve ',' and ')}${b.length-2}${Ln(' bildirim daha',' more notifications',b.length-2)}`:b.join(' · ')};
+const bekleyenYazi=()=>{const b=bekleyen;bekleyen=[];bekSakla();return b.length>2?b.slice(0,2).join(' · ')+`${L(' ve ',' and ')}${b.length-2}${Ln(' bildirim daha',' more notifications',b.length-2,' more notification')}`:b.join(' · ')};
 // UI errors are written to %APPDATA%\RYOCS\hata.log (at most 20 per session)
 let hataSay=0;
 const hataGonder=m=>{if(hataSay++<20)api('/api/log',{mesaj:String(m).slice(0,2000)})};
@@ -1353,7 +1354,7 @@ function saatMenu(x,y){
 let sayimTk=[];
 const sayimGecerli=x=>x&&typeof x.ad==='string'&&/^\d{4}-\d\d-\d\d$/.test(x.t);
 const sayimSirali=()=>(Array.isArray(S?.sayimlar)?S.sayimlar:[]).filter(sayimGecerli).sort((a,b)=>a.t<b.t?-1:a.t>b.t?1:0);
-const sayimYazi=(t,bugun)=>{const f=Math.round((new Date(t+'T00:00')-new Date(bugun+'T00:00'))/864e5);return f===0?L('Bugün','Today'):f===1?L('Yarın','Tomorrow'):f>0?f+Ln(' gün',' days',f):f===-1?L('Dün','Yesterday'):-f+Ln(' gün önce',' days ago',-f)};
+const sayimYazi=(t,bugun)=>{const f=Math.round((new Date(t+'T00:00')-new Date(bugun+'T00:00'))/864e5);return f===0?L('Bugün','Today'):f===1?L('Yarın','Tomorrow'):f>0?f+Ln(' gün',' days',f,' day'):f===-1?L('Dün','Yesterday'):-f+Ln(' gün önce',' days ago',-f,' day ago')};
 function sayimPencere(){
   const bugun=gunStr(new Date()),l=sayimSirali(),uz=t=>new Date(t+'T00:00').toLocaleDateString(LOC,{day:'numeric',month:'long',year:'numeric'});
   const sat=(x,i)=>`<div class="ar"${x.t<bugun?' style="opacity:.55"':''}><span>${esc(x.ad)}<small>${uz(x.t)}${i<0?L(' · takvimden',' · from calendar'):''}</small></span><div class="grp"><b>${sayimYazi(x.t,bugun)}</b>`
@@ -1431,7 +1432,7 @@ function saatEk(){
     h+=`${L('<div class="gIsik"><h3>Gün ışığı · ','<div class="gIsik"><h3>Daylight · ')}${ad?esc(ad)+' · ':''}${sureYaz(gb-gd)}</h3><div class="cizgi" style="--p:${p*100}%"><i></i></div><div class="ekSat"><span>${saatS(d.sunrise[0].slice(11,16))}</span><span>${yazi}</span><span>${saatS(d.sunset[0].slice(11,16))}</span></div></div>`;
   }
   const y0=new Date(n.getFullYear(),0,1),yg=Math.floor((n-y0)/864e5)+1,yt=Math.round((new Date(n.getFullYear()+1,0,1)-y0)/864e5),yp=Math.floor((n-y0)/(yt*864e5)*100);
-  h+=`<div class="gTarih"><b>${n.toLocaleDateString(LOC,{day:'numeric',month:'long',year:'numeric',weekday:'long'})}</b><small>${haftaNo(n)}${L('. hafta · yılın ',' · week ')}${yg}${L('. günü · ',' of the year · ')}${yt-yg}${Ln(' gün kaldı</small><div class="cizgi"><i style="width:',' days left</small><div class="cizgi"><i style="width:',yt-yg)}${yp}${L('%"></i></div><div class="ekSat"><span>Yıl</span><span>%','%"></i></div><div class="ekSat"><span>Year</span><span>')}${yp}${L(' tamamlandı</span></div></div>','% complete</span></div></div>')}`;
+  h+=`<div class="gTarih"><b>${n.toLocaleDateString(LOC,{day:'numeric',month:'long',year:'numeric',weekday:'long'})}</b><small>${haftaNo(n)}${L('. hafta · yılın ',' · week ')}${yg}${L('. günü · ',' of the year · ')}${yt-yg}${Ln(' gün kaldı</small><div class="cizgi"><i style="width:',' days left</small><div class="cizgi"><i style="width:',yt-yg,' day left</small><div class="cizgi"><i style="width:')}${yp}${L('%"></i></div><div class="ekSat"><span>Yıl</span><span>%','%"></i></div><div class="ekSat"><span>Year</span><span>')}${yp}${L(' tamamlandı</span></div></div>','% complete</span></div></div>')}`;
   ekYaz('#saatEk',h);
 }
 // Calendar extra: next 7 days (from the 6-month data of the top panel)
@@ -1474,13 +1475,13 @@ function ustCiz(){
   else{const y=ev.find(e=>tur(e)&&evGun(e)===yarin);if(y){cip=L('Yarın: ','Tomorrow: ')+etkAd(y);cipE=y}}
   // summary of the day: today's timed events and special days, tasks due today, current weather
   const hy=ustYer(),bugunE=ev.filter(e=>evGunde(e,bugun)&&(e.start.dateTime||tur(e))),gb=S?S.todos.filter(t=>!t.d&&t.due&&t.due.slice(0,10)<=bugun).length:0;
-  const oz=[bugunE.length?bugunE.length+(bugunE.length>1?Ln(' etkinlik',' events',bugunE.length):L(' etkinlik',' event')):'',gb?gb+(gb>1?Ln(' görev',' tasks',gb):L(' görev',' task')):'',hy.w?(hy.ad&&hy.ad+' ')+Math.round(hy.w.current.temperature_2m)+'° '+(WMO[hy.w.current.weather_code]||'').toLocaleLowerCase(LOC):''].filter(Boolean).join(' · ');
+  const oz=[bugunE.length?bugunE.length+(bugunE.length>1?Ln(' etkinlik',' events',bugunE.length,' event'):L(' etkinlik',' event')):'',gb?gb+(gb>1?Ln(' görev',' tasks',gb,' task'):L(' görev',' task')):'',hy.w?(hy.ad&&hy.ad+' ')+Math.round(hy.w.current.temperature_2m)+'° '+(WMO[hy.w.current.weather_code]||'').toLocaleLowerCase(LOC):''].filter(Boolean).join(' · ');
   // countdown: the nearest ⭐ important date (otherwise another special day); for an ongoing period, which day it is
   const g=ev.find(e=>tur(e)==='onemli'&&gunleri(e).at(-1)>=bugun)||ev.find(e=>tur(e)&&evGun(e)>bugun);
   let gs='',gsB=g?etkAd(g)+' · '+aralikYazi(g):'';
   sayimTk=ev.filter(e=>tur(e)&&gunleri(e).at(-1)>=bugun).slice(0,6).map(e=>({ad:etkAd(e),t:gunleri(e)[0]}));
   if(g){const gl=gunleri(g),i=gl.indexOf(bugun),fark=Math.round((new Date(gl[0]+'T00:00')-new Date(bugun+'T00:00'))/864e5);
-    gs=(i>=0?(gl.length>1?`<b>${i+1}${L('. gün / ',' · day ')}${gl.length}</b>`:L('<b>Bugün</b>','<b>Today</b>')):fark===1?L('<b>Yarın</b>','<b>Tomorrow</b>'):`<b>${fark}${Ln(' gün</b>',' days</b>',fark)}`)+' · '+esc(etkAd(g))}
+    gs=(i>=0?(gl.length>1?`<b>${i+1}${L('. gün / ',' · day ')}${gl.length}</b>`:L('<b>Bugün</b>','<b>Today</b>')):fark===1?L('<b>Yarın</b>','<b>Tomorrow</b>'):`<b>${fark}${Ln(' gün</b>',' days</b>',fark,' day</b>')}`)+' · '+esc(etkAd(g))}
   // a local countdown is shown if it is nearer than the calendar one (an ongoing calendar period comes first)
   const yl=sayimSirali().find(x=>x.t>=bugun);
   if(yl&&(!g||yl.t<(gunleri(g)[0]>bugun?gunleri(g)[0]:bugun))){gs=`<b>${sayimYazi(yl.t,bugun)}</b> · ${esc(yl.ad)}`;gsB=yl.ad+' · '+new Date(yl.t+'T00:00').toLocaleDateString(LOC,{day:'numeric',month:'long',year:'numeric'})}
@@ -1802,7 +1803,7 @@ function gorevEk(){
     const bg=gunStr(new Date()),bt=S.todos.filter(t=>t.due?.slice(0,10)===bg),l=bt.length?bt:S.todos,tam=l.filter(t=>t.d).length;
     const gec=S.todos.filter(t=>!t.d&&t.due&&new Date(t.due)<new Date()).length;
     h=`<div class="gOzet"><svg viewBox="0 0 36 36" aria-hidden="true"><circle cx="18" cy="18" r="15" fill="none" stroke="var(--ln)" stroke-width="4"/><circle cx="18" cy="18" r="15" fill="none" stroke="var(--ye)" stroke-width="4" stroke-linecap="round" pathLength="100" stroke-dasharray="${tam/l.length*100} 100"/></svg>`
-      +`<div><b>${tam}/${l.length}</b><small>${bt.length?L('bugünkü görev tamamlandı','of today\'s tasks done'):L('görev tamamlandı','tasks done')}</small>${gec&&suz!=='geciken'?`<button class="cip" data-gec>${gec}${Ln(' gecikmiş görevi göster</button>',' overdue tasks</button>',gec)}`:''}</div></div>`
+      +`<div><b>${tam}/${l.length}</b><small>${bt.length?L('bugünkü görev tamamlandı','of today\'s tasks done'):L('görev tamamlandı','tasks done')}</small>${gec&&suz!=='geciken'?`<button class="cip" data-gec>${gec}${Ln(' gecikmiş görevi göster</button>',' overdue tasks</button>',gec,' overdue task</button>')}`:''}</div></div>`
       +`${L('<div><h3>Son 7 günde tamamlanan</h3>','<div><h3>Completed in the last 7 days</h3>')}${bar7(S.biten,L('görev','tasks'))}</div>`;
   }
   ekYaz('#gorevEk',h);
@@ -1947,7 +1948,7 @@ function aliskanlikCiz(){
   const html=S.aliskanlik.map((h,i)=>!eslesir(h.ad)?'':`<div class="row" data-h="${i}"><span class="dot" style="--c:${C[i%4]}"></span><span title="${esc(h.ad)}">${esc(h.ad)}</span><span class="hafta7">${gunler.map(d=>{
     const g=gunStr(d),on=!!h.g?.[g];
     return `<button class="gn${on?' on':''}" data-h="${i}" data-gun="${g}" aria-pressed="${on}" aria-label="${esc(h.ad)}, ${d.toLocaleDateString(LOC,{weekday:'long',day:'numeric',month:'long'})}" title="${d.toLocaleDateString(LOC,{weekday:'short',day:'numeric',month:'short'})}"></button>`;
-  }).join('')}</span><small title="${L('Üst üste gün','Days in a row')}">${seri(h)}${Ln(' gün</small></div>',' days</small></div>',seri(h))}`).join('');
+  }).join('')}</span><small title="${L('Üst üste gün','Days in a row')}">${seri(h)}${Ln(' gün</small></div>',' days</small></div>',seri(h),' day</small></div>')}`).join('');
   $('#todos').innerHTML=html||`<p class="m">${ara()?L('Eşleşen alışkanlık yok.','No matching habits.'):L('Su içmek, yürüyüş, kitap… Her gün işaretlemek istediğin şeyleri aşağıdan ekle.','Drinking water, a walk, reading… Add the things you want to tick off every day below.')}</p>`;
   sayac();
 }
@@ -2007,7 +2008,7 @@ $('#tmenu').onclick=e=>{
     [`${L('Tamamlananları temizle (','Clear completed (')}${biten})`,()=>{
       if(!biten)return tost(L('Tamamlanmış görev yok','No completed tasks'));
       S.todos=eski.filter(t=>!t.d);ciz();kaydet();
-      tost(biten+Ln(' görev silindi',' tasks deleted',biten),L('Geri al','Undo'),()=>{S.todos=eski;ciz();kaydet()});
+      tost(biten+Ln(' görev silindi',' tasks deleted',biten,' task deleted'),L('Geri al','Undo'),()=>{S.todos=eski;ciz();kaydet()});
     },'teh']]);
 };
 function sonAc(ac){
@@ -2042,11 +2043,11 @@ const notListe=()=>(notListe.ilk=notIlk(),$('#nliste').innerHTML=S.notlar.map((n
 // Notes extra: words, characters, last edit
 function notBilgi(){
   const n=S.notlar[S.aktifNot],m=n.metin.trim();
-  ekYaz('#notEk',m?`<p>${m.split(/\s+/).length}${Ln(' kelime · ',' words · ',m.split(/\s+/).length)}${n.metin.length}${Ln(' karakter',' characters',n.metin.length)}${n.t?' · '+oncesi(n.t)+L(' düzenlendi',' edited'):''}</p>`:'');
+  ekYaz('#notEk',m?`<p>${m.split(/\s+/).length}${Ln(' kelime · ',' words · ',m.split(/\s+/).length,' word · ')}${n.metin.length}${Ln(' karakter',' characters',n.metin.length,' character')}${n.t?' · '+oncesi(n.t)+L(' düzenlendi',' edited'):''}</p>`:'');
 }
 function notSay(){
   const q=ara(),m=S.notlar[S.aktifNot].metin;let t='';
-  if(q){const n=S.notlar.reduce((a,x)=>a+x.metin.toLocaleLowerCase(LOC).split(q).length-1,0);t=n+Ln(' eşleşme',' matches',n)+(n?L(' · Enter ile git',' · Enter to go'):'')}
+  if(q){const n=S.notlar.reduce((a,x)=>a+x.metin.toLocaleLowerCase(LOC).split(q).length-1,0);t=n+Ln(' eşleşme',' matches',n,' match')+(n?L(' · Enter ile git',' · Enter to go'):'')}
   else{const k=(m.match(/^\s*- \[[ xX]\]/gm)||[]).length;if(k)t=(m.match(/^\s*- \[[xX]\]/gm)||[]).length+'/'+k+' ✓'}
   $('#nsay').textContent=t;notBilgi();
 }
@@ -2173,7 +2174,7 @@ async function haftaOzet(bas,tam=false){
   const fark=(a,b,f=x=>x)=>a===b?L('geçen haftayla aynı','same as last week'):(a>b?'↑ ':'↓ ')+f(Math.abs(a-b));
   const sat=(ad,ana,alt,f)=>`<div class="ar haftaS"><span><b>${ad}</b> ${ana}${alt?`<small>${alt}</small>`:''}</span><small class="hfFark">${f}</small></div>`;
   let h='';
-  if(r.odak)h+=sat(L('Odak','Focus'),`${r.odak.n}${Ln(' tur',' rounds',r.odak.n)}${r.odak.dk?' · '+sureYaz(r.odak.dk*6e4):''}`,r.odak.en?L('En çok: ','Most: ')+esc(r.odak.en[0])+' ('+sureYaz(r.odak.en[1]*6e4)+')':'',fark(r.odak.n,r.odak.n0,x=>x+Ln(' tur',' rounds',x)));
+  if(r.odak)h+=sat(L('Odak','Focus'),`${r.odak.n}${Ln(' tur',' rounds',r.odak.n,' round')}${r.odak.dk?' · '+sureYaz(r.odak.dk*6e4):''}`,r.odak.en?L('En çok: ','Most: ')+esc(r.odak.en[0])+' ('+sureYaz(r.odak.en[1]*6e4)+')':'',fark(r.odak.n,r.odak.n0,x=>x+Ln(' tur',' rounds',x,' round')));
   if(r.gorev)h+=sat(L('Görevler','Tasks'),`${r.gorev.n}${L(' tamamlandı',' completed')}`,'',fark(r.gorev.n,r.gorev.n0));
   if(r.alis)h+=sat(L('Alışkanlıklar','Habits'),'',r.alis.map(a=>esc(a.ad)+' '+a.n+'/'+n+(a.n===n?' 🔥':'')).join(' · '),'');
   if(r.ekran)h+=sat(L('Ekran süresi','Screen time'),`${ekranSure(r.ekran.t)} · ${L('günde ort. ','daily avg. ')}${ekranSure(r.ekran.ort)}`,r.ekran.ilk.map(esc).join(' · '),fark(Math.round(r.ekran.t/60),Math.round(r.ekran.t0/60),x=>sureYaz(x*6e4)));
@@ -2221,7 +2222,7 @@ function ozet(){
   const n=new Date(),g=gunStr(n);
   if(!S||A('ozet')===false||S.ozet===g||n.getHours()<5||!havaDenendi||!takvimDenendi)return;
   const gb=S.todos.filter(t=>!t.d&&t.due&&t.due.slice(0,10)<=g),gec=gb.filter(t=>new Date(t.due)<n).length,p=[],c=[];
-  p.push(gb.length?`${gb.length}${Ln(' görev',' tasks',gb.length)}${gec?` (${gec}${Ln(' gecikmiş)',' overdue)',gec)}`:''}`:L('Bugün için görev yok','No tasks for today'));
+  p.push(gb.length?`${gb.length}${Ln(' görev',' tasks',gb.length,' task')}${gec?` (${gec}${Ln(' gecikmiş)',' overdue)',gec)}`:''}`:L('Bugün için görev yok','No tasks for today'));
   if(ileriT){ // the calendar answered in this session
     const l=ileriGor(),yarin=new Date(n);yarin.setDate(yarin.getDate()+1);
     const bugunEv=l.filter(e=>evGunde(e,g)),yarinEv=l.filter(e=>tur(e)&&evGun(e)===gunStr(yarin)); // tomorrow: only those that start
@@ -2229,13 +2230,13 @@ function ozet(){
     const ilk=olagan.filter(e=>e.start.dateTime&&new Date(e.start.dateTime)>n).sort((a,b)=>new Date(a.start.dateTime)-new Date(b.start.dateTime))[0];
     if(ilk)c.push(`${L('ilk etkinlik','first event')} ${saat(new Date(ilk.start.dateTime))} ${etkAd(ilk)}`);
     if(ozel.length)p.unshift(L('Bugün: ','Today: ')+ozel.map(etkAd).join(', '));
-    p.push(olagan.length?`${olagan.length}${Ln(' etkinlik',' events',olagan.length)}${ilk?L(', sıradaki ',', next ')+saat(new Date(ilk.start.dateTime)):''}`:L('etkinlik yok','no events'));
+    p.push(olagan.length?`${olagan.length}${Ln(' etkinlik',' events',olagan.length,' event')}${ilk?L(', sıradaki ',', next ')+saat(new Date(ilk.start.dateTime)):''}`:L('etkinlik yok','no events'));
     if(yarinEv.length)p.push(L('Yarın: ','Tomorrow: ')+yarinEv.map(etkAd).join(', '));
   }
   if(havaV){const d=havaV.daily,y=d.precipitation_probability_max?.[0]??0;p.push(`${Math.round(d.temperature_2m_max[0])}° / ${Math.round(d.temperature_2m_min[0])}°${y>=40?L(', yağış ',', rain ')+yz(y):''}`)}
   // one sentence: first event, weather, waiting tasks; missing parts are skipped
   if(havaV?.current)c.push(`${L('hava','weather')} ${trK(WMO[havaV.current.weather_code]||'')} ${Math.round(havaV.current.temperature_2m)}°`.replace('  ',' '));
-  const acik=S.todos.filter(t=>!t.d).length;if(acik)c.push(acik+Ln(' görev bekliyor',' tasks waiting',acik));
+  const acik=S.todos.filter(t=>!t.d).length;if(acik)c.push(acik+Ln(' görev bekliyor',' tasks waiting',acik,' task waiting'));
   const cumle=c.join(', ');
   bildir(n.getHours()<12?selamAd(L('Günaydın','Good morning'),A('ad')):L('Günün özeti','Today\'s summary'),p.join(' · '),cumle&&cumle[0].toLocaleUpperCase(LOC)+cumle.slice(1)+'.');
   S.ozet=g;kaydet();
@@ -2348,8 +2349,8 @@ function uygCiz(){
   // Recently opened: only visible while the card fills empty space (CSS)
   const son=l.map((u,i)=>[u,i]).filter(([u])=>u.son).sort((a,b)=>b[0].son-a[0].son).slice(0,8);
   const cok=l.map((u,i)=>[u,i]).filter(([u])=>u.n).sort((a,b)=>b[0].n-a[0].n).slice(0,6),en=cok[0]?.[0].n||1;
-  $('#uygSon').innerHTML=l.length?L('<div class="uygBol"><div><h3>Son açılanlar</h3>','<div class="uygBol"><div><h3>Recently opened</h3>')+(son.length?son.map(([u,i])=>`<button data-u="${i}" title="${esc(u.ad)}${L(' — aç">',' — open">')}${uygSimge(u)}<span>${esc(u.ad)}</span><small>${u.n}${Ln(' kez · ',' times · ',u.n)}${oncesi(u.son)}</small></button>`).join(''):L('<p class="m">Açtığın uygulamalar burada görünür.</p>','<p class="m">Apps you open appear here.</p>'))
-    +L('</div><div><h3>En çok açılanlar</h3>','</div><div><h3>Most opened</h3>')+(cok.length?cok.map(([u,i])=>`<button data-u="${i}" title="${esc(u.ad)} — ${u.n}${Ln(' kez açıldı" style="background:linear-gradient(90deg,var(--ln) ',' times opened" style="background:linear-gradient(90deg,var(--ln) ',u.n)}${u.n/en*100}%,transparent 0)">${uygSimge(u)}<span>${esc(u.ad)}</span><small>${u.n}</small></button>`).join(''):L('<p class="m">Henüz yok.</p>','<p class="m">Nothing yet.</p>'))+'</div></div>':'';
+  $('#uygSon').innerHTML=l.length?L('<div class="uygBol"><div><h3>Son açılanlar</h3>','<div class="uygBol"><div><h3>Recently opened</h3>')+(son.length?son.map(([u,i])=>`<button data-u="${i}" title="${esc(u.ad)}${L(' — aç">',' — open">')}${uygSimge(u)}<span>${esc(u.ad)}</span><small>${u.n}${Ln(' kez · ',' times · ',u.n,' time · ')}${oncesi(u.son)}</small></button>`).join(''):L('<p class="m">Açtığın uygulamalar burada görünür.</p>','<p class="m">Apps you open appear here.</p>'))
+    +L('</div><div><h3>En çok açılanlar</h3>','</div><div><h3>Most opened</h3>')+(cok.length?cok.map(([u,i])=>`<button data-u="${i}" title="${esc(u.ad)} — ${u.n}${Ln(' kez açıldı" style="background:linear-gradient(90deg,var(--ln) ',' times opened" style="background:linear-gradient(90deg,var(--ln) ',u.n,' time opened" style="background:linear-gradient(90deg,var(--ln) ')}${u.n/en*100}%,transparent 0)">${uygSimge(u)}<span>${esc(u.ad)}</span><small>${u.n}</small></button>`).join(''):L('<p class="m">Henüz yok.</p>','<p class="m">Nothing yet.</p>'))+'</div></div>':'';
   uygSuz();
 }
 // App search (visible when the card is large): filters icons and lists, Enter opens the first
@@ -2393,11 +2394,11 @@ const uygMenu=(x,y,i)=>{const l=S.uygulamalar,u=l[i];menu(x,y,[[L('Aç','Open'),
 async function uygEkle(){
   const d=pencere(`${L('<div class="ic"><div class="dh"><h1>Uygulama ya da oyun ekle</h1><button class="rb" data-kapat aria-label="Kapat" title="Kapat (Esc)">','<div class="ic"><div class="dh"><h1>Add an app or game</h1><button class="rb" data-kapat aria-label="Close" title="Close (Esc)">')}${SVG(IKON.kapat)}${L('</button></div>\n    <p class="m">Masaüstündeki kısayollardan seç ya da bilgisayarında bir uygulama bul (.exe, .lnk, Steam kısayolu).</p>\n    <div class="secList" id="uygSec"><p class="m yuk">Masaüstü kısayolları okunuyor…</p></div>\n    <div class="db"><button class="btn" id="uygGozat">Gözat…</button><button class="btn" data-kapat>Vazgeç</button><button class="btn ana" id="uygTamam" disabled>Ekle</button></div></div>','</button></div>\n    <p class="m">Pick from your desktop shortcuts or find an app on your computer (.exe, .lnk, Steam shortcut).</p>\n    <div class="secList" id="uygSec"><p class="m yuk">Reading desktop shortcuts…</p></div>\n    <div class="db"><button class="btn" id="uygGozat">Browse…</button><button class="btn" data-kapat>Cancel</button><button class="btn ana" id="uygTamam" disabled>Add</button></div></div>')}`,true);
   const var_=new Set(S.uygulamalar.map(u=>u.yol.toLocaleLowerCase(LOC))),secili=new Map();
-  const tamam=()=>{const b=d.querySelector('#uygTamam');b.disabled=!secili.size;b.textContent=secili.size>1?secili.size+Ln(' uygulama ekle',' apps to add',secili.size):L('Ekle','Add')};
+  const tamam=()=>{const b=d.querySelector('#uygTamam');b.disabled=!secili.size;b.textContent=secili.size>1?secili.size+Ln(' uygulama ekle',' apps to add',secili.size,' app to add'):L('Ekle','Add')};
   const ekle=async l=>{
     const r=await api('/api/simgeler',{yollar:l.map(u=>u.yol)}),sm=r.durum==='ok'?r.veri:{};
     for(const u of l)S.uygulamalar.push({ad:u.ad.slice(0,60),yol:u.yol,simge:sm[u.yol]||''});
-    uygCiz();kaydet();tost(l.length>1?l.length+Ln(' uygulama eklendi',' apps added',l.length):l[0].ad+L(' eklendi',' added'));
+    uygCiz();kaydet();tost(l.length>1?l.length+Ln(' uygulama eklendi',' apps added',l.length,' app added'):l[0].ad+L(' eklendi',' added'));
   };
   d.querySelector('#uygGozat').onclick=async()=>{
     const r=await api('/api/dosya-sec',{});
@@ -3001,11 +3002,11 @@ function odakCiz(){
       if(O.mod==='calisma'){const g=gunStr(new Date(O.bitis));S.odak[g]=(S.odak[g]||0)+1;(S.odakLog??=[]).push(A('odakNe')?{g,dk:dk('calisma'),ne:A('odakNe')}:{g,dk:dk('calisma')});kaydet();odakIstat()}
       const hl=$('.halka');hl.classList.add('bitti');hl.onanimationend=()=>hl.classList.remove('bitti'); // tur bitti: halka parlar
       const n=bekleyen.length,y=sonrakiTur(true),taze=Date.now()-O.bitis<6e4; // not fresh: ended while RYOCS was closed
-      if(taze)api('/api/notify',{baslik:L('Odak','Focus'),metin:odakMetin(y.mod,y.uzun),metin2:n?`${L('Odak sırasında ','During focus ')}${n}${Ln(' bildirim: ',' notifications: ',n)}`+bekleyenYazi():''});
+      if(taze)api('/api/notify',{baslik:L('Odak','Focus'),metin:odakMetin(y.mod,y.uzun),metin2:n?`${L('Odak sırasında ','During focus ')}${n}${Ln(' bildirim: ',' notifications: ',n,' notification: ')}`+bekleyenYazi():''});
       O={...y,bitis:A('odakOto')&&taze?Date.now()+y.kalan*1000:0}; // card setting: the next round starts by itself (not after RYOCS was closed for a while)
     }
   }
-  if(bekleyen.length&&!odakSessiz()){const n=bekleyen.length;api('/api/notify',{baslik:`${L('Odak sırasında ','During focus ')}${n}${Ln(' bildirim',' notifications',n)}`,metin:bekleyenYazi()})} // paused/reset/setting turned off
+  if(bekleyen.length&&!odakSessiz()){const n=bekleyen.length;api('/api/notify',{baslik:`${L('Odak sırasında ','During focus ')}${n}${Ln(' bildirim',' notifications',n,' notification')}`,metin:bekleyenYazi()})} // paused/reset/setting turned off
   const oS=JSON.stringify(O);if(oS!==odakCiz.son){odakCiz.son=oS;try{localStorage.odakO=oS}catch{}} // written only when it changes (not every second while paused)
   $('#sure').textContent=iki(O.kalan/60|0)+':'+iki(O.kalan%60);
   $('#ilerleme').style.strokeDashoffset=289*(1-Math.min(1,O.kalan/sureO()));
@@ -3017,12 +3018,12 @@ function odakCiz(){
 function odakIstat(){
   if(!S)return;
   const g=[...Array(7)].map((_,k)=>{const d=new Date();d.setDate(d.getDate()-6+k);return[d,S.odak[gunStr(d)]||0]}),en=Math.max(4,...g.map(x=>x[1]));
-  $('#odakIst').innerHTML=`${L('<span class="spark" role="img" aria-label="Son 7 gün: ','<span class="spark" role="img" aria-label="Last 7 days: ')}${g.map(([d,n])=>d.toLocaleDateString(LOC,{weekday:'short'})+' '+n).join(', ')}">${g.map(([d,n])=>`<i style="height:${Math.max(2,n/en*14)}px" title="${d.toLocaleDateString(LOC,{weekday:'long'})}: ${n}${Ln(' tur',' rounds',n)}"></i>`).join('')}</span>${g[6][1]}${Ln(' tur',' rounds',g[6][1])}`;$('#odakIst').title=`${L('Bugün ','Today ')}${g[6][1]}${Ln(' odak turu',' focus rounds',g[6][1])}`;
+  $('#odakIst').innerHTML=`${L('<span class="spark" role="img" aria-label="Son 7 gün: ','<span class="spark" role="img" aria-label="Last 7 days: ')}${g.map(([d,n])=>d.toLocaleDateString(LOC,{weekday:'short'})+' '+n).join(', ')}">${g.map(([d,n])=>`<i style="height:${Math.max(2,n/en*14)}px" title="${d.toLocaleDateString(LOC,{weekday:'long'})}: ${n}${Ln(' tur',' rounds',n,' round')}"></i>`).join('')}</span>${g[6][1]}${Ln(' tur',' rounds',g[6][1],' round')}`;$('#odakIst').title=`${L('Bugün ','Today ')}${g[6][1]}${Ln(' odak turu',' focus rounds',g[6][1],' focus round')}`;
   if(odakIstat.son!==undefined&&odakIstat.son<g[6][1])sayiPop($('#odakIst'));odakIstat.son=g[6][1];
   // ek (kart büyükken): bugün, seri, günlük hedef, büyük 7 gün grafiği
   const bug=g[6][1],hd=A('hedef')||4;let seri=0;
   for(let d=new Date(),k=0;k<90;k++,d.setDate(d.getDate()-1)){if(S.odak[gunStr(d)])seri++;else if(k)break}
-  ekYaz('#odakEk',`${L('<div><div class="ekSat" style="margin:0 0 6px;font-size:12px"><span>Bugün <b>','<div><div class="ekSat" style="margin:0 0 6px;font-size:12px"><span>Today <b>')}${bug}${Ln(' tur · ',' rounds · ',bug)}${bug*dk('calisma')}${L(' dk</b></span><span>',' min</b></span><span>')}${seri?seri+Ln(' günlük seri','-day streak',seri):L('Seri yok','No streak')}</span></div>`
+  ekYaz('#odakEk',`${L('<div><div class="ekSat" style="margin:0 0 6px;font-size:12px"><span>Bugün <b>','<div><div class="ekSat" style="margin:0 0 6px;font-size:12px"><span>Today <b>')}${bug}${Ln(' tur · ',' rounds · ',bug,' round · ')}${bug*dk('calisma')}${L(' dk</b></span><span>',' min</b></span><span>')}${seri?seri+Ln(' günlük seri','-day streak',seri):L('Seri yok','No streak')}</span></div>`
     +`<div class="cizgi"><i style="width:${Math.min(100,bug/hd*100)}${L('%"></i></div><div class="ekSat"><span>Günlük hedef</span><span>','%"></i></div><div class="ekSat"><span>Daily goal</span><span>')}${bug}/${hd}${bug>=hd?' ✓':''}</span></div></div>`
     +`${L('<div><h3>Son 7 gün</h3>','<div><h3>Last 7 days</h3>')}${bar7(S.odak,L('tur','rounds'))}</div>`+odakNeEk());
 }
@@ -3114,7 +3115,7 @@ const evGunde=(e,t)=>gunleri(e).includes(t);
 const aralikYazi=e=>{const g=gunleri(e),[a,b]=[g[0],g.at(-1)].map(d=>new Date(d+'T00:00')),k=d=>d.toLocaleDateString(LOC,{day:'numeric',month:'short'});
   return a.getMonth()===b.getMonth()&&a.getFullYear()===b.getFullYear()?a.getDate()+'–'+k(b):k(a)+' – '+k(b)};
 // an ongoing period in the list: days left says more than the date range
-const surecYazi=e=>{const g=gunleri(e),b=g.indexOf(gunStr(new Date()));return b<0?aralikYazi(e):b===g.length-1?L('son gün','last day'):L('bitişe ','to the end ')+(g.length-1-b)+Ln(' gün',' days',g.length-1-b)};
+const surecYazi=e=>{const g=gunleri(e),b=g.indexOf(gunStr(new Date()));return b<0?aralikYazi(e):b===g.length-1?L('son gün','last day'):L('bitişe ','to the end ')+(g.length-1-b)+Ln(' gün',' days',g.length-1-b,' day')};
 let takvimler=[],eksikIzin=false;
 // If the user has not chosen: while the regional holiday calendar is present, holiday calendars in other languages should not repeat the same days
 // Holiday calendar by language/region (Google's public holiday calendars); other holiday calendars are hidden unless the user picks
@@ -3175,7 +3176,7 @@ $('#aStil').onclick=async e=>{
 function etkAd(e){
   const t=tur(e),y=+e.extendedProperties?.private?.yil,yil=zaman(e).getFullYear();
   const sm=simge(e);let s=(sm?sm+' ':'')+(e.summary||L('(başlıksız)','(untitled)'));
-  if(y&&y<yil)s+=t==='dogum'?` · ${yil-y}${Ln(' yaşında',' years old',yil-y)}`:t==='yildonumu'?` · ${yil-y}${L('. yıl','. year')}`:'';
+  if(y&&y<yil)s+=t==='dogum'?` · ${yil-y}${Ln(' yaşında',' years old',yil-y,' year old')}`:t==='yildonumu'?` · ${yil-y}${L('. yıl','. year')}`:'';
   return s;
 }
 function aralik(r=ref){
@@ -3215,7 +3216,7 @@ function izgara(){
     }
     // on a wide card: week number at the start of a row, the first event's name in the cell (shown via CSS)
     const hf=sut===0||k===1?` data-hf="${haftaNo(new Date(y,m,k+(sut===0&&!HB())))}"`:'',ad=tekler[0]&&!etiket?`<em>${esc(etkAd(tekler[0][0]))}${tekler.length>1?' +'+(tekler.length-1):''}</em>`:'';
-    h+=`<button data-t="${t}"${hf} class="${sinif.trim()}"${stil}${ev.length?` title="${esc(ev.map(([e])=>etkAd(e)+(gunleri(e).length>1?' ('+aralikYazi(e)+')':'')).join('\n'))}"`:''} aria-label="${k} ${$('#ayad').textContent}${ev.length?', '+ev.length+Ln(' etkinlik',' events',ev.length):''}">${k}${ad}${nk}${etiket}</button>`;
+    h+=`<button data-t="${t}"${hf} class="${sinif.trim()}"${stil}${ev.length?` title="${esc(ev.map(([e])=>etkAd(e)+(gunleri(e).length>1?' ('+aralikYazi(e)+')':'')).join('\n'))}"`:''} aria-label="${k} ${$('#ayad').textContent}${ev.length?', '+ev.length+Ln(' etkinlik',' events',ev.length,' event'):''}">${k}${ad}${nk}${etiket}</button>`;
   }
   g.innerHTML=h;
 }
@@ -3247,7 +3248,7 @@ function detay(i){
   const e=evler[i];if(!e)return;
   const tb=tBilgi(e),z=zaman(e),bit=e.end&&new Date(e.end.dateTime||e.end.date+'T00:00'),gun=z.toLocaleDateString(LOC,{weekday:'long',day:'numeric',month:'long'});
   const gs=gunleri(e),uz=d=>new Date(d+'T00:00').toLocaleDateString(LOC,{weekday:'long',day:'numeric',month:'long'});
-  const ne=(gs.length>1&&!e.start.dateTime?`${uz(gs[0])} – ${uz(gs.at(-1))} · ${gs.length}${Ln(' gün',' days',gs.length)}`:e.start.dateTime?`${gun}, ${saat(z)}${bit?' – '+saat(bit):''}`:`${gun}${L(' · tüm gün',' · all day')}`)+(e.recurringEventId?L(' · tekrarlanan',' · repeating'):'')+(tb.ad?' · '+tb.ad:'');
+  const ne=(gs.length>1&&!e.start.dateTime?`${uz(gs[0])} – ${uz(gs.at(-1))} · ${gs.length}${Ln(' gün',' days',gs.length,' day')}`:e.start.dateTime?`${gun}, ${saat(z)}${bit?' – '+saat(bit):''}`:`${gun}${L(' · tüm gün',' · all day')}`)+(e.recurringEventId?L(' · tekrarlanan',' · repeating'):'')+(tb.ad?' · '+tb.ad:'');
   // video meeting (Google Meet or another conference link) and the place on a map: only https links are offered
   const meet=[e.hangoutLink,...(e.conferenceData?.entryPoints||[]).filter(p=>p.entryPointType==='video').map(p=>p.uri)].find(u=>/^https:\/\//.test(u||''));
   const harita=e.location?'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(e.location):'';
@@ -3440,7 +3441,7 @@ function spCiz(r,hata){
 $('#hKat').innerHTML=Object.entries(HKAT).map(([v,ad])=>`<button data-v="${v}">${ad}</button>`).join('');
 const hGizli=v=>(A('kartGizle')?.haber||[]).includes('k'+v);
 const haberK=()=>{const v0=DIL==='tr'?'gundem':DIL+'_top',k=A('haberKat')??v0;return HKAT[k]&&!hGizli(k)?k:Object.keys(HKAT).find(v=>!hGizli(v))||v0};
-const rssMi=k=>k==='sondakika'||/^(en|es|pl)_/.test(k),hKaynak=k=>k==='sondakika'?(hbKaynakSay?hbKaynakSay+Ln(' kaynak',' sources',hbKaynakSay):L('Son dakika kaynakları','Breaking news sources')):k.startsWith('en_')?'BBC News':k.startsWith('es_')?'El País':k.startsWith('pl_')?'Polsat News':'Bundle'; // if the selected tab was hidden, the first visible one
+const rssMi=k=>k==='sondakika'||/^(en|es|pl)_/.test(k),hKaynak=k=>k==='sondakika'?(hbKaynakSay?hbKaynakSay+Ln(' kaynak',' sources',hbKaynakSay,' source'):L('Son dakika kaynakları','Breaking news sources')):k.startsWith('en_')?'BBC News':k.startsWith('es_')?'El País':k.startsWith('pl_')?'Polsat News':'Bundle'; // if the selected tab was hidden, the first visible one
 let haberV={},haberT={},haberHata={},hbOkundu=[],hbKaynakSay=0;
 try{haberT=JSON.parse(localStorage.hbT||'{}');hbOkundu=JSON.parse(localStorage.hbOkundu||'[]')}catch{}
 // publication time in ms; a feed that writes Turkish time but labels it GMT (CNN Türk) lands in the future: taken back 3 hours
@@ -3513,7 +3514,7 @@ function haberCiz(){
   ekYaz('#haberler',l.map((y,i)=>{const x=hbGoster(y,gz);if(!x)return'';if(kl.length){const m=trK(x.b+' '+(x.o||''));if(kl.some(w=>m.includes(w)))return''}const t=x.t?new Date(x.t).getTime():0;
     return `<button class="hb${hbOkundu.includes(x.l)?' okundu':''}" data-h="${i}" title="${esc(x.b)} — ${esc([x.k,...x.d.map(d=>d.k)].join(', '))}">`
     +(x.lg?`<img class="hbLogo" src="${esc(x.lg)}" alt="" loading="lazy">`:'')
-    +`<span><b>${gor.has(y.l)?'':`<i class="hbNokta" role="img" aria-label="${L('yeni','new')}"></i>`}${esc(x.b)}</b><small>${esc(x.k)}${x.d.length?' +'+x.d.length+(x.d.length>1?Ln(' kaynak',' sources',x.d.length):L(' kaynak',' source')):''}${t?' · '+oncesi(t):''}</small></span>`
+    +`<span><b>${gor.has(y.l)?'':`<i class="hbNokta" role="img" aria-label="${L('yeni','new')}"></i>`}${esc(x.b)}</b><small>${esc(x.k)}${x.d.length?' +'+x.d.length+(x.d.length>1?Ln(' kaynak',' sources',x.d.length,' source'):L(' kaynak',' source')):''}${t?' · '+oncesi(t):''}</small></span>`
     +(x.g?`<img class="hbGorsel" src="${esc(x.g)}" alt="" loading="lazy">`:'')+'</button>'}).join('')
     ||(l.length?`<p class="m">${l.length}${L(' haberin hepsi gizlenen kaynaklara ya da kelimelere takıldı.',' stories are all hidden by your sources or words.')}</p>`:L('<p class="m">Bu kategoride haber yok.</p>','<p class="m">No news in this category.</p>')));
   yeniSatirlar('haber:'+k,[...$('#haberler').querySelectorAll('[data-h]')].map(b=>[b,l[+b.dataset.h].l]));
@@ -3825,7 +3826,7 @@ function mailYeniBildir(l){
   if(!y.length||A('mailBildir')===false)return;
   // with several accounts the notification says which one (all the same: in the title, mixed: on each line)
   const cok=(mailV?.hesaplar?.length||0)>1,hs=[...new Set(y.map(m=>m.hesap))],tek=cok&&hs.length===1?' · '+hs[0]:'';
-  bildir((y.length>1?y.length+Ln(' yeni mail',' new emails',y.length):L('Yeni mail','New email'))+tek,y.slice(0,3).map(m=>(cok&&!tek&&m.hesap?m.hesap.split('@')[0]+' · ':'')+mailAd(m.kimden)+': '+(m.konu||L('(konusuz)','(no subject)'))).join('\n'));
+  bildir((y.length>1?y.length+Ln(' yeni mail',' new emails',y.length,' new email'):L('Yeni mail','New email'))+tek,y.slice(0,3).map(m=>(cok&&!tek&&m.hesap?m.hesap.split('@')[0]+' · ':'')+mailAd(m.kimden)+': '+(m.konu||L('(konusuz)','(no subject)'))).join('\n'));
 }
 // Several accounts: S.ayar.mailHesap = the address shown ('' or unknown: all, newest first, a colour dot per account)
 const mailHesaplar=()=>mailV?.hesaplar||[];
