@@ -11,6 +11,7 @@ All releases: [GitHub Releases](https://github.com/ryocs15/ryocs/releases). Your
 **Fixes**
 - With the glass look the moving background (lava, bubbles, light…) moved in a few jerky steps per second; it moves smoothly again at the screen's refresh rate. Developer options → Frame rate shows how fast the window draws, with the background and without it.
 - With Fit content on, a card in the middle column whose size was set by hand could overlap the card below once the column grew (for example the notes card over the calendar after adding notes). Developer options → Layout lists each card's size and any overlap.
+- In settings windows a long control no longer squeezes its label into a narrow column (for example Other cities in the weather settings, broken almost letter by letter, or Category in the news settings, hidden completely); when there is no room the control moves under the label.
 - The last row of a card's extra part (for example Other cities on the weather card) no longer has its shadow and focus ring cut off at the bottom.
 
 ## 1.1.14 (2026-11-26)
