@@ -1145,7 +1145,8 @@ const bekleyenYazi=()=>{const b=bekleyen;bekleyen=[];bekSakla();return b.length>
 // UI errors are written to %APPDATA%\RYOCS\hata.log (at most 20 per session)
 let hataSay=0;
 const hataGonder=m=>{if(hataSay++<20)api('/api/log',{mesaj:String(m).slice(0,2000)})};
-addEventListener('error',e=>hataGonder(`${e.message} @ ${e.lineno}:${e.colno}`));
+// the browser's harmless ResizeObserver notice is not an error: it filled most of hata.log and pushed real errors out
+addEventListener('error',e=>/ResizeObserver loop/.test(e.message)||hataGonder(`${e.message} @ ${e.lineno}:${e.colno}`));
 addEventListener('unhandledrejection',e=>hataGonder('promise: '+(e.reason?.stack||e.reason)));
 const animMs=ms=>K.dataset.anim==='off'?0:ms;
 const gunStr=d=>d.getFullYear()+'-'+iki(d.getMonth()+1)+'-'+iki(d.getDate());

@@ -49,6 +49,9 @@ jobs:
         shell: pwsh
         run: |
           $v = "${{ github.ref_name }}".TrimStart("v")
+          # the exe reports Cargo.toml's version: a tag that differs would make the app offer the same update forever
+          $c = (Select-String -Path Cargo.toml -Pattern '^version = "(.+)"').Matches[0].Groups[1].Value
+          if ($c -ne $v) { throw "tag v$v does not match Cargo.toml version $c" }
           & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" /Q "/DSurum=$v" kurulum\ryocs.iss
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
 
