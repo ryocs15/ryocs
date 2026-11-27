@@ -1,14 +1,37 @@
+<div align="center">
+
+<img src="docs/img/icon.png" width="96" alt="RYOCS icon">
+
 # RYOCS
 
-A personal dashboard for Windows: clock, calendar, tasks, notes, weather, news, Spotify, focus timer and more, on one neumorphic screen that lives in the tray.
+**Your day, on one calm screen.**
 
-RYOCS is a small native app (Rust + WebView2). Your data stays on your computer in `%APPDATA%\RYOCS`; nothing is sent anywhere except the services you connect yourself.
+A personal dashboard for Windows: clock, calendar, tasks, notes, weather, news, Spotify, Gmail, a focus timer and more, one click away in the tray.
 
-The interface is in **English** and **Turkish**. It follows the Windows display language and can be changed in Settings → Language and region. Time format (12/24 h), the first day of the week, weather units (°C/°F) and public holidays follow your region and can be changed in each card's settings.
+[![Latest release](https://img.shields.io/github/v/release/ryocs15/ryocs?style=flat-square&color=6c8cff)](https://github.com/ryocs15/ryocs/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/ryocs15/ryocs/total?style=flat-square&color=6c8cff)](https://github.com/ryocs15/ryocs/releases)
+[![Checks](https://img.shields.io/github/actions/workflow/status/ryocs15/ryocs/check.yml?branch=main&style=flat-square&label=checks)](https://github.com/ryocs15/ryocs/actions/workflows/check.yml)
+![Windows 10 and 11](https://img.shields.io/badge/Windows-10%20%7C%2011-0078d4?style=flat-square)
+![Built with Rust](https://img.shields.io/badge/built%20with-Rust-b7410e?style=flat-square)
+[![MIT license](https://img.shields.io/github/license/ryocs15/ryocs?style=flat-square)](LICENSE)
 
-**[Project page](https://ryocs15.github.io/ryocs/)** · **[Download](https://github.com/ryocs15/ryocs/releases/latest)** · [What's new](CHANGELOG.md)
+**[⬇ Download for Windows](https://github.com/ryocs15/ryocs/releases/latest)** · [Website](https://ryocs15.github.io/ryocs/) · [What's new](CHANGELOG.md) · [Connect accounts](#connecting-accounts) · [Build from source](#build-from-source)
 
-![The RYOCS dashboard with clock, calendar, apps, tasks, notes, news, weather, Spotify and focus cards](docs/img/dashboard.png)
+<br>
+
+<img src="docs/img/dashboard.png" alt="The RYOCS dashboard with clock, calendar, apps, tasks, notes, news, weather, Spotify and focus cards" width="900">
+
+</div>
+
+## Why RYOCS
+
+| | |
+| --- | --- |
+| 🪶 **Small and native** | A single Rust app with WebView2 that lives in the tray. No sign-up, no cloud of its own. |
+| 🔒 **Private by default** | Your data stays in `%APPDATA%\RYOCS`, encrypted with Windows DPAPI. Nothing leaves your PC except the services you connect yourself. |
+| 🧩 **Yours to arrange** | Drag cards to move them, drag the gaps to resize, hide what you don't need, save layouts. |
+| 🎨 **Easy on the eyes** | 16 themes, a glass look and 11 animated backgrounds, with light and dark switching by Windows or by daylight. |
+| 🌍 **English and Turkish** | Follows your Windows language and region: 12/24 h clock, first day of the week, °C/°F and public holidays. |
 
 ## Screenshots
 
@@ -23,6 +46,9 @@ The interface is in **English** and **Turkish**. It follows the Windows display 
 *Screenshots use demo data.*
 
 ## Features
+
+<details open>
+<summary><b>Everything on the dashboard</b></summary>
 
 - **Clock** with several dial styles, alarms, a second clock (about 35 cities), sunrise/sunset, countdowns, a free timer you can pause and a stopwatch
 - **Google Calendar**: month and week views, add, edit and delete events, birthdays and important dates, regional holidays
@@ -41,6 +67,8 @@ The interface is in **English** and **Turkish**. It follows the Windows display 
 - 16 themes, glass look, 11 animated backgrounds (lava lamp, snow, fireflies, aurora…) or a random one each time, PIN lock
 - Optional OneDrive sync between two computers, daily backups, JSON export/import
 - Update check: a notice with a download link when a new version is on GitHub (nothing is installed by itself)
+
+</details>
 
 ## Install
 
@@ -66,7 +94,8 @@ It is free, it needs no credit card, and the key stays on your computer in `%APP
 
 > 💡 Inside RYOCS, **Settings → Accounts → Set up and connect** opens a window with the same steps and buttons that open the right pages for you. You can follow that window instead of this guide.
 
-### Google Calendar and Gmail
+<details>
+<summary><b>Google Calendar and Gmail</b> (about 10 minutes)</summary>
 
 **Part 1: create your key on Google's website**
 
@@ -103,7 +132,10 @@ It is free, it needs no credit card, and the key stays on your computer in `%APP
 - RYOCS reads your mail and can mark it read or unread and archive it. It cannot send or delete anything.
 - **More Gmail accounts:** add each one as a test user (step 5), then **Settings → Accounts → Add Gmail**. They are for mail only; the calendar stays with the main account. Right-click an account's button on the mail card to give it your own colour.
 
-### Spotify
+</details>
+
+<details>
+<summary><b>Spotify</b> (about 3 minutes)</summary>
 
 1. Open **[developer.spotify.com/dashboard](https://developer.spotify.com/dashboard)** and log in with your normal Spotify account. Accept the terms if asked.
 2. Click **Create app** and fill in:
@@ -119,6 +151,8 @@ It is free, it needs no credit card, and the key stays on your computer in `%APP
 5. Your browser opens: click **Agree**. Close the tab and go back to RYOCS.
 
 Start a song on any device (phone, PC, speaker) and it shows up on the Spotify card. Seeing what is playing works with a free account; **play, pause, skip and volume need Spotify Premium** (a Spotify rule).
+
+</details>
 
 ### Disconnecting
 
