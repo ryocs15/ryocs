@@ -703,6 +703,7 @@ fn guncelle_kur() -> Result<Value, String> {
     }
     let yol = std::env::temp_dir().join(&ad);
     dayanikli_yaz(&yol, &b)?;
+    ekran_kaydet(); // the installer force-closes RYOCS: the last minute of screen time is written now (the UI saved before calling)
     std::process::Command::new(&yol).args(["/SILENT", "/SUPPRESSMSGBOXES", "/NORESTART"]).spawn().map_err(|e| e.to_string())?;
     // answer the UI first, then save and quit (the installer closes a RYOCS that is still running anyway)
     thread::spawn(|| { thread::sleep(Duration::from_millis(300)); olay(Olay::Kapat); });

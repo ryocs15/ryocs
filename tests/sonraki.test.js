@@ -26,6 +26,10 @@ es('2026-12-15T10:00', 'ay', '2026-12-15T11:00', '2027-01-15T10:00');
 es('2026-11-16T07:00', 'g:1,3,5', '2026-11-16T08:00', '2026-11-18T07:00');
 es('2026-11-20T07:00', 'g:1,3,5', '2026-11-20T08:00', '2026-11-23T07:00'); // Friday → Monday
 es('2026-12-30T07:00', 'g:5', '2026-12-30T08:00', '2027-01-01T07:00');     // year rollover, 1 Jan 2027 is a Friday
+// monthly on the 31st: the task's own day comes back after a short month (it is passed as t.ayGun)
+{ let d = '2027-01-31T10:00'; const yol = [];
+  for (let i = 0; i < 4; i++) { d = sonraki(d, 'ay', N(d), 31); yol.push(d.slice(0, 10)); }
+  assert.deepStrictEqual(yol, ['2027-02-28', '2027-03-31', '2027-04-30', '2027-05-31']); }
 // untimed task: tomorrow if today's 09:00 has passed
 es('', 'gun', '2026-11-16T12:00', '2026-11-17T09:00');
 // parsing day names (Turkish case rules) and a broken rule

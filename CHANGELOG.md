@@ -10,6 +10,9 @@ All releases: [GitHub Releases](https://github.com/ryocs15/ryocs/releases). Your
 - Gmail card settings: how many emails to show per account, from 5 to 50 (15 as before). Outlook accounts follow the same number.
 
 **Fixes**
+- A monthly task on the 29th, 30th or 31st no longer moves to the 28th for good after February: it returns to its own day (31 Jan → 28 Feb → 31 Mar).
+- One-click update keeps the last minute of screen time.
+- A long error message on the weather or news card no longer ends in a broken character code.
 - A link or file dropped on the window no longer replaces the dashboard with that page (the window only shows RYOCS itself).
 - A count of 1 takes the singular (1 task, 1 day, 1 round instead of "1 tasks"…), and Polish uses the right form for every number (1 zadanie, 3 zadania, 5 zadań).
 - The app picker window is translated too.

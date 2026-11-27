@@ -1182,7 +1182,7 @@ function baglan(el,r,ad,p){
     ?`<div><p class="m">${ad}${L(' henüz bağlanmadı. Bir kerelik kurulum birkaç dakika sürer.</p><button class="btn ana" onclick="kurulum(\'',' is not connected yet. The one-time setup takes a few minutes.</p><button class="btn ana" onclick="kurulum(\'')}${p}${L('\')">Bağla</button></div>','\')">Connect</button></div>')}`
     :r.durum==='bagli_degil'
     ?`<div><p class="m">${ad}${L(' bağlantısı yok ya da süresi doldu.</p><button class="btn ana" onclick="bagla(\'',' connection is missing or has expired.</p><button class="btn ana" onclick="bagla(\'')}${p}${L('\')">Yeniden bağla</button></div>','\')">Reconnect</button></div>')}`
-    :r.durum===AG_YOK?agYok():`<div><p class="m">${esc(r.durum).slice(0,300)}</p>${tekrarB()}</div>`;
+    :r.durum===AG_YOK?agYok():`<div><p class="m">${esc(String(r.durum).slice(0,300))}</p>${tekrarB()}</div>`;
   return true;
 }
 
@@ -1739,7 +1739,7 @@ async function hava(){
   if(n!==havaNo)return; // a newer request was sent meanwhile (the city was just chosen): this answer may be for the old place
   if(r.durum==='ok'){havaV=r.veri;havaO={t:Date.now(),v:r.veri};onbSakla();const d=r.veri.daily;try{localStorage.gunes=JSON.stringify({time:d?.time,sunrise:d?.sunrise,sunset:d?.sunset})}catch{}havaCiz();return havaDiger()}
   if(havaV)return; // network error: keep the last known forecast
-  const h=`${L('<h2>Hava durumu</h2>','<h2>Weather</h2>')}${r.durum===AG_YOK?agYok():`<p class="m">${esc(r.durum).slice(0,200)}</p>`}`;havaSerit='';
+  const h=`${L('<h2>Hava durumu</h2>','<h2>Weather</h2>')}${r.durum===AG_YOK?agYok():`<p class="m">${esc(String(r.durum).slice(0,200))}</p>`}`;havaSerit='';
   if(h!==havaSon)$('#hava').innerHTML=havaSon=h;
 }
 
@@ -1843,11 +1843,12 @@ function sayac(){
     :(S.aliskanlik.length?L('bugün ','today ')+S.aliskanlik.filter(h=>h.g?.[gunStr(new Date())]).length+'/'+S.aliskanlik.length:'');
   if(e.textContent===y)return;const once=e.textContent;e.textContent=y;if(once&&y&&once.split('/')[1]===y.split('/')[1])sayiPop(e); // on number change, not on tab change
 }
-// Next time of a repeating task: the first repeat after now (time of day kept).
-function sonraki(due,tek,simdi=new Date()){
+// Next time of a repeating task: the first repeat after now (time of day kept). gun: a monthly task's own day of the month
+// (t.ayGun), so 31 Jan → 28 Feb → 31 Mar, not 28 Mar: the stored date of a short month is not the task's day.
+function sonraki(due,tek,simdi=new Date(),gun){
   let d=due?new Date(due):new Date(NaN);
   if(isNaN(d)){d=new Date(simdi);d.setHours(9,0,0,0)}
-  const g=d.getDate(),gl=tekGun(tek);
+  const g=gun||d.getDate(),gl=tekGun(tek);
   do{
     if(gl)do d.setDate(d.getDate()+1);while(!gl.includes(d.getDay()));
     else if(tek==='ay'){d.setDate(1);d.setMonth(d.getMonth()+1);d.setDate(Math.min(g,new Date(d.getFullYear(),d.getMonth()+1,0).getDate()))}
@@ -1860,7 +1861,7 @@ const bitenSay=d=>{const g=gunStr(new Date());S.biten[g]=Math.max(0,(S.biten[g]|
 function isaretle(i){
   const t=S.todos[i],r=$(`#todos [data-r="${i}"]`);
   if(t.tek&&!t.d){
-    const eski={due:t.due,n:t.n,alt:t.alt&&t.alt.map(a=>({...a}))};t.due=sonraki(t.due,t.tek);delete t.n;bitenSay(1);
+    const eski={due:t.due,n:t.n,alt:t.alt&&t.alt.map(a=>({...a}))};if(t.tek==='ay')t.ayGun??=new Date(t.due).getDate();t.due=sonraki(t.due,t.tek,new Date(),t.ayGun);delete t.n;bitenSay(1);
     if(t.alt)for(const a of t.alt)a.d=false; // the next time starts with its subtasks open
     ciz();kaydet();
     return tost(L('Sonraki: ','Next: ')+kisaTarih(new Date(t.due)),L('Geri al','Undo'),()=>{t.due=eski.due;if(eski.n)t.n=eski.n;if(eski.alt)t.alt=eski.alt;bitenSay(-1);ciz();kaydet()});
@@ -1893,6 +1894,7 @@ async function duzenle(i){
   if(!v||!v[0])return;
   let [ad,due,p,tek,gunler]=v;if(tekCoz(gunler))tek=tekCoz(gunler); // typed days take precedence over the choice
   if(tek&&!due){const b=new Date();b.setHours(9,0,0,0);due=b>new Date()?yerel(b):sonraki(yerel(b),tek)} // a repeat needs a time
+  if(due!==(t.due||'')||tek!==(t.tek||'')){delete t.ayGun} // a new date or repeat: the monthly day comes from the new date
   if(due!==(t.due||'')){delete t.n;if(due)t.due=due;else delete t.due} // remind again if the time changed
   t.t=ad.slice(0,200);
   if(+p)t.p=+p;else delete t.p;
