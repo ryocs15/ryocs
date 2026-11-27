@@ -2,7 +2,9 @@
 
 All releases: [GitHub Releases](https://github.com/ryocs15/ryocs/releases). Your data (`%APPDATA%\RYOCS`) is kept by every update.
 
-## Unreleased
+## 1.2.0 (2026-11-27)
+
+RYOCS in Polish and Spanish, developer options, and a choice of how many emails the Gmail card shows.
 
 **New**
 - Polish and Spanish. RYOCS follows a Polish or Spanish Windows, or pick the language in Settings → Language and region. Notifications, the tray menu and the installer are translated too; the news card shows Polsat News in Polish and El País in Spanish, with the same six categories as in English. The translations are machine-made and not yet reviewed by native speakers; a text that is missing shows in English.
@@ -10,6 +12,7 @@ All releases: [GitHub Releases](https://github.com/ryocs15/ryocs/releases). Your
 - Gmail card settings: how many emails to show per account, from 5 to 50 (15 as before). Outlook accounts follow the same number.
 
 **Fixes**
+- Updated two libraries with security fixes: url 2.5.9 (RUSTSEC-2026-0592) and cookie 0.18.3 (RUSTSEC-2026-0594).
 - Deleting a note on the left of the open one no longer switches to another note.
 - The clock card's date line reads "Week 47 · day 331 of the year" in English (it was out of order), and the day of the year is right just after midnight in summer time.
 - A monthly task on the 29th, 30th or 31st no longer moves to the 28th for good after February: it returns to its own day (31 Jan → 28 Feb → 31 Mar).
