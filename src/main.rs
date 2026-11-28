@@ -100,7 +100,7 @@ fn provider(name: &str) -> Result<Provider, String> {
             name: "spotify",
             auth: "https://accounts.spotify.com/authorize",
             token: "https://accounts.spotify.com/api/token",
-            scope: "user-read-playback-state user-modify-playback-state user-read-currently-playing",
+            scope: "user-read-playback-state user-modify-playback-state user-read-currently-playing user-library-read user-library-modify",
             extra: &[],
         }),
         _ => Err("unknown service".into()),
@@ -2223,6 +2223,10 @@ fn spotify_deger(cmd: &str, b: &str) -> Result<String, String> {
         "repeat" => v["mod"].as_str().filter(|m| ["off", "context", "track"].contains(m)).map(String::from).ok_or_else(hata),
         // device ids are letters and digits; the id goes into the JSON body
         "transfer" => v["id"].as_str().filter(|i| !i.is_empty() && i.len() <= 128 && i.bytes().all(|c| c.is_ascii_alphanumeric())).map(String::from).ok_or_else(hata),
+        // the playing track or podcast episode, as Spotify names it (spotify:track:<base62 id>); it goes into the query
+        "begen" | "begenme" | "begen_mi" => v["uri"].as_str()
+            .filter(|u| ["spotify:track:", "spotify:episode:"].iter().any(|o| u.strip_prefix(o).is_some_and(|i| !i.is_empty() && i.len() <= 64 && i.bytes().all(|c| c.is_ascii_alphanumeric()))))
+            .map(String::from).ok_or_else(hata),
         _ => Ok(String::new()),
     }
 }
@@ -2231,7 +2235,16 @@ fn spotify(cmd: &str, b: &str) -> Result<Value, String> {
     let deger = spotify_deger(cmd, b)?;
     let auth = format!("Bearer {}", token(&provider("spotify")?)?);
     let base = "https://api.spotify.com/v1/me/player";
+    // liking needs the library permission added in 1.2.1: an older sign-in has to connect again once
+    if cmd.starts_with("begen") && !tokens_oku()["spotify"]["scope"].as_str().is_some_and(|s| s.contains("user-library-modify")) {
+        return Err("izin_yok".into());
+    }
+    // the library endpoints Spotify has had since February 2026 (/me/tracks was removed); contains answers [true] or [false]
+    let kitaplik = "https://api.spotify.com/v1/me/library";
     body(match cmd {
+        "begen_mi" => AGENT.get(&format!("{kitaplik}/contains")).query("uris", &deger).set("Authorization", &auth).call(),
+        "begen" => AGENT.put(kitaplik).query("uris", &deger).set("Authorization", &auth).send_string(""),
+        "begenme" => AGENT.delete(kitaplik).query("uris", &deger).set("Authorization", &auth).call(),
         // market: so the hundreds of country codes (available_markets) are not returned; episode: podcasts too (else item is null)
         "" => AGENT.get(base).query("market", "from_token").query("additional_types", "track,episode").set("Authorization", &auth).call(),
         "play" | "pause" => AGENT.put(&format!("{base}/{cmd}")).set("Authorization", &auth).send_string(""),
@@ -3161,6 +3174,11 @@ mod tests {
         assert_eq!(spotify_deger("repeat", r#"{"mod":"track"}"#), Ok("track".into()));
         assert!(spotify_deger("repeat", r#"{"mod":"all&x=1"}"#).is_err());
         assert!(spotify_deger("transfer", r#"{"id":"a1b2"}"#).is_ok() && spotify_deger("transfer", r#"{"id":"../x"}"#).is_err());
+        assert_eq!(spotify_deger("begen", r#"{"uri":"spotify:track:7a3LWj5xSFhFRYmztS8wgK"}"#), Ok("spotify:track:7a3LWj5xSFhFRYmztS8wgK".into()));
+        assert!(spotify_deger("begen_mi", r#"{"uri":"spotify:episode:0Q86acNRm6V9GYx55SXKwf"}"#).is_ok());
+        for u in ["spotify:track:", "spotify:track:a&uris=spotify:track:b", "spotify:playlist:abc", "https://open.spotify.com/track/abc"] {
+            assert!(spotify_deger("begenme", &json!({ "uri": u }).to_string()).is_err(), "{u}");
+        }
     }
 
     #[test]

@@ -547,6 +547,7 @@ button.dot:hover{transform:scale(1.3)}
 .spCihaz:hover{color:var(--tx)}
 .tr b[data-u]{cursor:pointer}.tr b[data-u]:hover{text-decoration:underline}
 .ctl{display:flex;gap:12px;margin-top:8px}
+.spBegen svg{fill:none;stroke:currentColor;stroke-width:1.8}.spBegen[aria-pressed=true] svg{fill:var(--ye);stroke:var(--ye)}
 #serbest{display:flex;align-items:center;justify-content:center;gap:6px;font-size:12px;margin-top:8px;min-height:28px;color:var(--mu)}
 #serbest b{color:var(--tx);font-variant-numeric:tabular-nums}
 .odak{display:flex;align-items:center;gap:16px;flex:1}
@@ -3435,9 +3436,10 @@ function spCiz(r,hata){
     +`<div class="tr"><b${url?` data-u title="${L('Spotify’da aç','Open in Spotify')}"`:''}>${esc(it?it.name:L('Şu an çalan bir şey yok','Nothing is playing right now'))}</b><span>${esc(hata||(it?alt:L('Spotify\'ı bir cihazda açın','Open Spotify on a device')))}</span>`
     +(it?`<div class="ilerle" id="spIlerle" role="slider" tabindex="0" aria-label="${L('Şarkıda konum','Position in the track')}" aria-valuemin="0" aria-valuemax="${Math.round((it.duration_ms||0)/1e3)}"><span><i id="spBar"></i></span></div>`
       +`<div class="spAlt"><small id="spZaman"></small><button class="spCihaz" title="${L('Cihaz, karışık çalma ve tekrar','Device, shuffle and repeat')}">${esc(spCihazYazi())}</button></div>`:'')
-    +`<div class="ctl">${dugme('previous')}${dugme(v&&v.is_playing?'pause':'play')}${dugme('next')}</div></div>`;
+    +`<div class="ctl">${dugme('previous')}${dugme(v&&v.is_playing?'pause':'play')}${dugme('next')}${it?.uri?`<button class="rb spBegen" aria-pressed="false"><svg viewBox="0 0 24 24"><path d="M12 20.5s-7.6-4.6-9.3-9.4C1.6 7.8 3.8 4.5 7.1 4.5c2 0 3.5 1.1 4.9 2.9 1.4-1.8 2.9-2.9 4.9-2.9 3.3 0 5.5 3.3 4.4 6.6-1.7 4.8-9.3 9.4-9.3 9.4z"/></svg></button>`:''}</div></div>`;
   if(h!==spSon)el.innerHTML=spSon=h; // do not touch if unchanged: the cover must not flicker
   if((it?.id??null)!==spSiraId){spSiraId=it?.id??null;spSira()}
+  if((it?.uri??null)!==spBegen.uri)spBegenOku(it?.uri??null);else begenCiz();
   const ses=v?.device?.volume_percent,s=$('#ses');
   s.hidden=ses==null;
   if(ses!=null&&document.activeElement!==s&&Date.now()>sesBekle){s.value=ses;s.title=L('Ses düzeyi: ','Volume: ')+yz(ses)}
@@ -4012,7 +4014,27 @@ function spAtla(ms){
   clearTimeout(spAtla.t);spAtla.t=setTimeout(()=>spKomut('seek',{ms}),400); // a held arrow key: one request, not 30 a second
 }
 let spMesgul=false;
+// Like (save to Your Library): asked once per track, not every 5 s; null = not known yet (or no permission)
+let spBegen={uri:null,on:null};
+function begenCiz(){
+  const b=$('#sp .spBegen');if(!b)return;const on=!!spBegen.on;
+  b.setAttribute('aria-pressed',on);b.title=b.ariaLabel=on?L('Beğenilenlerden çıkar','Remove from Liked Songs'):L('Beğenilenlere ekle','Add to Liked Songs');
+}
+async function spBegenOku(uri){
+  spBegen={uri,on:null};begenCiz();if(!uri)return;
+  const r=await api('/api/spotify/begen_mi',{uri});
+  if(spBegen.uri===uri&&r.durum==='ok'&&Array.isArray(r.veri)){spBegen.on=!!r.veri[0];begenCiz()}
+}
+async function spBegenDegistir(){
+  const {uri}=spBegen,on=!spBegen.on;if(!uri)return;
+  spBegen.on=on;begenCiz(); // shown at once; put back if Spotify refuses
+  const r=await api('/api/spotify/'+(on?'begen':'begenme'),{uri});
+  if(r.durum==='ok'){if(spBegen.uri===uri)tost(on?L('Beğenilen Şarkılar’a eklendi','Added to Liked Songs'):L('Beğenilen Şarkılar’dan çıkarıldı','Removed from Liked Songs'));return}
+  if(spBegen.uri===uri){spBegen.on=!on;begenCiz()}
+  tost(r.durum==='izin_yok'?L('Beğenmek için Spotify’ı bir kez yeniden bağlayın (Ayarlar → Hesaplar)','To like songs, connect Spotify again once (Settings → Accounts)'):L('Spotify beğeniyi kaydedemedi','Spotify could not save the like'));
+}
 $('#sp').onclick=async e=>{
+  if(e.target.closest('.spBegen'))return spBegenDegistir();
   const il=e.target.closest('#spIlerle');if(il&&spPos){const k=il.getBoundingClientRect();return spAtla((e.clientX-k.left)/k.width*spPos.d)}
   if(e.target.closest('.spCihaz')){const k=e.target.getBoundingClientRect();return spMenu(k.left,k.bottom+4)}
   if(e.target.closest('.tr b[data-u]')&&spDurum?.url)return api('/api/open',{url:spDurum.url});

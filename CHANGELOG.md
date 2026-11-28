@@ -4,7 +4,10 @@ All releases: [GitHub Releases](https://github.com/ryocs15/ryocs/releases). Your
 
 ## 1.2.1 (2026-11-28)
 
-Polish and Spanish texts that fit, and Gmail that loads all emails at once with 50 per account.
+A like button on the Spotify card, Polish and Spanish texts that fit, and Gmail that loads all emails at once with 50 per account.
+
+**New**
+- Spotify card: a heart next to the controls adds the playing song (or podcast episode) to your Liked Songs, or takes it out; filled means it is already there. If you connected Spotify before this version, connect it again once (Settings → Accounts) so RYOCS may change your library; until then the heart says so.
 
 **Fixes**
 - In Polish and Spanish the news categories in the news card settings ran out of the window (Science and Sports could not be picked); they now wrap onto a second line.
