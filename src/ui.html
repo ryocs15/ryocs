@@ -148,7 +148,7 @@ nav .sp{flex:1}
 nav #ara{flex:0 1 280px;min-width:150px;border-radius:20px;padding:10px 18px}
 #linkler{display:flex;gap:10px;overflow-x:auto;scrollbar-width:none;padding:6px;margin:-6px;min-width:0;flex:0 1 auto}
 #linkler::-webkit-scrollbar{display:none}
-#linkler.tasar{mask-image:linear-gradient(to right,#000 calc(100% - 28px),transparent)} /* links that do not fit show that they can be scrolled */
+#linkler.tasar,#hKat.tasar{mask-image:linear-gradient(to right,#000 calc(100% - 28px),transparent)} /* links or news tabs that do not fit show that they can be scrolled */
 #linkler .rb{width:34px;height:34px;font-size:13px;font-weight:400}#linkler .rb img{width:18px;height:18px;border-radius:4px;object-fit:contain}#linkler .rb img+span{display:none}
 #yenile.don svg,#hYenile.don svg{animation:don .8s linear infinite}
 #ayar:hover svg{transform:rotate(60deg)}
@@ -1492,7 +1492,7 @@ function ustCiz(){
   if(tz&&dilimSaat(tz,n,1)===saat24(n)){tz=DIL==='tr'&&tz!=='Europe/Istanbul'?'Europe/Istanbul':'';ad=L('Türkiye','Turkey')}
   const d=hy.w?.daily,yt=hy.ad?' · '+esc(hy.ad):'',gunes=d?.sunrise?.[0]?`<span title="${L('Gün doğumu','Sunrise')}${yt}"><svg viewBox="0 0 24 24"><path d="M3 19h18M6.5 19a5.5 5.5 0 0 1 11 0M12 3.5v6M9 6.5l3-3 3 3"/></svg>${saatS(d.sunrise[0].slice(11,16))}</span><span title="${L('Gün batımı','Sunset')}${yt}"><svg viewBox="0 0 24 24"><path d="M3 19h18M6.5 19a5.5 5.5 0 0 1 11 0M12 3.5v6M9 6.5l3 3 3-3"/></svg>${saatS(d.sunset[0].slice(11,16))}</span>`:'';
   const cevrim=!navigator.onLine||takvimUyarildi||!!document.querySelector('#hava .ag,#olay .ag');
-  if(sonGuncel){const dk=Math.floor((Date.now()-sonGuncel)/6e4);$('#yenile').title=(cevrim?L('Çevrimdışı: son bilinen veriler gösteriliyor. ','Offline: showing the last known data. '):'')+L('Son güncelleme: ','Last updated: ')+(dk<1?L('az önce','just now'):dk+L(' dk önce',' min ago'))+L(' · Yenile (F5)',' · Refresh (F5)')}
+  if(sonGuncel){const dk=Math.floor((Date.now()-sonGuncel)/6e4);$('#yenile').title=(cevrim?L('Çevrimdışı: son bilinen veriler gösteriliyor. ','Offline: showing the last known data. '):'')+L('Son güncelleme: ','Last updated: ')+(dk<1?L('az önce','just now'):Lf('{0} dk önce','{0} min ago',dk))+L(' · Yenile (F5)',' · Refresh (F5)')}
   const yeni=JSON.stringify([cip,oz,gs,tz&&ad+' '+dilimSaat(tz,n),gunes,cevrim]);
   if(yeni===ustSon)return;ustSon=yeni;
   const c=$('#siradaki');c.hidden=!cip;c.textContent=cip||'';c.title=cip?cip+L(' · ayrıntılar için tıkla',' · click for details'):'';c.onclick=()=>cipE&&etkinlikAc(cipE);
@@ -1689,7 +1689,8 @@ function polen(k){const [a,v]=Object.keys(POLEN).map(x=>[x,k?.[x]]).filter(([,v]
 function havaKalite(k){
   if(k?.european_aqi==null)return '';
   const p=polen(k),t=`PM2.5 ${Math.round(k.pm2_5??0)} µg/m³`+(p?L(' · polen: ',' · pollen: ')+p.ad+` (${p.sev})`:'');
-  return `<span title="${esc(t)}"><small>${L('Hava kalitesi','Air quality')}</small><b>${aqiAd(k.european_aqi)}</b></span>`+(p&&p.v>=10?`<span title="${esc(p.ad)}"><small>${L('Polen','Pollen')}</small><b>${esc(p.sev)}</b></span>`:'');
+  const ad=aqiAd(k.european_aqi); // a long word (Polish "Umiarkowana") does not fit a 78 px tile: that tile takes two columns
+  return `<span title="${esc(t)}"${ad.length>9?' style="grid-column:span 2"':''}><small>${L('Hava kalitesi','Air quality')}</small><b>${ad}</b></span>`+(p&&p.v>=10?`<span title="${esc(p.ad)}"><small>${L('Polen','Pollen')}</small><b>${esc(p.sev)}</b></span>`:'');
 }
 // Weather extra (when the card is large): details, 24-hour curve, 7-day forecast. A block is skipped if an old cache lacks its fields.
 function havaEk(w){
@@ -2367,7 +2368,7 @@ $('#uygAra').onkeydown=e=>{
   if(e.key==='Enter'){const b=$('#uyglar [data-u]:not([hidden]):not([data-u="+"])');if(b)uygAc(+b.dataset.u)}
   else if(e.key==='Escape'&&e.target.value){e.stopPropagation();e.target.value='';uygSuz()}
 };
-const oncesi=t=>{const dk=Math.floor((Date.now()-t)/6e4);return dk<1?L('az önce','just now'):dk<60?dk+L(' dk önce',' min ago'):dk<1440?Math.floor(dk/60)+L(' sa önce',' h ago'):new Date(t).toLocaleDateString(LOC,{day:'numeric',month:'short'})};
+const oncesi=t=>{const dk=Math.floor((Date.now()-t)/6e4);return dk<1?L('az önce','just now'):dk<60?Lf('{0} dk önce','{0} min ago',dk):dk<1440?Lf('{0} sa önce','{0} h ago',Math.floor(dk/60)):new Date(t).toLocaleDateString(LOC,{day:'numeric',month:'short'})};
 async function uygAc(i,yonetici){
   const u=S.uygulamalar[i];if(!u)return;
   $(`#uyglar [data-u="${i}"]`)?.classList.remove('acil');void document.body.offsetWidth;$(`#uyglar [data-u="${i}"]`)?.classList.add('acil');
@@ -2429,14 +2430,16 @@ const favHost=u=>{try{const x=new URL(u);return /^https?:$/.test(x.protocol)?x.h
 function linkCiz(){
   $('#linkler').innerHTML=S.links.map((l,i)=>{const f=FAV[favHost(l.u)]?.v;return `<button class="rb" data-l="${i}" title="${esc(l.a)} — ${esc(l.u)}" aria-label="${esc(l.a)}${L(' aç">',' open">')}${f?`<img src="${esc(f)}" alt="" onerror="this.remove()">`:''}<span>${esc((l.a[0]||'?').toLocaleUpperCase(LOC))}</span></button>`}).join('')
     +`<button class="rb" data-l="+" title="${L('Hızlı ekle','Quick add')}" aria-label="${L('Hızlı ekle','Quick add')}" aria-haspopup="menu">${SVG(IKON.arti)}</button>`;
-  linkTasma();
+  tasma($('#linkler'));
   for(const l of S.links){const h=favHost(l.u),o=FAV[h];if(!h||favSor.has(h)||o&&(o.v||Date.now()-o.t<864e5))continue;favSor.add(h);
     api('/api/favicon?u='+encodeURIComponent(l.u)).then(r=>{const v=r.durum==='ok'&&typeof r.veri==='string'&&r.veri.startsWith('data:image/')&&r.veri.length<2e5?r.veri:'';
       if(r.durum===AG_YOK)return favSor.delete(h); // offline: try again next time
       FAV[h]={v,t:Date.now()};try{localStorage.fav=JSON.stringify(FAV)}catch{}if(v)linkCiz()})}
 }
-const linkTasma=()=>{const l=$('#linkler');l.classList.toggle('tasar',l.scrollWidth>l.clientWidth+1&&l.scrollLeft+l.clientWidth<l.scrollWidth-2)};
-addEventListener('resize',linkTasma);$('#linkler').addEventListener('scroll',linkTasma);
+const tasma=l=>l.classList.toggle('tasar',l.scrollWidth>l.clientWidth+1&&l.scrollLeft+l.clientWidth<l.scrollWidth-2);
+// a ResizeObserver also catches a card resized by hand, not only the window
+const tasmaRO=new ResizeObserver(l=>l.forEach(e=>tasma(e.target)));
+for(const s of ['#linkler','#hKat']){tasmaRO.observe($(s));$(s).addEventListener('scroll',e=>tasma(e.currentTarget))}
 async function linkDuzenle(i){
   const l=S.links[i]||{},v=await sor(l.a?L('Bağlantıyı düzenle','Edit link'):L('Bağlantı ekle','Add link'),[{ad:L('Ad','Name'),v:l.a,zorunlu:1,ipucu:L('Posta','Mail')},{ad:L('Adres','Address'),v:l.u,zorunlu:1,ipucu:'mail.google.com'}],l.a?L('Kaydet','Save'):L('Ekle','Add'));
   if(!v||!v[0]||!v[1])return;
@@ -3442,7 +3445,7 @@ function spCiz(r,hata){
 }
 // News (Bundle feed through Rust /api/haber): per category in memory and the last fetched in localStorage; refreshed every 15 min.
 // Clicking a row opens the story at its original source in the browser.
-$('#hKat').innerHTML=Object.entries(HKAT).map(([v,ad])=>`<button data-v="${v}">${ad}</button>`).join('');
+$('#hKat').innerHTML=Object.entries(HKAT).map(([v,ad])=>`<button data-v="${v}">${ad}</button>`).join('');tasma($('#hKat'));
 const hGizli=v=>(A('kartGizle')?.haber||[]).includes('k'+v);
 const haberK=()=>{const v0=DIL==='tr'?'gundem':DIL+'_top',k=A('haberKat')??v0;return HKAT[k]&&!hGizli(k)?k:Object.keys(HKAT).find(v=>!hGizli(v))||v0};
 const rssMi=k=>k==='sondakika'||/^(en|es|pl)_/.test(k),hKaynak=k=>k==='sondakika'?(hbKaynakSay?hbKaynakSay+Ln(' kaynak',' sources',hbKaynakSay,' source'):L('Son dakika kaynakları','Breaking news sources')):k.startsWith('en_')?'BBC News':k.startsWith('es_')?'El País':k.startsWith('pl_')?'Polsat News':'Bundle'; // if the selected tab was hidden, the first visible one

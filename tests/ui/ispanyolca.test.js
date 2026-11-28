@@ -9,3 +9,8 @@ esit('news tabs',Object.keys(HKAT)[0]+' '+hKaynak('es_top'),'es_top El País');
 dogru('language picker has Polish and Spanish',['pl','es'].every(v=>q(`#aDil option[value=${v}]`)));
 dogru('no English left in the settings labels',![...document.querySelectorAll('#ayarlar .ayNav button')].some(b=>/^(Profile|Appearance|Notifications|Privacy and security)$/.test(b.textContent.trim())));
 esit('Spanish one form',[1,5].map(n=>n+Ln(' görev',' tasks',n,' task')),['1 tarea','5 tareas']);
+esit('time ago reads as in Spanish',[oncesi(Date.now()-5*6e4),oncesi(Date.now()-3*36e5)],['hace 5 min','hace 3 h']);
+// news tabs that do not fit fade at the right edge (they scroll sideways), and not once scrolled to the end.
+// tasma() is called by hand: headless Edge draws no frames, so the ResizeObserver and scroll events never come
+const hk=q('#hKat');hk.style.width='200px';tasma(hk);const solar=hk.classList.contains('tasar');
+hk.scrollLeft=hk.scrollWidth;tasma(hk);esit('news tabs show there are more',[solar,hk.classList.contains('tasar')],[true,false]);hk.style.width='';

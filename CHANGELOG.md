@@ -11,6 +11,9 @@ Polish and Spanish texts that fit, and Gmail that loads all emails at once with 
 - Spanish calendar title: "Noviembre de 2026", not "Noviembre De 2026".
 - Polish: the settings menu no longer cuts "Privacy" and the settings search box shows its whole hint.
 - The news tab switches read naturally: "Karta Najnowsze", "Pestaña Portada" instead of the English word order.
+- News tabs that do not fit a narrow card fade out at the right edge, so you can tell the row scrolls on (as the links row does).
+- Spanish says "hace 5 min", "hace 3 h" instead of "5 min atrás".
+- Polish weather card: a long air quality word ("Umiarkowana") ran out of its tile; such a tile is now two columns wide. Each air quality level has its own word in Polish (two pairs had the same one), and Spanish says "Pésima" for the worst.
 - A few words left in English are translated: "Aplicaciones" in Spanish, "Automatycznie" in Polish.
 - Gmail with 50 emails per account: the first load asked for all 50 at the same moment, over Gmail's per-second limit, so some emails were missing until the next refresh. They are now fetched 10 at a time.
 

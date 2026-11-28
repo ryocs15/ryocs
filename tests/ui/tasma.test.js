@@ -11,6 +11,8 @@ const bak=(yer,kok)=>{
     const t=(e.innerText||'').trim();if(!t||!soz.has(t)&&!e.closest('dialog'))continue; // settings windows hold no user data: all their text counts (news categories are not in the dictionary)
     const cs=getComputedStyle(e),kes=cs.overflow!=='visible'||cs.textOverflow==='ellipsis'||cs.whiteSpace==='nowrap';
     if(kes&&e.scrollWidth>e.clientWidth+2)bulunan.add(`${yer}: "${t}" cut (${e.scrollWidth}>${e.clientWidth})`);
+    const pr=e.parentElement.getBoundingClientRect(),er=e.getBoundingClientRect();
+    if(er.right>pr.right+2)bulunan.add(`${yer}: "${t}" sticks out of its box`); // "Umiarkowana" ran out of its weather tile
     const c=e.closest('dialog[open],.kart,[data-kart]');if(!c)continue;
     const r=e.getBoundingClientRect(),cr=c.getBoundingClientRect();
     if(r.right>cr.right+2||r.left<cr.left-2)bulunan.add(`${yer}: "${t}" sticks out of its ${c.tagName==='DIALOG'?'window':'card'}`);
@@ -23,6 +25,9 @@ const bak=(yer,kok)=>{
   }
 };
 await bek(800);
+// air quality words in a weather tile as narrow as the card makes them (3 tiles per row on a small card); the demo weather has no air quality
+{const g=document.createElement('div');g.className='hvDet';g.style.width='260px';document.querySelector('[data-kart=hava]').append(g);
+ for(const v of [10,30,50,70,90,120]){g.innerHTML=havaKalite({european_aqi:v,pm2_5:5});bak('air quality '+v,g)}g.remove()}
 bak('dashboard',document.querySelector('main'));
 for(const gen of ['',420]){
   for(const k of Object.keys(KART_AYAR)){kartAyar(k);const d=document.querySelector('dialog[open]');if(gen)d.style.width=gen+'px';await bek(30);bak(k+(gen&&' '+gen),d);d.close()}
