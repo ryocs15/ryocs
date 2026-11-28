@@ -18,6 +18,7 @@ A like button on the Spotify card, Polish and Spanish texts that fit, and Gmail 
 - Spanish says "hace 5 min", "hace 3 h" instead of "5 min atrás".
 - Polish weather card: a long air quality word ("Umiarkowana") ran out of its tile; such a tile is now two columns wide. Each air quality level has its own word in Polish (two pairs had the same one), and Spanish says "Pésima" for the worst.
 - A few words left in English are translated: "Aplicaciones" in Spanish, "Automatycznie" in Polish.
+- Gmail with several accounts: the frame of the selected account button (All) was cut by the edge of the mail list.
 - Gmail with 50 emails per account: the first load asked for all 50 at the same moment, over Gmail's per-second limit, so some emails were missing until the next refresh. They are now fetched 10 at a time.
 
 ## 1.2.0 (2026-11-27)
