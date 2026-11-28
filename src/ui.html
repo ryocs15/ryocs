@@ -456,7 +456,7 @@ button.dot:hover{transform:scale(1.3)}
 .panel{gap:10px;min-width:0}
 .panel>.head,.panel>.grid{flex:none} /* the calendar grid is not squeezed; if space is short only the event list narrows */
 .head{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px}
-.head h1{flex:1 1 100%;margin:0 0 2px;font:300 19px "Segoe UI Variable Display","Segoe UI",sans-serif;text-transform:capitalize}
+.head h1{flex:1 1 100%;margin:0 0 2px;font:300 19px "Segoe UI Variable Display","Segoe UI",sans-serif}.head h1::first-letter{text-transform:uppercase}/* only the first letter: capitalize also raised the Spanish "de" (Noviembre De 2026) */
 .head #gor{margin-right:auto}
 .head .btn{padding:5px 12px;font-size:13px}
 .head .rb{width:32px;height:32px}
@@ -629,6 +629,7 @@ dialog h3{font-weight:400;font-size:11px;letter-spacing:1.5px;text-transform:upp
 .ar{display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:50px;padding:6px 0;border-bottom:1px solid var(--ln)}
 .ar small{display:block;color:var(--mu);font-size:12px}
 .ar{flex-wrap:wrap;row-gap:8px}.ar>span,.ar>label{flex:1 1 9em;min-width:0;overflow-wrap:break-word}.ar>:last-child:not(:first-child){margin-left:auto;max-width:100%} /* the label keeps ~9em; a wider control moves under it instead of squeezing it */
+.ar>.seg{flex-wrap:wrap} /* a long segment list (news categories in Polish or Spanish) wraps inside the window instead of running past it */
 .ar .in{width:170px}
 .ar input[type=number]{width:80px;text-align:center}
 .ar .grp{display:flex;gap:8px;align-items:center}
@@ -2705,7 +2706,7 @@ const KART_AYAR={
   hava:{ayar:[['sehir',L('Ana şehir','Main city'),'metin',0,''],['birim',L('Birimler','Units'),'seg',{'':L('Otomatik','Auto'),c:'°C · km/h',f:'°F · mph'},''],['sehirler',L('Diğer şehirler (virgülle, en fazla 4)','Other cities (comma separated, up to 4)'),'metin',0,''],['havaGun',L('Varsayılan tahmin','Default forecast'),'seg',{'':L('Saatlik','Hourly'),gun:L('3 gün','3 days')},''],['havaUyari',L('Sabah hava uyarısı','Morning weather alert'),'sw',0,true],['havaAksam',L('Akşam yarının havası','Tomorrow\'s weather in the evening'),'sw',0,true]], // no numeric keys: they would move to the front of the object
     gizle:[['det',L('Nem, basınç, UV, rüzgâr (kart büyükken)','Humidity, pressure, UV, wind (when the card is large)'),'.hvDet'],['egri',L('24 saatlik eğri (kart büyükken)','24-hour curve (when the card is large)'),'.hvEgri'],['yedi',L('7 günlük tahmin (kart büyükken)','7-day forecast (when the card is large)'),'.hv7'],['diger',L('Diğer şehirler (kart büyükken)','Other cities (when the card is large)'),'.hvDiger']]},
   haber:{ayar:[['haberKat',L('Kategori','Category'),'seg',HKAT,'gundem'],['haberKelime',L('Gizlenecek kelimeler (virgülle ayır)','Words to hide (comma separated)'),'metin',0,'']],
-    gizle:[['kat',L('Kategori düğmeleri','Category buttons'),'#hKat'],['logo',L('Kaynak logoları','Source logos'),'.hbLogo'],['gorsel',L('Haber görselleri (geniş kartta)','News images (wide card)'),'.hbGorsel'],...Object.entries(HKAT).map(([v,ad])=>['k'+v,ad+L(' sekmesi',' tab'),`#hKat [data-v=${v}]`])]},
+    gizle:[['kat',L('Kategori düğmeleri','Category buttons'),'#hKat'],['logo',L('Kaynak logoları','Source logos'),'.hbLogo'],['gorsel',L('Haber görselleri (geniş kartta)','News images (wide card)'),'.hbGorsel'],...Object.entries(HKAT).map(([v,ad])=>['k'+v,Lf('{0} sekmesi','{0} tab',ad),`#hKat [data-v=${v}]`])]},
   spotify:{ayar:[],gizle:[['ses',L('Ses kaydırıcısı','Volume slider'),'#ses'],['kapak',L('Büyük kapak (kart uzunken)','Large cover (when the card is tall)'),null],['sira',L('Sıradaki şarkılar (kart büyükken)','Up next (when the card is large)'),'#spEk']]},
   kur:{ayar:[['kurTaban',L('Ana para birimi (ISO kodu, örn. TRY, EUR, PLN)','Home currency (ISO code, e.g. USD, EUR, PLN)'),'metin',0,TABAN0],
       ['kurListe',L('Gösterilecek dövizler (ISO kodları, virgülle; en fazla 10)','Currencies to show (ISO codes, comma separated; up to 10)'),'metin',0,kurVarsListe(TABAN0).join(', ')],

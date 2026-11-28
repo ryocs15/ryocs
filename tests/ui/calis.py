@@ -7,7 +7,7 @@ A test file is the body of an async function. Helpers on window.RT:
   RT.esit(name, actual, expected)   deep equality through JSON
   RT.dogru(name, value)             truthy
   RT.bek(ms), RT.q(selector), RT.FIX (tests/fixtures/*.json by file name without .json)
-First-line options:  // dil: tr|en   (default en)     // sure: <virtual ms>   (default 15000)
+First-line options:  // dil: tr|en|pl|es, or several as pl,es (runs once per language; default en)     // sure: <virtual ms>   (default 15000)
 Window errors fail the test. Exit code 1 when anything fails.
 """
 import datetime as dt
@@ -85,10 +85,9 @@ def sayfa(test, dil):
     return s[:i] + on + s[i:].replace('</body>', son + '</body>', 1)
 
 
-def calistir(yol):
+def calistir(yol, dil):
     test = open(yol, encoding='utf-8').read()
     secenek = dict(re.findall(r'^//\s*(dil|sure):\s*(\S+)', test, re.M))
-    dil = secenek.get('dil', 'en')
     gecici = tempfile.mkdtemp(prefix='ryocs-ui-')
     try:
         html = os.path.join(gecici, 'sayfa.html')
@@ -137,11 +136,13 @@ def main():
         ad = os.path.basename(yol)[:-8]
         if adlar and ad not in adlar:
             continue
-        n, hatalar = calistir(yol)
-        print(('PASS' if not hatalar else 'FAIL') + f' {ad} ({n} checks)')
-        for h in hatalar:
-            print('   - ' + h)
-        ok = ok and not hatalar
+        diller = (re.search(r'^//\s*dil:\s*(\S+)', open(yol, encoding='utf-8').read(), re.M) or [0, 'en'])[1].split(',')
+        for dil in diller:
+            n, hatalar = calistir(yol, dil)
+            print(('PASS' if not hatalar else 'FAIL') + f' {ad}' + (f' [{dil}]' if len(diller) > 1 else '') + f' ({n} checks)')
+            for h in hatalar:
+                print('   - ' + h)
+            ok = ok and not hatalar
     return 0 if ok else 1
 
 

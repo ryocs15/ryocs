@@ -2,6 +2,18 @@
 
 All releases: [GitHub Releases](https://github.com/ryocs15/ryocs/releases). Your data (`%APPDATA%\RYOCS`) is kept by every update.
 
+## 1.2.1 (2026-11-28)
+
+Polish and Spanish texts that fit, and Gmail that loads all emails at once with 50 per account.
+
+**Fixes**
+- In Polish and Spanish the news categories in the news card settings ran out of the window (Science and Sports could not be picked); they now wrap onto a second line.
+- Spanish calendar title: "Noviembre de 2026", not "Noviembre De 2026".
+- Polish: the settings menu no longer cuts "Privacy" and the settings search box shows its whole hint.
+- The news tab switches read naturally: "Karta Najnowsze", "Pestaña Portada" instead of the English word order.
+- A few words left in English are translated: "Aplicaciones" in Spanish, "Automatycznie" in Polish.
+- Gmail with 50 emails per account: the first load asked for all 50 at the same moment, over Gmail's per-second limit, so some emails were missing until the next refresh. They are now fetched 10 at a time.
+
 ## 1.2.0 (2026-11-27)
 
 RYOCS in Polish and Spanish, developer options, and a choice of how many emails the Gmail card shows.

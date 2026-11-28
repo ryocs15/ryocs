@@ -1927,14 +1927,15 @@ fn mail_kutusu(hesap: &str, auth: &str, n: &str) -> Result<Value, String> {
     // headers of a message do not change: only new ids are fetched; the memory keeps just the current list, per account
     static ONBELLEK: LazyLock<Mutex<HashMap<String, HashMap<String, Value>>>> = LazyLock::new(Default::default);
     let yeni: Vec<&String> = { let o = kilit(&ONBELLEK); idler.iter().filter(|i| !o.get(hesap).is_some_and(|h| h.contains_key(*i))).collect() };
-    let gelen: Vec<Value> = thread::scope(|k| {
-        let isler: Vec<_> = yeni.iter().map(|id| { k.spawn(move || {
+    // 10 at a time: 50 at once (the largest card setting) is 250 quota units, Gmail's per-second limit, and the extra ones fail with 429
+    let gelen: Vec<Value> = yeni.chunks(10).flat_map(|grup| thread::scope(|k| {
+        let isler: Vec<_> = grup.iter().map(|id| { k.spawn(move || {
             body(AGENT.get(&format!("{g}/messages/{id}")).query("format", "metadata")
                 .query("metadataHeaders", "From").query("metadataHeaders", "Subject")
                 .query("fields", "id,threadId,internalDate,snippet,payload/headers").set("Authorization", auth).call())
         })}).collect();
-        isler.into_iter().filter_map(|h| h.join().ok()?.ok()).collect()
-    });
+        isler.into_iter().filter_map(|h| h.join().ok()?.ok()).collect::<Vec<Value>>()
+    })).collect();
     let mailler = mail_birlestir(kilit(&ONBELLEK).entry(hesap.to_string()).or_default(), gelen, &idler);
     let baslik = |m: &Value, ad: &str| m["payload"]["headers"].as_array().into_iter().flatten()
         .find(|h| h["name"].as_str().is_some_and(|n| n.eq_ignore_ascii_case(ad))).and_then(|h| h["value"].as_str()).unwrap_or("").to_string();
